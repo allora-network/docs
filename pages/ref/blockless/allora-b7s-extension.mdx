@@ -1,0 +1,11 @@
+# Allora Blockless Extension
+
+## Blockless Extensions
+
+Blockless Extensions provide ways of extending the capabilities of plain WebAssembly code. In particular, CGI extensions allow nodes to execute logic written in non-WebAssembly languages. You can read more about them <a href="https://blockless.network/docs/network/extensions" target="_blank">here</a>.
+
+## Allora Blockless Extension
+
+<a href="https://github.com/allora-network/allora-inference-extension" target="_blank">Allora Blockless Extension</a> provides additional functionality by allowing Nodes to execute Python scripts. This extension is installed on Allora Compute Node images and will execute a `main.py` script. The `main.py` script is searched for either in the current directory or the `/app/runtime` or `/app/runtime/extensions` paths.
+
+A Blockless Function showcasing the use of this CGI extension can be found <a href="https://github.com/allora-network/allora-inference-extension/blob/main/allora-inference-function/index.ts" target="_blank">here</a>. This function passes the arguments in the `ALLORA_ARG_PARAMS` environment variables to the `main.py` script as part of a JSON object in the "arguments" field. The Python script can read the JSON payload written to its standard input and read arbitrary data needed for execution.

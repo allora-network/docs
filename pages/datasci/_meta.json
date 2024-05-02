@@ -1,0 +1,7 @@
+{
+  "requirements": "System Requirements",
+  "deploy-worker-with-allocmd": "Deploy a Worker with allocmd",
+  "build-and-deploy-worker-from-scratch": "Build and Deploy Worker from Scratch",
+  "register-worker-node": "Register a Worker Node",
+  "connect-worker-node": "Connect a Worker Node to the Allora Network"
+}

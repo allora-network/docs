@@ -1,0 +1,10 @@
+{
+  "overview": {
+    "title": "Overview"
+  },
+  "what": "What is Allora?",
+  "architecture": "Technical Architecture",
+  "cli": "CLI Spec",
+  "adapters": "Adapters",
+  "glossary": "Glossary"
+}

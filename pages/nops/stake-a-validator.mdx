@@ -1,0 +1,144 @@
+# Stake a Validator
+
+> How to stake on an Allora node
+
+# How to Stake on an Allora Node
+
+Follow these steps to stake on a node in the Allora network. This process includes running and syncing a full node, funding your account, and setting up your Validator for staking.
+
+## Prerequisites
+
+- Successfully run and synced a full `allorad` node. Refer to [Running a Full Node](/run-full-node) for detailed instructions.
+- Basic command-line and Docker knowledge.
+- Access to the node's terminal or command line.
+
+## 1\. Verify Node Sync
+
+Ensure your node is fully synced with the network by executing the following command:
+
+```shell
+curl -s http://localhost:26657/status | jq .result.sync_info.catching_up
+```
+
+Wait until the output returns `false`, indicating your node has caught up with the network.
+
+## 2\. Fund Your Account
+
+After initializing your node, `scripts/l1_node.sh` generates key and account information, found in `data/*.account_info`. Locate your account address within this file to fund it. 
+
+```shell
+cat data/validator0.account_info
+
+- address: allo1xxxxx
+  name: validator0
+  pubkey: xxx
+  type: local
+[...]
+```
+
+For testnet environments, use the appropriate faucet at https://faucet.testnet.allora.network/. Instructions on using the faucet can be found [here](../devs/how-to-use-faucet).
+
+## 3\. Stake as a Validator
+
+To become a validator, perform the following inside the validator's Docker container environment. You can choose your validator's name by setting a custom moniker (with `--moniker=...`). We will take the example of `validator0` with `10000000 uallo`. 
+
+### Access the Validator's Shell
+
+Use `docker compose` to access the validator's shell environment:
+
+```shell
+docker compose exec validator0 bash
+```
+
+**Note**: You can list all available keys with: 
+
+```shell
+allorad --home=$APP_HOME keys --keyring-backend=test list
+```
+
+### Prepare Stake Information
+
+Within the validator's shell, create a JSON file named `stake-validator.json` with your validator's stake information. Replace values with your actual data:
+
+```shell
+cat > stake-validator.json << EOF
+{
+    "pubkey": $(allorad --home=$APP_HOME comet show-validator),
+    "amount": "1000000uallo",
+    "moniker": "$(echo $MONIKER)",
+    "commission-rate": "0.1",
+    "commission-max-rate": "0.2",
+    "commission-max-change-rate": "0.01",
+    "min-self-delegation": "1"
+}
+EOF
+```
+
+### Execute the Stake Command
+
+With your stake information file ready, execute the following command to stake as a Validator:
+
+```shell
+allorad tx staking create-validator ./stake-validator.json \
+    --chain-id=testnet \
+    --home="$APP_HOME" \
+    --keyring-backend=test \
+    --from="$MONIKER"
+```
+
+This command outputs a transaction hash, which can be checked on the network's explorer: `https://explorer.testnet.allora.network/allora-testnet/tx/$TX_HASH`.
+
+## 4\. Verify Validator Setup
+
+Ensure your validator is properly registered and staked with the network by executing the following commands:
+
+### Check Registration and Stake
+
+Retrieve and verify your validator's information by running these 2 commands:
+
+```shell
+VAL_PUBKEY=$(allorad --home=$APP_HOME comet show-validator | jq -r .key)
+```
+
+```shell
+allorad --home=$APP_HOME q staking validators -o=json | \
+    jq '.validators[] | select(.consensus_pubkey.value=="'$VAL_PUBKEY'")'
+```
+
+This command outputs detailed information about your validator. If it's correctly set up, it will look like this:
+
+```json
+{
+  "operator_address": "allovaloper1n8t4ffvwstysveuf3ccx9jqf3c6y7kte48qcxm",
+  "consensus_pubkey": {
+    "type": "tendermint/PubKeyEd25519",
+    "value": "gOl6fwPc19BtkmiOGjjharfe6eyniaxdkfyqiko3/cQ="
+  },
+  "status": 3,
+  "tokens": "1000000",
+  "delegator_shares": "1000000000000000000000000",
+  "description": {
+    "moniker": "val2"
+  },
+  "unbonding_time": "1970-01-01T00:00:00Z",
+  "commission": {
+    "commission_rates": {
+      "rate": "100000000000000000",
+      "max_rate": "200000000000000000",
+      "max_change_rate": "10000000000000000"
+    },
+    "update_time": "2024-02-26T22:50:31.187119394Z"
+  },
+  "min_self_delegation": "1"
+}
+```
+
+### Check Voting Power
+
+Verify that your Validator's voting power is greater than 0, indicating active participation in the Network:
+
+```shell
+allorad --home=$APP_HOME status | jq -r '.validator_info.voting_power'
+```
+
+**Note**: Please allow 30-60 seconds for the information to update. A voting power greater than 0 signifies a successful stake setup. Congratulations!

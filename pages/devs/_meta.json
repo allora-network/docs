@@ -1,0 +1,17 @@
+{
+  "how-to-create-topic": "How to Create a Topic",
+  "create-deploy-inference-generation-function": "Create, Deploy, and Invoke an Inference Generation Function",
+  "create-deploy-weight-adjustment-function": "Create, Deploy, and Invoke a Weight Adjustment Function",
+  "walkthrough-create-index-level-topic": "Walkthrough: Create a Yuga Index-Level Topic",
+  "walkthrough-create-eth-price-topic": "Walkthrough: Create an Ether Price Prediction Topic",
+  "existing-topics": "Existing Topics on Allora",
+  "offchain-query-existing-workers": "How to Query Workers of Existing Topics Off-Chain",
+  "onchain-query-existing-data": "How to Query On-Chain Data of Existing Topics",
+  "adapters": "Getting Started with Adapters",
+  "deploy-adapter": "Deploying an Adapter to an EVM Target Chain",
+  "existing-adapters": "Existing Deployments of Adapters",
+  "walkthrough-update-adapter-with-index-level": "Walkthrough: Update an Adapter with Index Level Data",
+  "walkthrough-update-adapter-with-nft-appraisal": "Walkthrough: Update an Adapter with NFT Appraisal Data",
+  "using-adapter-price-data": "Using Adapter Price Data",
+  "how-to-use-faucet": "How to Use the Faucet"
+}

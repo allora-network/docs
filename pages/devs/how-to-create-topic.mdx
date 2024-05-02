@@ -1,0 +1,78 @@
+# How to Create a Topic
+
+> Inferences for the same domain are aggregated into the same topic
+
+## What is a Topic?
+
+[Topics](technical-architecture#topics) are Schelling points where disparate-but-alike data scientists and domain experts aggregate their predictions. For example, we might create a topic for predicting the future price of ETH. There, all experts with any talent in predicting the future price of ETH will submit their inferences. Topics vary by domain and parameterization, defining how these inferences are collected and valued.
+
+Developers can make topics for arbitrary categories of inferences so long as they complete these steps:
+
+## Note
+
+Topic creation is temporarily a whitelisted action. The Upshot Team currently has access to whitelisted addresses. We plan to make this action permissionless soon. In the meantime, those interested in creating new topics should reach out to us <a href="https://docs.google.com/forms/d/e/1FAIpQLScj2rGAjFAAPZANrr2vZr_WAmLhniHn2x_l8K7EQcJ1i8XqHw/viewform" target="_blank">here</a>.
+
+## Prerequisites:
+
+1. A wallet with sufficient funds to at least cover gas. Use [the faucet](how-to-faucet-your-account) to get funds. 
+2. A deployed Blockless function that triggers node inferences (obtain `function_id` and `method`).  
+   Learn more: [How to Create an Inference Generation Function](how-to-create-an-inferece-generation-function)
+3. A deployed Blockless function for the weight adjustment logic (obtain `function_id` and `method`).  
+   Learn more: [How to Create and Deploy a Weight Adjustment Function](how-to-create-and-deploy-a-weight-adjustment-function)
+4. A deployed Adapter on the desired _target chain_. A target chain will likely sit closer to your application, and hence we deploy adapter contracts on target chains to receive and verify inferences to be consumed by applications properly.  
+   Learn more: [Getting Started with Adapters](adapters)
+
+## Creating Your First Topic
+
+The transaction for creating a topic has the following structure:
+
+```go
+type MsgCreateNewTopic struct {
+  // Address of the wallet that will own the topic
+  Creator          string   `json:"creator,omitempty"`
+  // Information about the topic
+  Metadata         string   `json:"metadata,omitempty"`
+  // The logic that governs weight calculations (function id)
+  WeightLogic      string   `json:"weight_logic,omitempty"`
+  // The method used for weight calculations (.wasm)
+  WeightMethod     string   `json:"weight_method,omitempty"`
+  // The frequency (in seconds) of weight calculations
+  WeightCadence    uint64   `json:"weight_cadence,omitempty"`
+  // The logic that governs inference calculations (function id)
+  InferenceLogic   string   `json:"inference_logic,omitempty"`
+  // The method used for inference calculations (.wasm)
+  InferenceMethod  string   `json:"inference_method,omitempty"` 
+  // The frequency (in blocks) of inference calculations
+  InferenceCadence uint64   `json:"inference_cadence,omitempty"`
+  // Default argument the worker will receive when py script is called
+  DefaultArg       string   `json:"default_arg,omitempty"`
+}
+```
+
+Using the [Allora CLI](cli-spec) to create a topic:
+
+```shell bash
+allorad tx emissions push-topic \
+  allo13tr5nx74zjdh7ya8kgyuu0hweppnnx8d4ux7pj \    # Creator address
+  "ETH prediction in 24h" \                                         # Metadata
+  "bafybeih6yjjjf2v7qp3wm6hodvjcdljj7galu7dufirvcekzip5gd7bthq" \  # WeightLogic
+  "eth-price-weights-calc.wasm" \                 # WeightMethod
+  3600 \                                          # WeightCadence
+  "bafybeigpiwl3o73zvvl6dxdqu7zqcub5mhg65jiky2xqb4rdhfmikswzqm" \  # InferenceLogic
+  "allora-inference-function.wasm" \              # InferenceMethod
+  300 \                                           # InferenceCadence
+  "ETH"                                           # DefaultArg
+```
+
+After successfully processing your transaction, the topic's functions will be triggered on the Blockless network according to the desired cadence. When there are registered workers and validators on your topic, they will be sending inferences and weights, respectively.
+
+### Notes
+
+An explanation in more detail of some of these fields. 
+
+- `Metadata` is a descriptive field to let users know what this topic is about and/or any specific indication about how it is expected to work.
+- `WeightLogic` and `WeightMethod` define a WASM blockless function that receives inferences and previous weights from workers, and that generates a new set of weights. 
+  - If your topic expects workers to return a numerical value, then the `WeightLogic`and`WeightMethod` values provided in the example above most likely will work for you. Please contact us for further details on your specific case.
+- `InferenceLogic`  defines a WASM blockless function to trigger the call to the `main.py` file in the worker. These values are expected to be reused from the example.
+- `WeightCadence` and `InferenceCadence`: the cadence (in seconds) at which the inference and weight adjustment cycles are run. Weight adjustment will use several runs of inferences to make the adjustment, so normally the weight cadence will be several times higher than the inference. This can be adjusted to fit each particular predictive case.
+- `DefaultArg` value will be passed as an argument to the python script, i.e. when the worker receives the request, it will attempt to run `python3 <location-of-main.py> <TopicId> <DefaultArg>`. This will be used in the scoring stage to request inferences from the chain.

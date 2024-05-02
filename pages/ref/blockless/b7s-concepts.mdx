@@ -1,0 +1,80 @@
+# Blockless Network General Concepts
+
+## Identity
+
+Node identity is determined by the private key it uses. To create a private key, head over to <a href="https://github.com/blocklessnetwork/b7s/tree/main/cmd/keyforge" target="_blank">keyforge</a> and create a new key.
+
+```shell
+$ cmd/keyforge/keyforge --output key-dir
+$ tree key-dir
+./key-dir
+├── identity
+├── peerid.txt
+├── priv.bin
+├── pub.bin
+└── pubkey.txt
+```
+
+Private key determines how the node will identify itself on the network. If a different private key is provided, node will advertise itself under a new identity.
+
+This identity is also called a peer ID, where each node on a network is one peer. Node logs often contain messages detailing which peer sent what, which can be helpful to trace network communication and the order of events in the network.
+
+## Node Roles
+
+Nodes can have one of two roles in the network:
+
+- head
+- worker
+
+Head nodes act as coordinators for the work nodes. They have a REST API that can be used to request work from the worker nodes, and they delegate work to them.
+
+Worker nodes are nodes where actual execution takes place. Worker nodes make themselves available to the head nodes, they participate in roll calls (signing up for new work) and can form ad-hoc clusters when multiple nodes need execution.
+
+To operate a network, one must have a minimum of one head node and one worker node.
+
+## Execution Flow
+
+The following is a rough overview of the execution process:
+
+1. Execution request is sent to the REST API of a Head node
+2. Head node makes a roll call, requesting available worker nodes to sign up for work
+3. Head node chooses the suitable worker (or workers, as multiple worker nodes can be selected)
+4. Head node sends the execution request to the chosen workers directly
+5. Worker nodes execute the work and send their results back
+6. Head node collects execution results from the workers
+7. Head node sends the execution result(s) back to the client.
+
+Worker nodes execute their work in parallel, and there are few different ways of doing this:
+
+- simple aggregation (take all of the execution results and return them together)
+- form a Raft consensus cluster
+- form a pBFT consensus cluster
+
+## Node Attributes
+
+Node attributes are key-value pairs, describing some attributes of the system running the node, for example:
+
+```
+Arch: x86_64
+CPU: 4
+Comment: ThisIsAComment
+Database: MySQL
+Env: Production
+ExpirationDate: 1683255281
+Filesystem: ext4
+OS: Linux
+PrivateIP: 10.0.0.2
+RAM: 16GB
+Storage: 100GB
+StorageType: SSD
+```
+
+For more details on creating, signing, and publishing attributes, you can check out <a href="https://github.com/blocklessnetwork/b7s-attributes" target="_blank">blockless attributes</a>. In short, attributes more closely describe the node system, and they can be used to filter out workers that do not fit specific criteria. For instance, it's possible to create execution requests aiming at nodes with specific architecture or a certain number of CPUs.
+
+## Subgroups
+
+By default, all worker nodes are part of one group. However, worker nodes can make themselves part of a _subgroup_. Execution requests can be assigned to any particular subgroup of nodes - only nodes part of that subgroup consider executing those requests.
+
+Generally, messages in a Blockless network are exchanged via direct messages or a pub-sub mechanism, where nodes subscribe to specific topics. Worker nodes can, using <a href="https://github.com/blocklessnetwork/b7s/tree/main/cmd/node#usage" target="_blank">CLI flags</a> specify the topics to which they subscribe (using the `--topic <topic-name>` CLI flag). Nodes part of the same subgroup subscribe to the same topics.
+
+Head nodes do not have to be cognizant of any subgroups ahead of time - when an execution request for a specific subgroup is found, it is published to all nodes (it's aware of) that are subscribed to that subgroup.

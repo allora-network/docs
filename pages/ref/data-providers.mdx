@@ -1,0 +1,118 @@
+# What is a Data Provider?
+
+The primary goal of Allora is to be the marketplace for intelligence. Allora aims to incentivize data scientists (workers) to provide high-quality inferences as consumers request them. High-quality inferences require high-quality data. This article outlines the process and requirements for becoming a data provider within the Allora ecosystem. Data Providers are crucial in enhancing the network's machine intelligence capabilities by contributing data. 
+
+# Role Definition
+
+Data providers on the Allora Network supply high-quality, relevant data essential for training machine learning models and making accurate predictions. This data can vary widely, including but not limited to price series, asset attributes, fundamental ratios, events like Bitcoin ETF approvals, sentiment indicators, and much more. A data provider may be either an individual or a group with access to proprietary datasets. 
+
+## Advantages of Being a Data Provider
+
+### Distribution and Accessibility
+
+By participating in the Allora Network, data providers contribute to a more open and accessible ecosystem. This democratizes access to machine intelligence, allowing it to integrate more deeply into the economy, technology, and society. Once a data provider is integrated into Allora, an official page will redirect Allora's users to their website. 
+
+### The Reputer Role
+
+Data providers also have the opportunity to act as Reputers. Reputers validate the accuracy of predictions and inferences made within the network, providing an additional layer of trust and security. This role comes with its own set of rewards and responsibilities. More details [can be found here](https://docs.allora.network/docs/technical-architecture-v2).
+
+### Incentives
+
+Data providers are incentivized through a differentiated structure that rewards contributions based on the value they add to the network. This ensures fair compensation for the data provided and its impact on the network's performance. Payment for data is not enforced in the protocol and can be settled out-of-band. Incentives for Reputers [are detailed here](technical-architecture-v2#rewards).
+
+## Requirements for Data Providers
+
+### Latency
+
+The latency requirements for providing data depend on the specific needs of the supported forecasting or prediction models. This can vary from near real-time data for minute-ahead predictions to less frequent updates for day-ahead forecasts. 
+
+### Formatting and Historical Data
+
+Data must be provided in a structured, easily consumable format, such as CSV, JSON, or through APIs. Historical data is crucial for training and refining models, and while the delivery method may vary (API, FTP, etc.), the data should be comprehensive and accurate. 
+
+### Ground Truth
+
+For certain predictions, especially those related to financial assets, the ground truth might be a historical price series or a list of transactions. This information is vital for validating the accuracy of models and inferences. 
+
+## Architecture/Deployment
+
+The Allora Network's decentralized nature requires data providers to integrate their systems in a way that supports secure and reliable data transfer. While specifics may vary based on the data and models involved, standard methods include API access with authentication keys, direct database connections, or file transfers. 
+
+## Walkthrough Example
+
+1. **Data Preparation**: Ensure your data meets the Allora Network's latency, formatting, and relevance requirements. This might include aggregating historical data, setting up real-time data feeds, or formatting data into the required structures. 
+2. **Integration**: Choose the most appropriate method for your data delivery, such as API, FTP, or direct database access. Implement the necessary security measures, such as authentication keys. 
+3. **Testing and Validation**: Before officially becoming a data provider, test the data transfer process to ensure reliability, accuracy, and timeliness. This may involve coordination with Allora Network representatives, other workers, and reputers, or participating in a sandbox environment. You can find more info below.
+4. **Deployment**: Once testing is complete and integration is verified, deploy the data provision system. This includes ongoing monitoring and maintenance to ensure data quality and system reliability. 
+
+Consider the example of our [ETH price prediction worker](https://dash.readme.com/project/allora/v1.0/docs/walkthrough-for-running-an-ethereum-price-prediction-node), which utilizes Binance as a data provider for price feeds. The data is accessed [via an API](https://github.com/allora-network/basic-coin-prediction-node/blob/main/updater.py#L22), [organized](https://github.com/allora-network/basic-coin-prediction-node/blob/main/model.py#L36) by the model creator, and employed [to train the model](https://github.com/allora-network/basic-coin-prediction-node/blob/main/model.py#L75), facilitating a smooth integration process. 
+
+# How to become a Data Provider?
+
+We are starting to onboard our first official Data Providers! 
+
+If you are interested in becoming a data provider on the Allora Network or have questions regarding the data provision process, we are here to assist you. Our team is dedicated to supporting your integration and ensuring that your contributions maximize the potential of decentralized machine intelligence. 
+
+Your data will play a crucial role in driving innovation and accuracy across the Network. Whether you are looking to contribute historical datasets, real-time feeds, or become involved as a Reputer, we welcome your participation.
+
+Take the first step today by reaching out to us through [this email](mailto:[contact@upshot.xyz]). Let's collaborate to make the Allora Network the global town square for machine intelligence, where data providers like you are the cornerstone of our collective success.
+
+# How to integrate with an existing Data Provider?
+
+Integrating and utilizing data from one of the Allora Network's official data providers is a straightforward process designed to enhance the capabilities of your machine intelligence models with high-quality, reliable data. This section will guide you through the steps to access and use data from an official provider on the Allora Network.
+
+## Identify Your Data Needs
+
+### Define the Scope
+
+Determine the type of data you need, including the level of detail, frequency, and historical depth required for your machine intelligence project.
+
+### Select a Provider
+
+Review the [list of official data providers](<>) on the Allora Network to find one that matches your data requirements. Information about each provider, including the types of data offered and any specific features or limitations, can typically be found on the Allora Network's platform.
+
+## Request Access
+
+### Contact the Provider
+
+Reach out to the chosen data provider through the contact information provided on the Allora Network. Specify your data needs and any particular requirements you might have.
+
+### Review Terms and Conditions
+
+Discuss and agree upon the terms of use, including any fees, data usage policies, and privacy considerations.
+
+## Integrate Data Access
+
+### API Integration
+
+Most official data providers on the Allora Network offer API access for seamless integration. Obtain the API keys and documentation from the provider, then configure your system to fetch the data as needed.
+
+### Data Format and Structure
+
+Ensure your system is compatible with the data formats (e.g., JSON, CSV) provided. Understand the data schema to correctly parse and utilize the information.
+
+## Utilize the Data
+
+### Incorporate into Models
+
+Feed the data into your machine learning models or analytical tools. This might involve preprocessing steps such as cleaning, normalization, or transformation to match your model's requirements.
+
+### Continuous Monitoring and Updating
+
+Establish a process for regularly updating the data and monitoring its quality and relevance. Keeping your data up-to-date is crucial for maintaining the accuracy and reliability of your inferences or predictions.
+
+## Provide Feedback
+
+### Share Insights
+
+Communicate any feedback, issues, or suggestions to the data provider. Continuous dialogue can help improve the quality of the data and the service provided.
+
+## Need Help or Further Information?
+
+If you encounter any challenges or have questions about using an official data provider on the Allora Network, please don't hesitate to reach out to us. Our team is committed to supporting you in leveraging the full potential of our network's data capabilities.
+
+Engaging with an official data provider on the Allora Network is designed to be as seamless and beneficial as possible. By following these steps, you can efficiently integrate high-quality data into your machine intelligence projects, driving insights and innovation. 
+
+# Conclusion
+
+Becoming a data provider on the Allora Network offers the opportunity to contribute to the cutting-edge field of decentralized machine intelligence. Data providers can ensure they contribute to the Allora ecosystem's growth and effectiveness by meeting the specified requirements and following the outlined steps.

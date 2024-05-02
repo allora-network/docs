@@ -1,0 +1,117 @@
+# Walkthrough: Build and Deploy Price Prediction Worker Node
+
+> How to build a node that predicts the future price of Ether
+
+## Prerequisite
+
+1. Make sure you have checked the documentation on [build and deploy a worker node from scratch](build-a-worker-node-from-scratch).
+2. Clone the <a href="https://github.com/allora-network/basic-coin-prediction-node" target="_blank">basic-coin-prediction-node</a> repository. It will serve as the base sample for your quick setup.
+
+We will work from the repository you just cloned. We will explain each part of the source code and make changes to your custom setup as required. Additionally, I encourage you to check the repository's <a href="https://github.com/allora-network/basic-coin-prediction-node/blob/main/README.md" target="_blank">README</a> for further guidance.
+
+## Setting up your Custom Prediction Node network
+
+1. **Generate keys**
+
+As explained in the previous guide, any worker node is a peer in the Allora Network, and each peer needs to be identified. You must generate identity keys for your nodes by running the commands below. This will automatically create the necessary keys and IDs in the necessary folders. 
+
+**Create head keys:**
+
+```
+docker run -it --entrypoint=bash -v ./head-data:/data alloranetwork/allora-inference-base:latest -c "mkdir -p /data/keys && (cd /data/keys && allora-keys)"
+```
+
+**Create worker keys**
+
+```
+docker run -it --entrypoint=bash -v ./worker-data:/data alloranetwork/allora-inference-base:latest -c "mkdir -p /data/keys && (cd /data/keys && allora-keys)"
+```
+
+**Important note:** If no keys are specified in the volumes, new keys will be automatically created inside the`head-data/keys` and `worker-data/keys` when first running step 3.
+
+2. **Connect the worker node to the head node**:
+
+At this step, both worker and head nodes identities are generated inside the`head-data/keys` and `worker-data/keys` directories. To instruct the worker node to connect to the head node:
+
+- run `cat head-data/head/keys/identity` to extract the head node's peer_id specified in the `head-data/keys/identity`
+- use the printed peer_id to replace the `head-id` placeholder value specified inside the `docker-compose.yml` file when running the worker service: `--boot-nodes=/ip4/172.22.0.100/tcp/9010/p2p/head-id`
+
+3. **Run setup**  
+   Once all the above is set up, run `docker-compose build && docker-compose up`  
+   This will bring up the head, the worker, and the inference nodes (which will run an initial update). The `updater` node is a companion for updating the inference node state and it's meant to hit the `/update` endpoint on the inference service. It is expected to run periodically, being crucial for maintaining the accuracy of the inferences.  
+   You can verify that your services are up by running `docker-compose ps` and run the test curl request below with your appropriate arguments.
+
+Peep into the `docker-compose.yml`to understand what is happening and change the values as you wish. The docker-compose file consists of 3 docker services, namely
+
+1. **Inference (`app.py`)**:  This flask app exposes endpoints to be called to generate inference and to update the model. By hitting the service endpoint, the service will interact with the model to generate inference or update the model. This is the model server as explained in the previous guide, the gateway to the model from external requests. You can change the logic as your case demands.
+2. **Updater (`update_app.py`)**:  This service is meant to hit the `/update` endpoint on the inference service. The goal is to make sure the model state is updated when needed. Depending on your use case, you can also schedule this to be done periodically.
+3. **Worker**:  This is the actual worker service that combines the `allora-inference-base`, the node function and the custom `main.py` Python logic.  The Allora chain makes requests to the head node, which will broadcast requests to the workers, which will then download the function from IPFS and then run the function to be able to call the `main.py`, which contains a request to `/inference/<token>` endpoint that channels request to your model server. The worker service is built on a different [Dockerfile](https://docs.allora.network/docs/build-a-worker-node-from-scratch#4-worker-node-main-dockerfile) called `Dockerfile_b7s`, which extends the functionalities of the `allora-inference-base`image.  
+   The `BOOT_NODES` variable is the address to the head node; it states the head node peer_id so that the worker node would know the particular head node request that it needs to listen to that way when the head node publishes a request, the node will attend to it.
+4. **Head**: This service represents an Allora network head node. This helps local testing by emulating a network, however it is not required for running your node in the Allora network.
+
+## Issue an Execution Request
+
+After the node is running locally, it may be queried. Using cURL, issue the following HTTP request to the head node
+
+```json json
+curl --location 'http://localhost:6000/api/v1/functions/execute' \
+--header 'Content-Type: application/json' \
+--data '{
+    "function_id": "bafybeigpiwl3o73zvvl6dxdqu7zqcub5mhg65jiky2xqb4rdhfmikswzqm",
+    "method": "allora-inference-function.wasm",
+    "parameters": null,
+    "topic": "1",
+    "config": {
+        "env_vars": [
+            {
+                "name": "BLS_REQUEST_PATH",
+                "value": "/api"
+            },
+            {
+                "name": "ALLORA_ARG_PARAMS",
+                "value": "ETH"
+            }
+        ],
+        "number_of_nodes": -1,
+        "timeout": 2
+    }
+}'
+```
+
+The result will look like this:
+
+```json json
+{
+  "code": "200",
+  "request_id": "03001a39-4387-467c-aba1-c0e1d0d44f59",
+  "results": [
+    {
+      "result": {
+        "stdout": "{\"value\":\"2564.021586281073\"}",
+        "stderr": "",
+        "exit_code": 0
+      },
+      "peers": [
+        "12D3KooWG8dHctRt6ctakJfG5masTnLaKM6xkudoR5BxLDRSrgVt"
+      ],
+      "frequency": 100
+    }
+  ],
+  "cluster": {
+    "peers": [
+      "12D3KooWG8dHctRt6ctakJfG5masTnLaKM6xkudoR5BxLDRSrgVt"
+    ]
+  }
+}
+```
+
+The `results.result.stdout` will get the prediction output in json format.
+
+## Deploying your Custom Prediction Node
+
+To get your node deployed to a remote production environment, you can deploy however you prefer or follow our Kubernetes [deployment guide](https://docs.allora.network/docs/build-a-worker-node-from-scratch#deploying-a-worker-node) where you basically:
+
+1. Add the universal-helm chart to the helm repo.
+2. Update the `values.yaml` file to suit your case.
+3. Install the universal helm chart, and it will automatically deploy the node to production with the provided values.
+4. Monitor your node in your Kubernetes cluster.

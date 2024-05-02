@@ -1,0 +1,151 @@
+# Chain Parameters
+
+> A glossary and description of chain-level parameters
+
+## Mint Module and Token Inflation Parameters
+
+#### inflation_rate_change
+
+The maximum permitted annual change in inflation rate. The mint module will throw an error if the inflation rate exceeds this value.
+
+Default Value: 357.3582624
+
+#### inflation_max
+
+The maximum inflation rate. The mint module will throw an error if the inflation rate exceeds this value.
+
+Default Value: 357.3582624
+
+#### inflation_min
+
+The minimum permitted inflation rate. The mint module will throw an error if the inflation rate goes below this value
+
+Default Value: 0
+
+#### goal_bonded
+
+The goal used to target the percentage of bonded staking cosmos validators.
+
+Default Value: 0.67
+
+#### blocks_per_year
+
+The amount of blocks that the inflation schedule believes will happen each year.
+
+Default Value: 6311520
+
+#### max_supply
+
+The capped amount of tokens that will ever be allowed to exist.
+
+Default Value: 1 Billion Allo \* 1e18 (for base unit uAllo): 1e28 uAllo
+
+#### halving_interval
+
+The number of blocks at which to halve the inflation rate of newly minted tokens, like Bitcoin's emissions schedule:
+
+Default Value: 25246080
+
+#### current_block_provision
+
+Number of tokens that will be minted every block during a halving interval. This chain parameter controls the first value set for the first block. Afterwards, each halvening this value will be divided by two.
+
+Default Value: 2831000000000000000000
+
+## Allora Specific Parameters
+
+#### reward_cadence
+
+The duration of a reward epoch in blocks. Every `reward_cadence` seconds, rewards are recomputed within `EndBlock`.
+
+Default Value: 600 blocks
+
+Shorter epochs can lead to more frequent reward updates and responsiveness. This is advantageous for rapidly reacting to changes in the network (eg new topics, models, incentives, etc) and make the rewards available earlier. However small values they also have an impact on network efficiency.
+
+#### min_topic_unmet_demand
+
+The minimum unmet demand on a topic to consider it active, and thus enter rounds of inference solicitation and weight adjustment.
+
+Default Value: 100 allo
+
+The value provides a minimum amount of demand in order to trigger inference and weight adjustment rounds, to protect the network against activity of little to no added value. It is also kept small enough to not represent a barrier of entry for participation.
+
+#### max_topics_per_block
+
+Maximum number of active topics to run inference and weight adjustment rounds for on each block.
+
+Default Value: 2048 topics
+
+This value is high enough to allow a reasonable number of active topics to coexist, while also protecting the network against too much activity per block, preventing congestion and ensuring a more predictable block processing time.
+
+#### min_request_unmet_demand
+
+Threshold under which the inference requests will be deleted or prevented from being created.
+
+Default Value: 1 allo
+
+The purpose is to allow to prevent unnecessary processing of requests with minimal impact, keeping the state of the chain tidy, while at the same time be conservative with partiallly exhausted inference requests.
+
+#### max_missing_inference_percent
+
+The percentage of inferences rounds missed by a worker, over which the worker gets penalized.
+
+Default Value: 20 %
+
+Penalizing workers for missing inferences encourages reliability and accountability in the AI inference process. However, setting this value too low may lead to frequent penalties, potentially discouraging worker participation. A value that strikes a balance between both has been set.
+
+#### required_minimum_stake
+
+Sets the minimum stake to be a worker or reputer. If a worker or reputer has less than this stake, then it is not eligible for rewards. This is set at worker and reputer registration.
+
+Default Value: 100 allo
+
+Setting a minimum stake helps ensure that participants have a vested interest in the network's success and are not simply sybils, enhancing security and commitment, while at the same time not being too high so that it may limit the accessibility of the network and discourage potential legitimate participants.
+
+#### remove_stake_delay_window
+
+Sets the duration, in seconds, during which a staker's tokens remain staked after initiating the unstaking process. This protects against flash-type attacks.
+
+Default Value: 172800  (1 day)
+
+A fair delay in unstaking, which can ensure stability in the network by preventing sudden fluctuations in staked tokens and discourage malicious actors, while keeping it low enough so it is not very inconvenient to users who want to unstake their tokens promptly.
+
+#### min_request_cadence
+
+Sets the minimum allowed time interval, in seconds, between consecutive AI calls from an inference request.
+
+Default Value: 10 seconds
+
+Imposing a minimum cadence ensures a reasonable pacing of inference requests, preventing potential abuse or unnecessary strain on the network. Adjusted based on the expected frequency of AI inference requests and the network's capacity, balanced between responsiveness and resource efficiency. 
+
+#### min_weight_cadence
+
+Sets the minimum allowed time interval, in seconds, between consecutive calls for topic weight adjustment.
+
+Default Value: 3600 seconds (1 hour)
+
+Imposing a minimum cadence ensures a reasonable pacing of weight-adjustment, preventing potential abuse or unnecessary strain on the network. That being said, it need not occur too frequently, because weights accrue over many inferences anyway, and these calls are relatively expensive involving off-chain communication.
+
+#### max_inference_request_validity
+
+Sets the maximum allowable time, in seconds, for an AI inference request to remain valid before expiration.
+
+Default Value: 29030400 seconds (1year)
+
+Setting a maximum validity time ensures that AI inference requests are processed within a reasonable timeframe, preventing outdated requests, while at the same time allowing inference requests to be planned and executed at the designed cadence within a generous timeframe, especially where time-dependent effects (e.g. seasonal effects) can happen.
+
+#### max_request_cadence
+
+Sets the maximum allowable time, in seconds, for an AI inference request to remain valid before expiration.
+
+Default Value: 29030400 seconds (1 year)
+
+A shorter validity period ensures that AI inference requests are designed to be processed more quickly and with up-to-date information. However, because lowering this value may lead to the rejection of legitimate requests if they take longer to process, the maximum allowed equals the max inference request, which is a conservative and flexible decision to allow inference requests creators for maximal planning ahead.
+
+#### percent_rewards_reputers_workers
+
+Cosmos validators, Allora Reputers, and Allora Workers all deserve to be paid out rewards from token inflation as well as collected transaction fees for using the Allora network. In Allora, we have two [payment flows](allora-module-accounts) for paying out rewards. Cosmos validators use the standard cosmos-sdk staking flows to get their rewards, and reputers and workers separately get their rewards from the Allora specific algorithm and code. This parameter controls the ratio of rewards between cosmos validators on one side, and reputers and workers on the other.
+
+Default Value: 50%
+
+A higher percentage would pay more transaction fees to reputers and workers, at the expense of giving less rewards to cosmos validators. A lower percentage value would give more rewards to cosmos validators, but pay out less rewards to reputers and workers for their services to the network.

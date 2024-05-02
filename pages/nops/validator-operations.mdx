@@ -1,0 +1,21 @@
+# Validator Operations
+
+## Unjailing a validator
+
+To unjail a validator execute the following command from the validator
+
+```Text bash
+allorad --home="$APP_HOME" \
+  tx slashing unjail --from $VALIDATOR_ADDRESS
+```
+
+## Unstaking/unbounding a validator
+
+If you need to delete a validator from the chain, you just need to unbound the stake with your custom parameters:
+
+```bash
+allorad --home="$APP_HOME" \
+  tx staking unbond ${VALIDATOR_OPERATOR_ADDRESS} \
+  ${STAKE_AMOUNT}uallo --from "$MONIKER" \
+   --keyring-backend=test --chain-id ${NETWORK}
+```
