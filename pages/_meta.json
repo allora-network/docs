@@ -1,8 +1,8 @@
 {
   "index": "Welcome",
   "community": "Community",
-  "learn": "Learn",
   "code": "Code",
+  "learn": "Learn",
   "datasci": "For Data Scientists",
   "devs": "For Developers",
   "nops": "For Validators",
