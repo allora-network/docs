@@ -14,11 +14,11 @@ By participating in the Allora Network, data providers contribute to a more open
 
 ### The Reputer Role
 
-Data providers also have the opportunity to act as Reputers. Reputers validate the accuracy of predictions and inferences made within the network, providing an additional layer of trust and security. This role comes with its own set of rewards and responsibilities. More details [can be found here](https://docs.allora.network/docs/technical-architecture-v2).
+Data providers also have the opportunity to act as Reputers. Reputers validate the accuracy of predictions and inferences made within the network, providing an additional layer of trust and security. This role comes with its own set of rewards and responsibilities. More details [can be found here](../learn/architecture).
 
 ### Incentives
 
-Data providers are incentivized through a differentiated structure that rewards contributions based on the value they add to the network. This ensures fair compensation for the data provided and its impact on the network's performance. Payment for data is not enforced in the protocol and can be settled out-of-band. Incentives for Reputers [are detailed here](technical-architecture-v2#rewards).
+Data providers are incentivized through a differentiated structure that rewards contributions based on the value they add to the network. This ensures fair compensation for the data provided and its impact on the network's performance. Payment for data is not enforced in the protocol and can be settled out-of-band. Incentives for Reputers [are detailed here](../learn/architecture#rewards).
 
 ## Requirements for Data Providers
 
@@ -45,7 +45,7 @@ The Allora Network's decentralized nature requires data providers to integrate t
 3. **Testing and Validation**: Before officially becoming a data provider, test the data transfer process to ensure reliability, accuracy, and timeliness. This may involve coordination with Allora Network representatives, other workers, and reputers, or participating in a sandbox environment. You can find more info below.
 4. **Deployment**: Once testing is complete and integration is verified, deploy the data provision system. This includes ongoing monitoring and maintenance to ensure data quality and system reliability. 
 
-Consider the example of our [ETH price prediction worker](https://dash.readme.com/project/allora/v1.0/docs/walkthrough-for-running-an-ethereum-price-prediction-node), which utilizes Binance as a data provider for price feeds. The data is accessed [via an API](https://github.com/allora-network/basic-coin-prediction-node/blob/main/updater.py#L22), [organized](https://github.com/allora-network/basic-coin-prediction-node/blob/main/model.py#L36) by the model creator, and employed [to train the model](https://github.com/allora-network/basic-coin-prediction-node/blob/main/model.py#L75), facilitating a smooth integration process. 
+Consider the example of our [ETH price prediction worker](../datasci/walkthrough-price-prediction-worker), which utilizes Binance as a data provider for price feeds. The data is accessed [via an API](https://github.com/allora-network/basic-coin-prediction-node/blob/main/updater.py#L22), [organized](https://github.com/allora-network/basic-coin-prediction-node/blob/main/model.py#L36) by the model creator, and employed [to train the model](https://github.com/allora-network/basic-coin-prediction-node/blob/main/model.py#L75), facilitating a smooth integration process. 
 
 # How to become a Data Provider?
 
@@ -69,7 +69,7 @@ Determine the type of data you need, including the level of detail, frequency, a
 
 ### Select a Provider
 
-Review the [list of official data providers](<>) on the Allora Network to find one that matches your data requirements. Information about each provider, including the types of data offered and any specific features or limitations, can typically be found on the Allora Network's platform.
+Review the list of official data providers (TBA) on the Allora Network to find one that matches your data requirements. Information about each provider, including the types of data offered and any specific features or limitations, can typically be found on the Allora Network's platform.
 
 ## Request Access
 

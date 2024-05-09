@@ -2,7 +2,7 @@
 
 ## Identity
 
-Node identity is determined by the private key it uses. To create a private key, head over to <a href="https://github.com/blocklessnetwork/b7s/tree/main/cmd/keyforge" target="_blank">keyforge</a> and create a new key.
+Node identity is determined by the private key it uses. To create a private key, head over to [keyforge](https://github.com/blocklessnetwork/b7s/tree/main/cmd/keyforge) and create a new key.
 
 ```shell
 $ cmd/keyforge/keyforge --output key-dir
@@ -69,12 +69,12 @@ Storage: 100GB
 StorageType: SSD
 ```
 
-For more details on creating, signing, and publishing attributes, you can check out <a href="https://github.com/blocklessnetwork/b7s-attributes" target="_blank">blockless attributes</a>. In short, attributes more closely describe the node system, and they can be used to filter out workers that do not fit specific criteria. For instance, it's possible to create execution requests aiming at nodes with specific architecture or a certain number of CPUs.
+For more details on creating, signing, and publishing attributes, you can check out [blockless attributes](https://github.com/blocklessnetwork/b7s-attributes). In short, attributes more closely describe the node system, and they can be used to filter out workers that do not fit specific criteria. For instance, it's possible to create execution requests aiming at nodes with specific architecture or a certain number of CPUs.
 
 ## Subgroups
 
 By default, all worker nodes are part of one group. However, worker nodes can make themselves part of a _subgroup_. Execution requests can be assigned to any particular subgroup of nodes - only nodes part of that subgroup consider executing those requests.
 
-Generally, messages in a Blockless network are exchanged via direct messages or a pub-sub mechanism, where nodes subscribe to specific topics. Worker nodes can, using <a href="https://github.com/blocklessnetwork/b7s/tree/main/cmd/node#usage" target="_blank">CLI flags</a> specify the topics to which they subscribe (using the `--topic <topic-name>` CLI flag). Nodes part of the same subgroup subscribe to the same topics.
+Generally, messages in a Blockless network are exchanged via direct messages or a pub-sub mechanism, where nodes subscribe to specific topics. Worker nodes can, using [CLI flags](https://github.com/blocklessnetwork/b7s/tree/main/cmd/node#usage) specify the topics to which they subscribe (using the `--topic <topic-name>` CLI flag). Nodes part of the same subgroup subscribe to the same topics.
 
 Head nodes do not have to be cognizant of any subgroups ahead of time - when an execution request for a specific subgroup is found, it is published to all nodes (it's aware of) that are subscribed to that subgroup.

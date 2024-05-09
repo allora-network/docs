@@ -17,11 +17,11 @@ The appchain also coordinates actions between protocol actors.
 
 ## Why and How might one interact with the Allora Appchain?
 
-Different actors interact with the Allora Appchain for different reasons. They do so via a standard client connection (such as <a href="https://tutorials.cosmos.network/tutorials/7-cosmjs/1-cosmjs-intro.html" target="_blank">CosmJS</a>) or the [Appchain CLI](cli-spec).
+Different actors interact with the Allora Appchain for different reasons. They do so via a standard client connection (such as [CosmJS](https://tutorials.cosmos.network/tutorials/7-cosmjs/1-cosmjs-intro.html)) or the [Appchain CLI](../learn/cli).
 
 - Data scientists interact with the Appchain to [register their worker nodes](../learn/cli#register-network-actor) and to [withdraw rewards](../learn/cli#remove-stake) accrued for their inferences. These rewards are paid by both consumers and inflation based on their relative weight.
 - Developers interact with the Appchain to [create topics](../learn/cli#create-new-topic), fund topics, and perhaps also to [read recent inferences](../learn/cli#get-inference).
-- Validators run the Appchain and receive standard inflationary rewards for running Cosmos SDK appchains and a cut of the funds from consumers. They will also [register themselves](stake-a-validator) on the Appchain so that they can be eligible for rewards.
+- Validators run the Appchain and receive standard inflationary rewards for running Cosmos SDK appchains and a cut of the funds from consumers. They will also [register themselves](./stake-a-validator) on the Appchain so that they can be eligible for rewards.
 
 ## Dependencies
 
@@ -40,7 +40,7 @@ Once this is set up, run `docker compose up`.
 
 ## Deploy in k8s with helm chart
 
-Upshot team uses a <a href="https://upshot-tech.github.io/helm-charts/" target="_blank">universal-helm</a> chart to deploy applications into kubernetes clusters.  
+Upshot team uses a [universal-helm](https://upshot-tech.github.io/helm-charts/) chart to deploy applications into kubernetes clusters.  
 There is a `index-provider/values.yaml` provided that sets up one head node and one worker node.
 
 ### Dependencies

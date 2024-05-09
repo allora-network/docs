@@ -2,21 +2,21 @@
 
 Adapter contracts are required to bring Allora Network prices to a chain. Follow the instructions below to deploy the Adapter to a new EVM chain. 
 
-## 1\. Set up the repo
+## 1. Set up the repo
 
-1. Git pull the the <a href="https://github.com/allora-network/allora-adapter" target="_blank">Allora Adapter repository</a>. 
+1. Git pull the the [Allora Adapter repository](https://github.com/allora-network/allora-adapter).
 2. run `yarn`
 3. run `forge build`
 
-If forge is not already installed, follow these directions to install `foundryup` and `forge`: <a href="https://book.getfoundry.sh/getting-started/installation" target="_blank">https\://book.getfoundry.sh/getting-started/installation</a>
+If forge is not already installed, follow [these directions](https://book.getfoundry.sh/getting-started/installation) to install `foundryup` and `forge`.
 
-## 2\. Set up the deploy script
+## 2. Set up the deploy script
 
 The deploy script can be found under `deploy/deploy.ts`
 
 Replace the `ADMIN` address with the desired admin for the new adapter. 
 
-## 3\. Set up the .env file
+## 3. Set up the .env file
 
 Create a `.env` file in the root of the project with the following structure:
 
@@ -28,7 +28,7 @@ privateKey=<private key hex without '0x'>
 etherscanApiKey=<etherscan api key string>
 ```
 
-## 4\. Run the deployment
+## 4. Run the deployment
 
 `yarn deploy`
 

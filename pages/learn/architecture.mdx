@@ -2,7 +2,7 @@
 
 > The high-level technical design of the Allora protocol's first implementation
 
-This is an overview of the architecture employed by the first implementation of the Allora protocol as defined by its titular litepaper, <a href="https://allora.network/allora-litepaper.pdf" target="_blank">found here</a>. Reading the Allora litepaper before this page is highly recommended, as many equations within the litepaper are referenced here. The first implementation can be found in the repos of the <a href="https://github.com/allora-network" target="_blank">Allora Network GitHub organization</a>, particularly in the <a href="https://github.com/allora-network/allora-chain" target="_blank">`allora-chain`</a> and <a href="https://github.com/allora-network/allora-inference-base" target="_blank">`allora-inference-base`</a> repositories.
+This is an overview of the architecture employed by the first implementation of the Allora protocol as defined by its titular litepaper, [found here](https://allora.network/allora-litepaper.pdf). Reading the Allora litepaper before this page is highly recommended, as many equations within the litepaper are referenced here. The first implementation can be found in the repos of the [Allora Network GitHub organization](https://github.com/allora-network), particularly in the [`allora-chain`](https://github.com/allora-network/allora-chain) and [`allora-inference-base`](https://github.com/allora-network/allora-inference-base) repositories.
 
 _The primary goal of Allora is to be the marketplace for intelligence_. In other words, Allora aims to incentivize data scientists (_workers_) to provide high-quality _inferences_ as requested by _consumers_. Inferences include predictions of arbitrary future events or difficult computations requiring specialized knowledge. Allora accomplishes this with a technical architecture summarized by the following diagram and elaborated in the paragraphs below.
 
@@ -26,7 +26,7 @@ _b7s_ is an abbreviation of _blockless_.
 
 To ensure high-quality inferences from workers, Allora aims to incentivize workers more if they are proven more accurate. Of course, the world is vast and diverse. This makes it challenging to compare inferences of problems that differ vastly in difficulty and possibilities.
 
-To categorize problems, we introduce the concept of _topics_. A topic is a <a href="https://en.wikipedia.org/wiki/Focal_point_(game_theory)" target="_blank">Schelling point</a> to focus the efforts of the protocol. A _topic creator_ will write a function that rewards those for correctly inferring outcomes, where "correct" is defined by the topic creator. Concretely, a topic has the following attributes:
+To categorize problems, we introduce the concept of _topics_. A topic is a [Schelling point](https://en.wikipedia.org/wiki/Focal_point_(game_theory)) to focus the efforts of the protocol. A _topic creator_ will write a function that rewards those for correctly inferring outcomes, where "correct" is defined by the topic creator. Concretely, a topic has the following attributes:
 
 ```go
 type Topic struct {
@@ -69,7 +69,7 @@ Creating a high-quality forecast requires _context awareness_, which allows Allo
 
 Topics include the fields `inference_cadence` and `inference_last_ran,` which determine when inferences and forecasts should be collected from workers. Every `inference_cadence` seconds, the Allora appchain solicits inferences from workers and sets `inference_last_ran` as the current UNIX epoch.
 
-Workers receive and respond to requests by running _worker b7s_, which are the same as ordinary b7s but feature two special modifications. Normally, b7s can respond to any request and run the WASM in the request's manifest. However, to keep models private and differentiated, we require worker b7s to have <a href="https://docs.allora.network/docs/allora-blockless-extension" target="\_blank">a special extension</a> that lets them query a privately-held machine learning model for new inferences. To prevent well-intentioned but inappropriate b7s from accidentally accepting a request before a qualified worker can respond, or, similarly, to prevent a worker b7s with a model for a different topic from accidentally accepting a request, we also require that b7s listen to topic-specific channels called _subgroups_, as initially <a href="https://github.com/blocklessnetwork/b7s/pull/128" target="_blank">implemented here</a>. <a href="https://docs.allora.network/docs/blockless-network-general-concepts#subgroups" target="_blank">Subgroups</a> allow qualified worker b7s -- b7s that have relevant models -- to have exclusive access to requests that they have expertise in (i.e. that they have models for).
+Workers receive and respond to requests by running _worker b7s_, which are the same as ordinary b7s but feature two special modifications. Normally, b7s can respond to any request and run the WASM in the request's manifest. However, to keep models private and differentiated, we require worker b7s to have [a special extension](../ref/blockless/allora-b7s-extension) that lets them query a privately-held machine learning model for new inferences. To prevent well-intentioned but inappropriate b7s from accidentally accepting a request before a qualified worker can respond, or, similarly, to prevent a worker b7s with a model for a different topic from accidentally accepting a request, we also require that b7s listen to topic-specific channels called _subgroups_, as initially [implemented here](https://github.com/blocklessnetwork/b7s/pull/128). [Subgroups](../ref/blockless/b7s-concepts) allow qualified worker b7s -- b7s that have relevant models -- to have exclusive access to requests that they have expertise in (i.e. that they have models for).
 
 Inferences and forecasts returned by workers are then batch committed to the Allora appchain and truncated `loss_cadence` seconds after their commitment. Directly committing these values on-chain provides several benefits. This ensures we can keep a reliable, even if ephemeral, record of who should be rewarded for their effort. It also enables consumers to bridge verifiably updated inferences from the Allora appchain to their destination of choice. Consumers can optionally apply whatever interpretation of reputation they want to determine their confidence in the bridged inferences. At no point is the Allora Protocol required to update data on all possible destination chains. Furthermore, on-chain inferences enable the protocol to distribute rewards for liveness and availability in a verifiably justified manner.
 
@@ -124,7 +124,7 @@ message Forecasts {
 
 ## Loss Calculation
 
-Topic creators must decide how to evaluate inferences. They do so by defining _loss calculation logic_ at topic creation time, which encapsulates the specific loss function to use (e.g., mean absolute directional loss, L1-norm) and the source of ground truth (e.g., some endpoint, some oracle, the median of gathered inferences). Topic creators write loss calculation logic in any language that suits them, then compile this code to <a href="https://webassembly.org/" target="\_blank">WASM</a> using any number of tools, though we recommend the <a href="https://github.com/blocklessnetwork/cli" target="\_blank">Blockless CLI</a>. This compiled data is stored as `loss_logic` in the topic struct at the time of topic creation, which is enabled via the <a href="https://docs.allora.network/docs/cli-spec" target="\_blank">Allora appchain's CLI</a>. The loss logic is called every `loss_cadence` seconds by the Allora appchain. Each time, `loss_last_ran` is set to the current UNIX epoch. `loss_logic` is wrapped within a _function manifest_ and sent to nodes in the <a href="https://blockless.network/" target="\_blank">Blockless Network</a> (also known as _b7s_), which specializes in running arbitrary computations off-chain. This approach lightens the load on the Allora appchain and CometBFT validators, enables writing loss calculation logic in any WASM-compilable programming language, and supports arbitrary, customizable valuation techniques for all types of inference.
+Topic creators must decide how to evaluate inferences. They do so by defining _loss calculation logic_ at topic creation time, which encapsulates the specific loss function to use (e.g., mean absolute directional loss, L1-norm) and the source of ground truth (e.g., some endpoint, some oracle, the median of gathered inferences). Topic creators write loss calculation logic in any language that suits them, then compile this code to [WASM](https://webassembly.org/) using any number of tools, though we recommend the [Blockless CLI](https://github.com/blocklessnetwork/cli). This compiled data is stored as `loss_logic` in the topic struct at the time of topic creation, which is enabled via the [Allora appchain's CLI](./cli). The loss logic is called every `loss_cadence` seconds by the Allora appchain. Each time, `loss_last_ran` is set to the current UNIX epoch. `loss_logic` is wrapped within a _function manifest_ and sent to nodes in the [Blockless Network](https://blockless.network/) (also known as _b7s_), which specializes in running arbitrary computations off-chain. This approach lightens the load on the Allora appchain and CometBFT validators, enables writing loss calculation logic in any WASM-compilable programming language, and supports arbitrary, customizable valuation techniques for all types of inference.
 
 Notably, the `loss_cadence` is a distinct parameter from `inference_cadence`. This allows many inferences to be batch-scored simultaneously, saving on-chain computation and network communication costs.
 
@@ -182,11 +182,11 @@ message LossBundle {
 
 ## Stake
 
-The role of _reputers_ is to indicate their view of the reputation of others. They source the ground truth and compare it to the workers' inferences by running a topic-specific loss function (the _loss logic_ defined above). _Reputers_ assert their authority by providing _stake_ to the protocol. This is a financial signal saying how confident a reputer is in their ability to promptly source ground truth and calculate losses. Stake also contributes to the protocol-determined "importance" of that topic relative to others such that a topic with more stake receives more inflation (see <a href="https://docs.allora.network/docs/technical-architecture-v2#rewards" target="_blank">below</a>).
+The role of _reputers_ is to indicate their view of the reputation of others. They source the ground truth and compare it to the workers' inferences by running a topic-specific loss function (the _loss logic_ defined above). _Reputers_ assert their authority by providing _stake_ to the protocol. This is a financial signal saying how confident a reputer is in their ability to promptly source ground truth and calculate losses. Stake also contributes to the protocol-determined "importance" of that topic relative to others such that a topic with more stake receives more inflation (see [below](#rewards)).
 
 Similarly, to _register_ within a topic, reputers and workers must place a minimum stake in the Allora native token. This is a relatively small, fixed amount intended to thwart Sybil and DDoS attacks. Once this minimum amount is staked, workers and reputers are entitled to participate in the network and receive emissions in return for their work. Participants can no longer receive emissions when the stake dips below this amount. The stake used to register an actor does not influence how much inflation the topic receives.
 
-Participants can stake using the <a href="https://docs.allora.network/docs/cli-spec" target="\_blank">Allora appchain's CLI</a>.
+Participants can stake using the [Allora chain CLI](./cli).
 
 In the protobufs for the Allora chain, stakes are defined as follows:
 
@@ -247,12 +247,12 @@ Hence, there is a difference between _topic security_ and _chain security_. Topi
 
 ### Learn More
 
-One can become a validator of the Allora appchain by following <a href="https://docs.allora.network/docs/for-validators" target="_blank">the instructions here</a>.
+One can become a validator of the Allora appchain by following [the instructions here](../nops).
 
 CometBFT can be explored in the following two articles, among many other places:
 
-- <a href="https://medium.com/@notional-ventures/staking-and-delegation-in-cosmos-db660154bcf9" target="_blank">Staking and Delegation in Cosmos</a>
-- <a href="https://medium.com/@notional-ventures/cometbft-security-and-consensus-in-cosmos-part-1-a7be84f0bf25" target="_blank">CometBFT: Security and Consensus in Cosmos</a>
+- [Staking and Delegation in Cosmos](https://medium.com/@notional-ventures/staking-and-delegation-in-cosmos-db660154bcf9)
+- [CometBFT: Security and Consensus in Cosmos](https://medium.com/@notional-ventures/cometbft-security-and-consensus-in-cosmos-part-1-a7be84f0bf25)
 
 ## Consumption
 
@@ -310,7 +310,7 @@ The enumerated list of active topics is then sorted by total return descending, 
 
 ### Global Parameters
 
-Most of the parameters mentioned above are global parameters. The complete list of global parameters can be found <a href="https://docs.allora.network/docs/for-validators" target="_blank">here</a>.
+Most of the parameters mentioned above are global parameters. The complete list of global parameters can be found [here](../nops).
 
 ### Inference Consumption
 
@@ -318,7 +318,7 @@ After requests are fulfilled, the resultant data can now be "consumed" or used. 
 
 ### Unsafe Requests
 
-Consumers may avert the entirety of the above by making off-chain requests for inferences directly to workers, as supported by the default implementation of the <a href="https://github.com/allora-network/allora-inference-base" target="_blank">Allora worker base repo</a>. This mimics the standard means of soliciting inferences in today's web2-dominated world and may be preferred by consumers who value cheap inferences at the cost of security and accuracy. This, however, is unsafe for several reasons. The worker may alter or turn off this request to any and all traffic at any point. The returned inferences are also not subject to any form of grading -- they may exist entirely off-chain and are not necessarily the same inferences submitted to the chain. Finally, the "self-improving" properties of Allora, including its ability to generate "network inferences" more accurately than the sum of its constituent inferences, are entirely absent. Hence, these inferences are nearly guaranteed never to be better than the network inferences computed by Allora, found on-chain. One can learn how to make such unsafe requests <a href="https://docs.allora.network/docs/querying-workers-of-existing-topics" target="_blank">here</a>.
+Consumers may avert the entirety of the above by making off-chain requests for inferences directly to workers, as supported by the default implementation of the [Allora worker base repo](https://github.com/allora-network/allora-inference-base). This mimics the standard means of soliciting inferences in today's web2-dominated world and may be preferred by consumers who value cheap inferences at the cost of security and accuracy. This, however, is unsafe for several reasons. The worker may alter or turn off this request to any and all traffic at any point. The returned inferences are also not subject to any form of grading -- they may exist entirely off-chain and are not necessarily the same inferences submitted to the chain. Finally, the "self-improving" properties of Allora, including its ability to generate "network inferences" more accurately than the sum of its constituent inferences, are entirely absent. Hence, these inferences are nearly guaranteed never to be better than the network inferences computed by Allora, found on-chain. One can learn how to make such unsafe requests [here](../devs/offchain-query-existing-workers).
 
 ## Rewards
 
@@ -332,7 +332,7 @@ Inflationary rewards are allocated across topics by analyzing the proportion of 
 
 ### Distributing Rewards within a Topic
 
-Now rewards can be disbursed to the supply-side participants of each topic. The total rewards include the sum return from consumer demand across inference solicitation rounds in the past reward epoch and the inflation allotment determined above. A global fixed percent `percent_rewards_reputers_workers` of these total rewards are calculated, and their complement with the total topic rewards (i.e., `1-x`) is siphoned for validators, who therefore benefit from all activity on Allora. The rest of these rewards are split among workers and reputers as specified in <a href="https://allora.network/allora-litepaper.pdf" target="_blank">the Allora litepaper</a>. In short, workers are compensated based on their accuracy, reputers are compensated based on the discrepancy between their reported losses and the consensus losses reached among each other, and the proportion of topic rewards dedicated to workers vs. reputers is calculated based on how decentralized each set of actors is within the topic and how decentralized the topic would prefer each cadre be at that moment.
+Now rewards can be disbursed to the supply-side participants of each topic. The total rewards include the sum return from consumer demand across inference solicitation rounds in the past reward epoch and the inflation allotment determined above. A global fixed percent `percent_rewards_reputers_workers` of these total rewards are calculated, and their complement with the total topic rewards (i.e., `1-x`) is siphoned for validators, who therefore benefit from all activity on Allora. The rest of these rewards are split among workers and reputers as specified in [the Allora litepaper](https://allora.network/allora-litepaper.pdf). In short, workers are compensated based on their accuracy, reputers are compensated based on the discrepancy between their reported losses and the consensus losses reached among each other, and the proportion of topic rewards dedicated to workers vs. reputers is calculated based on how decentralized each set of actors is within the topic and how decentralized the topic would prefer each cadre be at that moment.
 
 ## Infrastructure
 

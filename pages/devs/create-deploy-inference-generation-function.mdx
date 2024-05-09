@@ -4,7 +4,7 @@
 
 ## What Is an Inference Generation Function?
 
-This function will serve as the gateway through which the inferences from worker nodes will be sent. This function typically has the role of triggering your model, and for that purpose, a <a href="https://blockless.network/docs/network/extensions#cgi-extensions" target="_blank">Blockless CGI Extension</a> is used inside the function.
+This function will serve as the gateway through which the inferences from worker nodes will be sent. This function typically has the role of triggering your model, and for that purpose, a [Blockless CGI Extension](https://blockless.network/docs/network/extensions#cgi-extensions) is used inside the function.
 
 ## Allora Recommended Inference Function
 
@@ -21,12 +21,12 @@ However, it is possible to create a custom function. Example of use cases that w
 
 To create an inference function for your topic, follow the steps outlined in the tutorial below to create your first function on Blockless:
 
-**<a href="https://blockless.network/docs/network/quick-start" target="_blank">Blockless Quick Start Guide</a>**
+**[Blockless Quick Start Guide](https://blockless.network/docs/network/quick-start)**
 
 Once you have installed the **Blockless CLI** and created your initial sample function, you will need to modify it to trigger your model to generate the inferences and return them in the `Stdout`.
 
 You can use the example below:  
-**<a href="https://github.com/allora-network/allora-inference-extension/blob/main/allora-inference-function/index.ts" target="_blank">Inference Generation Logic</a>**
+**[Inference Generation Logic](https://github.com/allora-network/allora-inference-extension/blob/main/allora-inference-function/index.ts)**
 
 To test your function locally you can run the following command:
 
@@ -44,4 +44,4 @@ After testing, you can deploy your function using:
 
 `bls function deploy`
 
-After deploying your function, save the `function_id` and the `method` (the name of the WASM file) to use when [creating your topic](how-to-create-a-topic).
+After deploying your function, save the `function_id` and the `method` (the name of the WASM file) to use when [creating your topic](./how-to-create-topic).

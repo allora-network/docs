@@ -19,7 +19,7 @@ Should you want to connect to a node in the network, please contact us for perso
 
 Ensure you have your API gateway ready or any API server that can accept API requests to call your model. The goal of this server is to accept API requests from the `main.py`, your custom Python script executed by the node function (further details in the Node Function section below). It then responds with the corresponding inference obtained from the model. This inference is subsequently relayed by the worker node to the head node, which in turn dispatches it to the chain validators for eventual scoring.
 
-If you have a model running but do not have the inference server, you can make a Dockerfile to bundle a simple Flask application that exposes an endpoint to access the model. Below is a sample structure of what your `app.py` and Dockerfile will look like. You can also find a working example <a href="https://github.com/allora-network/basic-coin-prediction-node" target="_blank">here</a>.
+If you have a model running but do not have the inference server, you can make a Dockerfile to bundle a simple Flask application that exposes an endpoint to access the model. Below is a sample structure of what your `app.py` and Dockerfile will look like. You can also find a working example [here](https://github.com/allora-network/basic-coin-prediction-node).
 
 ##### `app.py`
 
@@ -109,7 +109,7 @@ docker run -it --entrypoint=bash -v ./:/data alloranetwork/allora-inference-base
 
 ### 4. Worker Node Main Dockerfile
 
-Now that you have the node identity generated for your worker, and your node function pulling data from your Inference Server, you must bundle your worker node with Dockerfile to be tested as a whole. As stated earlier, your  Dockerfile will have to pull the `allora-inference-base` image from the <a href="https://hub.docker.com/u/alloranetwork" target="_blank">Allora Docker repository</a> and combine it with your custom `main.py`. Below is an example of what your `Dockerfile_node`should look like:
+Now that you have the node identity generated for your worker, and your node function pulling data from your Inference Server, you must bundle your worker node with Dockerfile to be tested as a whole. As stated earlier, your  Dockerfile will have to pull the `allora-inference-base` image from the [Allora Docker repository](https://hub.docker.com/u/alloranetwork) and combine it with your custom `main.py`. Below is an example of what your `Dockerfile_node`should look like:
 
 ```dockerfile
 # Pull base image
@@ -182,7 +182,7 @@ curl --location 'http://{head-ip}:head-rest-api-port/api/v1/functions/execute' -
 }' | jq
 ```
 
-> It's important to note that although all Dockerfiles in this guide are designed to run independently, you have the option to run them together as services in a docker-compose file. In fact, it is advised to do so, as you can observe in the <a href="https://github.com/allora-network/basic-coin-prediction-node" target="_blank">basic-coin-prediction-node example</a>.
+> It's important to note that although all Dockerfiles in this guide are designed to run independently, you have the option to run them together as services in a docker-compose file. In fact, it is advised to do so, as you can observe in the [basic-coin-prediction-node example](https://github.com/allora-network/basic-coin-prediction-node).
 
 Please contact us for personalized access to connect to a head node.  
 You can otherwise run a head node following instructions on [Allora Inference Base README](https://github.com/allora-network/allora-inference-base).

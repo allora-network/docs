@@ -30,9 +30,9 @@ Add data using a specific ID within a topic, for example, a specific NFT ID for 
 
 ## Step by Step Guide:
 
-1. Create an upshot API key by <a href="https://developer.upshot.xyz/signup" target="_blank">creating an account</a>.
-2. [Call the Adapter Asset Appraisals API](https://docs.allora.network/docs/querying-workers-of-existing-topics#nft-appraisal-id3) using the `topicId` found in the [deployed topics list](existing-allora-appchain-topics) and the correct `chainId`. For example, if you use sepolia, you would provide `ethereum-11155111`. Specify the `nftId` that you would like data for at the end of the address string for the nft collection, like `0x42069abfe407c60cf4ae4112bedead391dba1cdb/1465`
-3. Construct a call to the Allora Adapter contract on the chain of your choice (options listed under [deployments](deployments)) using the returned `signature` and `numeric_data` as follows.
+1. Create an upshot API key by [creating an account](https://developer.upshot.xyz/signup).
+2. [Call the Adapter Asset Appraisals API](./offchain-query-existing-workers#nft-appraisal-id3) using the `topicId` found in the [deployed topics list](./existing-topics) and the correct `chainId`. For example, if you use sepolia, you would provide `ethereum-11155111`. Specify the `nftId` that you would like data for at the end of the address string for the nft collection, like `0x42069abfe407c60cf4ae4112bedead391dba1cdb/1465`
+3. Construct a call to the Allora Adapter contract on the chain of your choice (options listed under [deployments](./existing-adapters)) using the returned `signature` and `numeric_data` as follows.
 
 ## Creating the Transaction:
 
@@ -78,5 +78,5 @@ upshotAdapter.verifyData(UpshotAdapterNumericData({
 
 ## Code Links
 
-- <a href="https://github.com/allora-network/allora-adapter/blob/main/src/" target="_blank">Open source adapter code</a>
-- <a href="https://github.com/allora-network/allora-adapter/blob/main/src/interface/IAlloraAdapter.sol" target="_blank">IAlloraAdapter</a>, including the structs used for solidity scripting.
+- [Open source adapter code](https://github.com/allora-network/allora-adapter/blob/main/src/)
+- [IAlloraAdapter](https://github.com/allora-network/allora-adapter/blob/main/src/interface/IAlloraAdapter.sol), including the structs used for Solidity code.

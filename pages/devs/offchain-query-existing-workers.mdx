@@ -4,7 +4,7 @@
 
 ## Querying Workers
 
-There are workers today, mostly maintained by Upshot, that produce inferences for a set of <a href="https://docs.allora.network/docs/existing-allora-appchain-topics" target="_blank">existing topics</a>. They can be queried for inferences via standard Blockless function calls, which in turn can be used today in on-chain applications via <a href="https://docs.allora.network/docs/adapters" target="_blank">Allora adapter contracts</a>. A Blockless function call can be submitted in a format like this:
+There are workers today, mostly maintained by Upshot, that produce inferences for a set of [existing topics](./existing-topics). They can be queried for inferences via standard Blockless function calls, which in turn can be used today in on-chain applications via [Allora adapter contracts](./adapters). A Blockless function call can be submitted in a format like this:
 
 ```curl
 curl --request POST \
@@ -30,19 +30,19 @@ curl --request POST \
 Let's break down this request body:
 
 - This request queries the index topic (topic `2`).
-- We specify the `function_id` and `method` fields to indicate that we want to solicit inferences in a particular way (this concerns the internals of the worker nodes). These values can be recovered by following <a href="https://docs.allora.network/docs/how-to-create-an-inferece-generation-function" target="_blank">this step-by-step guide</a>.
-- We pass in the input `yuga` to specify we want index levels for Yuga Labs NFT collections in particular. The workers that Upshot stood up actually can respond with index levels of a few different NFT indices, however, topic 5 only cares about Yuga Labs collections in particular, as specified in its <a href="https://docs.allora.network/docs/how-to-create-a-topic" target="_blank">metadata field</a>.
-- `number_of_nodes: -1` indicates that we don't care how many nodes respond, so long as they respond to <a href="https://blockless.network/docs/protocol/networking/execution#acquiring-the-execution-binary-pre-cache" target="_blank">roll call</a> within `timeout: 2` seconds of the request broadcast.
+- We specify the `function_id` and `method` fields to indicate that we want to solicit inferences in a particular way (this concerns the internals of the worker nodes). These values can be recovered by following [this step-by-step guide](./create-deploy-inference-generation-function).
+- We pass in the input `yuga` to specify we want index levels for Yuga Labs NFT collections in particular. The workers that Upshot stood up actually can respond with index levels of a few different NFT indices, however, topic 5 only cares about Yuga Labs collections in particular, as specified in its [metadata field](./how-to-create-topic).
+- `number_of_nodes: -1` indicates that we don't care how many nodes respond, so long as they respond to [roll call](https://blockless.network/docs/protocol/networking/execution#acquiring-the-execution-binary-pre-cache) within `timeout: 2` seconds of the request broadcast.
 
 ## Convenience Endpoint from Upshot
 
-To conveniently relay inferences from worker nodes to developers, Upshot has created an endpoint to solicit inferences from worker nodes and merge them into a format compatible with our adapters. The output of this endpoint can be passed directly as-is to our adapter. To use this endpoint and obtain inferences, one can use the curl requests below, depending on the topic of interest. Note that the `extra_data ` query parameter, where it is found, can be set to be any relevant argument of interest. `extra_data` is an arbitrary string that is hashed by our endpoint using `keccak256` so that it is compatible with the `extraData: bytes` field of <a href="https://docs.allora.network/docs/adapters" target="_blank">Allora adapter contracts</a>.
+To conveniently relay inferences from worker nodes to developers, Upshot has created an endpoint to solicit inferences from worker nodes and merge them into a format compatible with our adapters. The output of this endpoint can be passed directly as-is to our adapter. To use this endpoint and obtain inferences, one can use the curl requests below, depending on the topic of interest. Note that the `extra_data ` query parameter, where it is found, can be set to be any relevant argument of interest. `extra_data` is an arbitrary string that is hashed by our endpoint using `keccak256` so that it is compatible with the `extraData: bytes` field of [Allora adapter contracts](./adapters).
 
 Note that to use this endpoint you'll need an API key. To obtain an API key, you can create [an account here](https://developer.upshot.xyz).
 
 ## Note
 
-Finally, note that these inferences returned by either of the above means are "unsafe" in that they are not necessarily the same inferences that'll be used to update the weights of workers. Future iterations of Allora will address this particular vulnerability. Furthermore, "safe" inferences, which will be judged on-chain, can be queried directly on the Allora L1 via the commands `GetInference` and `GetInferenceToScore` in the <a href="https://docs.allora.network/docs/cli-spec#get-inference" target="_blank">Allora CLI</a>.
+Finally, note that these inferences returned by either of the above means are "unsafe" in that they are not necessarily the same inferences that'll be used to update the weights of workers. Future iterations of Allora will address this particular vulnerability. Furthermore, "safe" inferences, which will be judged on-chain, can be queried directly on the Allora L1 via the commands `GetInference` and `GetInferenceToScore` in the [Allora CLI](../learn/cli#get-inference).
 
 ## ETH Price Projection, id=1
 

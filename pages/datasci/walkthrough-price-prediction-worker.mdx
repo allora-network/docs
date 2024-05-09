@@ -4,10 +4,10 @@
 
 ## Prerequisite
 
-1. Make sure you have checked the documentation on [build and deploy a worker node from scratch](build-a-worker-node-from-scratch).
-2. Clone the <a href="https://github.com/allora-network/basic-coin-prediction-node" target="_blank">basic-coin-prediction-node</a> repository. It will serve as the base sample for your quick setup.
+1. Make sure you have checked the documentation on [build and deploy a worker node from scratch](./build-and-deploy-worker-from-scratch).
+2. Clone the [basic-coin-prediction-node](https://github.com/allora-network/basic-coin-prediction-node) repository. It will serve as the base sample for your quick setup.
 
-We will work from the repository you just cloned. We will explain each part of the source code and make changes to your custom setup as required. Additionally, I encourage you to check the repository's <a href="https://github.com/allora-network/basic-coin-prediction-node/blob/main/README.md" target="_blank">README</a> for further guidance.
+We will work from the repository you just cloned. We will explain each part of the source code and make changes to your custom setup as required. Additionally, we encourage you to check the repository's [README](https://github.com/allora-network/basic-coin-prediction-node/blob/main/README.md) for further guidance.
 
 ## Setting up your Custom Prediction Node network
 
@@ -45,7 +45,7 @@ Peep into the `docker-compose.yml`to understand what is happening and change the
 
 1. **Inference (`app.py`)**:  This flask app exposes endpoints to be called to generate inference and to update the model. By hitting the service endpoint, the service will interact with the model to generate inference or update the model. This is the model server as explained in the previous guide, the gateway to the model from external requests. You can change the logic as your case demands.
 2. **Updater (`update_app.py`)**:  This service is meant to hit the `/update` endpoint on the inference service. The goal is to make sure the model state is updated when needed. Depending on your use case, you can also schedule this to be done periodically.
-3. **Worker**:  This is the actual worker service that combines the `allora-inference-base`, the node function and the custom `main.py` Python logic.  The Allora chain makes requests to the head node, which will broadcast requests to the workers, which will then download the function from IPFS and then run the function to be able to call the `main.py`, which contains a request to `/inference/<token>` endpoint that channels request to your model server. The worker service is built on a different [Dockerfile](https://docs.allora.network/docs/build-a-worker-node-from-scratch#4-worker-node-main-dockerfile) called `Dockerfile_b7s`, which extends the functionalities of the `allora-inference-base`image.  
+3. **Worker**:  This is the actual worker service that combines the `allora-inference-base`, the node function and the custom `main.py` Python logic.  The Allora chain makes requests to the head node, which will broadcast requests to the workers, which will then download the function from IPFS and then run the function to be able to call the `main.py`, which contains a request to `/inference/<token>` endpoint that channels request to your model server. The worker service is built on a different [Dockerfile](./build-and-deploy-worker-from-scratch#4-worker-node-main-dockerfile) called `Dockerfile_b7s`, which extends the functionalities of the `allora-inference-base`image.  
    The `BOOT_NODES` variable is the address to the head node; it states the head node peer_id so that the worker node would know the particular head node request that it needs to listen to that way when the head node publishes a request, the node will attend to it.
 4. **Head**: This service represents an Allora network head node. This helps local testing by emulating a network, however it is not required for running your node in the Allora network.
 
@@ -109,7 +109,7 @@ The `results.result.stdout` will get the prediction output in json format.
 
 ## Deploying your Custom Prediction Node
 
-To get your node deployed to a remote production environment, you can deploy however you prefer or follow our Kubernetes [deployment guide](https://docs.allora.network/docs/build-a-worker-node-from-scratch#deploying-a-worker-node) where you basically:
+To get your node deployed to a remote production environment, you can deploy however you prefer or follow our Kubernetes [deployment guide](./build-and-deploy-worker-from-scratch#deploying-a-worker-node) where you:
 
 1. Add the universal-helm chart to the helm repo.
 2. Update the `values.yaml` file to suit your case.

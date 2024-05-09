@@ -30,7 +30,7 @@ sudo apt-get install -y make gcc
 
 `allorad` requires Go version 1.21 or newer to ensure compatibility and performance.
 
-To install Go, follow one of the recommended methods below or consult the <a href="https://go.dev/doc/install" target="_blank">official Go documentation</a> for the correct download for your operating system. The command-line instructions are based on standard installation locations, but you may customize them as needed.
+To install Go, follow one of the recommended methods below or consult the [official Go documentation](https://go.dev/doc/install) for the correct download for your operating system. The command-line instructions are based on standard installation locations, but you may customize them as needed.
 
 ### Go Binary Downloads
 
@@ -111,7 +111,7 @@ In the code below, note that `RPC_URL` defaults to localhost, which you may not 
 
 ## Queries
 
-To query the chain e.g. to <a href="https://docs.allora.network/docs/cli-spec#get-next-topic-id" target="_blank">get the next topic id</a>, one can run:
+To query the chain e.g. to [get the next topic id](./cli#get-next-topic-id), one can run:
 
 ```shell
 allorad q emissions next-topic-id --node <RPC_URL>
@@ -125,13 +125,13 @@ allorad q emissions next-topic-id --node <RPC_URL>
 allorad keys add testkey
 ```
 
-Learn more about setting up keys <a href="https://docs.cosmos.network/main/user/run-node/keyring" target="_blank">here</a>.
+Learn more about setting up keys [here](https://docs.cosmos.network/main/user/run-node/keyring).
 
 Make sure you save your mnemomic and account information safely.
 
 ## Transactions
 
-Transactions involve some extra steps. Then, for testnet, head over to <a href="https://faucet.edgenet.allora.network:8443" target="_blank">our faucet</a> or, for mainnet, an exchange (details for both TBA) to grab some coins to pay for gas and other interactions. Then, to run a transaction, e.g. to <a href="https://docs.allora.network/docs/how-to-create-a-topic" target="_blank">create a topic</a>, one can run:
+Transactions involve some extra steps. Then, for testnet, head over to [our faucet](https://faucet.testnet.allora.network) or, for mainnet, an exchange (TBA) to grab some coins to pay for gas and other interactions. Then, to run a transaction, e.g. to [create a topic](../devs/how-to-create-topic), one can run:
 
 ```shell
 allorad --node <RPC_URL> tx emissions push-topic <YOUR_ADDRESS> "ETH" bafybeih6yjjjf2v7qp3wm6hodvjcdljj7galu7dufirvcekzip5gd7bthq eth-price-weights-calc.wasm 150 bafybeie65aglhion2fol4etjotgdpfra44tdxssrid345pjkcmms5g3j7u allora-function-example.wasm 60 true 

@@ -33,7 +33,7 @@ You can follow these instructions to view the most recent price data brought on-
 
 ## Step by Step Guide:
 
-1. Call the `getTopicValue(uint256 topicId, bytes extraData)` function with the correct `topicId` on the Adapter contract for your desired chain. You can provide `''` for `extraData` in solidity, or `'0x'` for `extraData` in typescript. The list of deployed contracts and topicIds can be found under [deployments](deployments). 
+1. Call the `getTopicValue(uint256 topicId, bytes extraData)` function with the correct `topicId` on the Adapter contract for your desired chain. You can provide `''` for `extraData` in solidity, or `'0x'` for `extraData` in typescript. The list of deployed contracts and topicIds can be found under [deployments](./existing-adapters).
 2. Access the `recentValue` attribute.
 3. Optional: check the unix-timestamp under the `recentValueTime` attribute to see how recently the value was updated.
 
@@ -91,5 +91,5 @@ interface IAlloraAdapter {
 
 ## Code Links
 
-- <a href="https://github.com/allora-network/allora-adapter/blob/main/src/" target="_blank">Open source adapter code</a>
-- <a href="https://github.com/allora-network/allora-adapter/blob/main/src/interface/IAlloraAdapter.sol" target="_blank">IAlloraAdapter</a>, including the structs used for solidity scripting.
+- [Open source adapter code](https://github.com/allora-network/allora-adapter/blob/main/src/)
+- [IAlloraAdapter](https://github.com/allora-network/allora-adapter/blob/main/src/interface/IAlloraAdapter.sol), including the structs used for Solidity code.

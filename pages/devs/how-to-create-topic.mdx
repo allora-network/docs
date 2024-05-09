@@ -4,23 +4,19 @@
 
 ## What is a Topic?
 
-[Topics](technical-architecture#topics) are Schelling points where disparate-but-alike data scientists and domain experts aggregate their predictions. For example, we might create a topic for predicting the future price of ETH. There, all experts with any talent in predicting the future price of ETH will submit their inferences. Topics vary by domain and parameterization, defining how these inferences are collected and valued.
+[Topics](../learn/architecture#topics) are Schelling points where disparate-but-alike data scientists and domain experts aggregate their predictions. For example, we might create a topic for predicting the future price of ETH. There, all experts with any talent in predicting the future price of ETH will submit their inferences. Topics vary by domain and parameterization, defining how these inferences are collected and valued.
 
 Developers can make topics for arbitrary categories of inferences so long as they complete these steps:
 
-## Note
-
-Topic creation is temporarily a whitelisted action. The Upshot Team currently has access to whitelisted addresses. We plan to make this action permissionless soon. In the meantime, those interested in creating new topics should reach out to us <a href="https://docs.google.com/forms/d/e/1FAIpQLScj2rGAjFAAPZANrr2vZr_WAmLhniHn2x_l8K7EQcJ1i8XqHw/viewform" target="_blank">here</a>.
-
 ## Prerequisites:
 
-1. A wallet with sufficient funds to at least cover gas. Use [the faucet](how-to-faucet-your-account) to get funds. 
+1. A wallet with sufficient funds to at least cover gas. Use [the faucet](./how-to-use-faucet) to get funds. 
 2. A deployed Blockless function that triggers node inferences (obtain `function_id` and `method`).  
-   Learn more: [How to Create an Inference Generation Function](how-to-create-an-inferece-generation-function)
+   Learn more: [How to Create an Inference Generation Function](./create-deploy-inference-generation-function)
 3. A deployed Blockless function for the weight adjustment logic (obtain `function_id` and `method`).  
-   Learn more: [How to Create and Deploy a Weight Adjustment Function](how-to-create-and-deploy-a-weight-adjustment-function)
+   Learn more: [How to Create and Deploy a Weight Adjustment Function](./create-deploy-weight-adjustment-function)
 4. A deployed Adapter on the desired _target chain_. A target chain will likely sit closer to your application, and hence we deploy adapter contracts on target chains to receive and verify inferences to be consumed by applications properly.  
-   Learn more: [Getting Started with Adapters](adapters)
+   Learn more: [Getting Started with Adapters](./adapters)
 
 ## Creating Your First Topic
 
@@ -49,7 +45,7 @@ type MsgCreateNewTopic struct {
 }
 ```
 
-Using the [Allora CLI](cli-spec) to create a topic:
+Using the [Allora CLI](../learn/cli) to create a topic:
 
 ```shell bash
 allorad tx emissions push-topic \
