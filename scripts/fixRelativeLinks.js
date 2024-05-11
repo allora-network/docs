@@ -7,7 +7,7 @@ const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
 const stat = util.promisify(fs.stat);
 
-const directoryPath = '/path/to/your/docs';
+const directoryPath = '/Users/kenny/Documents/projects/upshot/docs/pages';
 
 async function getAllFiles(dirPath, arrayOfFiles) {
   const files = await readdir(dirPath);
@@ -17,12 +17,13 @@ async function getAllFiles(dirPath, arrayOfFiles) {
   await Promise.all(files.map(async file => {
     if (fs.statSync(path.join(dirPath, file)).isDirectory()) {
       arrayOfFiles = await getAllFiles(path.join(dirPath, file), arrayOfFiles);
-    } else {
+    } else if (file.endsWith('.mdx')) {
+      // Skip non-markdown files
       arrayOfFiles.push(path.join(dirPath, file));
     }
   }));
 
-  return arrayOfFiles;
+  return arrayOfFiles.filter(f => f);
 }
 
 async function findAndUpdateLinks(files) {
@@ -37,7 +38,8 @@ async function findAndUpdateLinks(files) {
   });
 
   for (const [filename, paths] of Object.entries(fileMap)) {
-    if (paths.length > 1) {
+    if (paths.length > 1 && !filename.startsWith('index')) {
+      // There are duplicate index.mdx files, which shouldn't be too link-worthy anyway
       console.log(`Duplicate filename detected: ${filename}. Files: ${paths.join(', ')}. Please rename to make them unique.`);
     }
   }
@@ -51,13 +53,22 @@ async function findAndUpdateLinks(files) {
     let match;
 
     while ((match = linkRegex.exec(content)) !== null) {
+      // Skip images
+      if (match[1].endsWith('.png') || match[1].endsWith('.jpg') || match[1].endsWith('.jpeg') || match[1].endsWith('.gif')) {
+        continue;
+      }
       const [fullMatch, linkPath] = match;
-      const targetFile = path.resolve(dir, linkPath);
+      let [resolvedPath, fragment] = linkPath.split('#');
+      const targetFile = path.resolve(dir, resolvedPath);
 
-      if (!fs.existsSync(targetFile)) {
+      // console.log('dir', dir)
+      // console.log('file', file)
+      // console.log('targetFile', targetFile)
+
+      if (!fs.existsSync(targetFile + '.mdx')) {
         console.log(`Broken link found in ${file}: ${linkPath} does not exist.`);
       } else {
-        const correctPath = path.relative(dir, fileMap[path.basename(targetFile)][0]);
+        const correctPath = path.relative(dir, fileMap[path.basename(targetFile)][0]) + (fragment ? `#${fragment}` : '');
         modified = modified.replace(fullMatch, `](${correctPath})`);
       }
     }
