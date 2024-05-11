@@ -1,10 +1,39 @@
 {
   "index": "Welcome",
-  "community": "Community",
-  "code": "Code",
+  "community": {
+    "title": "Community",
+    "type": "page"
+  },
+  "datasci": {
+    "title": "Workers",
+    "type": "page"
+  },
+  "devs": {
+    "title": "Consumers",
+    "type": "page"
+  },
+  "nops": {
+    "title": "Validators & Reputers",
+    "type": "page"
+  },
+  "ref": {
+    "title": "Reference",
+    "type": "page"
+  },
+  "--": {
+    "type": "separator"
+  },
   "learn": "Learn",
-  "datasci": "For Data Scientists",
-  "devs": "For Developers",
-  "nops": "For Validators",
-  "ref": "Reference"
+  "glossary": "Glossary",
+  "---": {
+    "type": "separator"
+  },
+  "paper": {
+    "title": "Litepaper",
+    "href": "https://litepaper.assets.allora.network/allora-litepaper.pdf"
+  },
+  "main": {
+    "title": "Main Site",
+    "href": "https://allora.network"
+  }
 }

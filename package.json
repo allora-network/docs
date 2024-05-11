@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "next",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "fix-links": "node scripts/fixRelativeLinks.js"
   }
 }

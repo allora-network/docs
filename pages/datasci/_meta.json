@@ -1,4 +1,5 @@
 {
+  "index": "Workers",
   "requirements": "System Requirements",
   "deploy-worker-with-allocmd": "Deploy a Worker with allocmd",
   "build-and-deploy-worker-from-scratch": "Build and Deploy Worker from Scratch",
