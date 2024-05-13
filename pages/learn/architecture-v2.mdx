@@ -1,0 +1,339 @@
+# Technical Architecture
+
+> The high-level technical design of the Allora protocol's first implementation
+
+This is an overview of the architecture employed by the first implementation of the Allora protocol as defined by its titular litepaper, [found here](https://allora.network/allora-litepaper.pdf). Reading the Allora litepaper before this page is highly recommended, as many equations within the litepaper are referenced here. The first implementation can be found in the repos of the [Allora Network GitHub organization](https://github.com/allora-network), particularly in the [`allora-chain`](https://github.com/allora-network/allora-chain) and [`allora-inference-base`](https://github.com/allora-network/allora-inference-base) repositories.
+
+_The primary goal of Allora is to be the marketplace for intelligence_. In other words, Allora aims to incentivize data scientists (_workers_) to provide high-quality _inferences_ as requested by _consumers_. Inferences include predictions of arbitrary future events or difficult computations requiring specialized knowledge. Allora accomplishes this with a technical architecture summarized by the following diagram and elaborated in the paragraphs below.
+
+High-level depiction of the Technical Architecture implementing the Allora Protocol.
+
+![technical-architecture](/technical-architecture.png)
+
+## Frequently Used Terms
+
+Some terms are used throughout this page that should be defined upfront for maximal clarity.
+
+The terms _cadence_ and _epoch_ are used almost interchangeably, with cadence referring to the length of the respective epoch.
+
+_ALLO_ is the native token of the Allora appchain. All network participants use ALLO to secure the network and compensate the network's supply side for their provided value.
+
+The _supply side_ refers to all actors who participate in and continuously add value to the Allora protocol but are not consumers. This includes workers, reputers, and validators, all defined below. By contrast, the demand side is entirely informed by consumers or those who request inferences.
+
+_b7s_ is an abbreviation of _blockless_.
+
+## Topics
+
+To ensure high-quality inferences from workers, Allora aims to incentivize workers more if they are proven more accurate. Of course, the world is vast and diverse. This makes it challenging to compare inferences of problems that differ vastly in difficulty and possibilities.
+
+To categorize problems, we introduce the concept of _topics_. A topic is a [Schelling point](https://en.wikipedia.org/wiki/Focal_point_(game_theory)) to focus the efforts of the protocol. A _topic creator_ will write a function that rewards those for correctly inferring outcomes, where "correct" is defined by the topic creator. Concretely, a topic has the following attributes:
+
+```go
+type Topic struct {
+    id uint64                   // unique id automatically set by the chain at topic creation
+    creator string              // address of the creator of the topic
+    metadata string             // provides more details about the topic
+    loss_logic string           // loss calculation logic (see below)
+    loss_cadence uint64         // how often in seconds the loss calculation logic is ran
+    loss_last_ran uint64        // last time at which the loss calculation logic was ran
+    inference_cadence uint64    // how often in seconds inferences are collected
+    inference_last_ran uint64   // last time at which inferences were last collected
+    f_treasury float32          // how much of the topic treasury is used 
+    active bool                 // if the topic is accepting new inferences or not
+    default_arg string          // models may take a variety of arguments, however
+                                //   we only score inferences on-chain produced for this argument
+    pnorm uint64                // raising this parameter raises how much high-quality inferences
+                                //  are favored over lower-quality inferences
+    alpha_regret float32        // raising this parameter lowers how much workers historical
+                                //   performances influence their current reward distribution
+    preward_reputer float32     // raising this parameter raises how much well-performing
+                                //   reputers receive relative to worse reputers
+    preward_inference float32   // raising this parameter raises how much workers of high-quality
+                                //   inferences receive relative to worse workers
+    preward_forecast float32    // raising this parameter raises how much workers of high-quality
+                                //   forecasts receive relative to worse workers
+    f_tolerance float32         // raising this parameter lowers the maximum possible reward
+                                //   for reputers
+    f_treasury float32          // percent of the consumer-funded topic treasury to be paid
+                                //   in the current epoch
+}
+```
+
+Workers commit _inferences_ to topics based on their expertise, providing some means of categorizing domain expertise. They may additionally, or instead, commit _forecasts_ that predict how performant their peers will be in the current epoch. These actions are incentivized, as elaborated below and in the litepaper. 
+
+## Context Awareness
+
+Creating a high-quality forecast requires _context awareness_, which allows Allora to be self-improving and greater than the sum of its parts. By incorporating feedback from the test set (live, revealed ground truth plus the live, revealed performances of one's peers), both inference and forecast models of individual workers can be improved over time. This improves overall network performance. By incentivizing forecasts, workers are incentivized to understand the contexts in which they and their peers perform well or poorly. For example, Allora may understand that a subset of workers perform better on Wednesdays, whereas another performs well on Thursdays, or some do well in bear markets and others in bull markets. Integrating such context-aware insights empowers Allora to admit better performance than any individual actor because it can selectively leverage insights from the appropriate actors in the appropriate contexts.
+
+## Inferences
+
+Topics include the fields `inference_cadence` and `inference_last_ran,` which determine when inferences and forecasts should be collected from workers. Every `inference_cadence` seconds, the Allora appchain solicits inferences from workers and sets `inference_last_ran` as the current UNIX epoch.
+
+Workers receive and respond to requests by running _worker b7s_, which are the same as ordinary b7s but feature two special modifications. Normally, b7s can respond to any request and run the WASM in the request's manifest. However, to keep models private and differentiated, we require worker b7s to have [a special extension](../ref/blockless/allora-b7s-extension) that lets them query a privately-held machine learning model for new inferences. To prevent well-intentioned but inappropriate b7s from accidentally accepting a request before a qualified worker can respond, or, similarly, to prevent a worker b7s with a model for a different topic from accidentally accepting a request, we also require that b7s listen to topic-specific channels called _subgroups_, as initially [implemented here](https://github.com/blocklessnetwork/b7s/pull/128). [Subgroups](../ref/blockless/b7s-concepts) allow qualified worker b7s -- b7s that have relevant models -- to have exclusive access to requests that they have expertise in (i.e. that they have models for).
+
+Inferences and forecasts returned by workers are then batch committed to the Allora appchain and truncated `loss_cadence` seconds after their commitment. Directly committing these values on-chain provides several benefits. This ensures we can keep a reliable, even if ephemeral, record of who should be rewarded for their effort. It also enables consumers to bridge verifiably updated inferences from the Allora appchain to their destination of choice. Consumers can optionally apply whatever interpretation of reputation they want to determine their confidence in the bridged inferences. At no point is the Allora Protocol required to update data on all possible destination chains. Furthermore, on-chain inferences enable the protocol to distribute rewards for liveness and availability in a verifiably justified manner.
+
+In the protobufs for the Allora chain, inferences and forecasts are defined as follows:
+
+```go
+message Inference {
+  option (gogoproto.equal) = true;
+
+  uint64 topic_id = 1;
+  string worker = 2;
+  string value = 3 [
+    (cosmos_proto.scalar) = "cosmos.Uint",
+    (gogoproto.customtype) = "cosmossdk.io/math.Uint",
+    (gogoproto.nullable) = false,
+    (amino.dont_omitempty) = true
+  ];
+  bytes extra_data = 4;
+  string proof = 5;
+}
+
+message Inferences {
+  repeated Inference inferences = 1;
+}
+
+message ForecastElement {
+  option (gogoproto.equal) = true;
+
+  string inferer = 2;
+  string value = 3 [
+    (cosmos_proto.scalar) = "cosmos.Uint",
+    (gogoproto.customtype) = "cosmossdk.io/math.Uint",
+    (gogoproto.nullable) = false,
+    (amino.dont_omitempty) = true
+  ];
+  bytes extra_data = 4;
+  string proof = 5;
+}
+
+message Forecast {
+  option (gogoproto.equal) = true;
+
+  uint64 topic_id = 1;
+  string forecaster = 2;
+  repeated ForecastElement forecast_elements = 3;
+}
+
+message Forecasts {
+  repeated Forecast forecasts = 1;
+}
+```
+
+## Loss Calculation
+
+Topic creators must decide how to evaluate inferences. They do so by defining _loss calculation logic_ at topic creation time, which encapsulates the specific loss function to use (e.g., mean absolute directional loss, L1-norm) and the source of ground truth (e.g., some endpoint, some oracle, the median of gathered inferences). Topic creators write loss calculation logic in any language that suits them, then compile this code to [WASM](https://webassembly.org/) using any number of tools, though we recommend the [Blockless CLI](https://github.com/blocklessnetwork/cli). This compiled data is stored as `loss_logic` in the topic struct at the time of topic creation, which is enabled via the [Allora appchain's CLI](./cli). The loss logic is called every `loss_cadence` seconds by the Allora appchain. Each time, `loss_last_ran` is set to the current UNIX epoch. `loss_logic` is wrapped within a _function manifest_ and sent to nodes in the [Blockless Network](https://blockless.network/) (also known as _b7s_), which specializes in running arbitrary computations off-chain. This approach lightens the load on the Allora appchain and CometBFT validators, enables writing loss calculation logic in any WASM-compilable programming language, and supports arbitrary, customizable valuation techniques for all types of inference.
+
+Notably, the `loss_cadence` is a distinct parameter from `inference_cadence`. This allows many inferences to be batch-scored simultaneously, saving on-chain computation and network communication costs.
+
+In the protobufs for the Allora chain, the losses are defined as follows: 
+
+```go
+message WorkerAttributedLoss {
+  option (gogoproto.equal) = true;
+
+  string worker = 1;
+  string value = 2 [
+    (cosmos_proto.scalar) = "cosmos.Uint",
+    (gogoproto.customtype) = "cosmossdk.io/math.Uint",
+    (gogoproto.nullable) = false,
+    (amino.dont_omitempty) = true
+  ];
+  bytes extra_data = 3;
+}
+
+// eq13 in the litepaper
+message LossBundle {
+  option (gogoproto.equal) = true;
+
+  uint64 topic_id = 1;
+  string reputer = 2;
+  bytes extra_data = 3;
+  string combined_loss = 4 [
+    (cosmos_proto.scalar) = "cosmos.Uint",
+    (gogoproto.customtype) = "cosmossdk.io/math.Uint",
+    (gogoproto.nullable) = false,
+    (amino.dont_omitempty) = true
+  ];
+  repeated WorkerAttributedLoss inferer_losses = 5;
+  repeated WorkerAttributedLoss forcaster_losses = 6;
+  string naive_loss = 7 [
+    (cosmos_proto.scalar) = "cosmos.Uint",
+    (gogoproto.customtype) = "cosmossdk.io/math.Uint",
+    (gogoproto.nullable) = false,
+    (amino.dont_omitempty) = true
+  ];
+  repeated WorkerAttributedLoss one_out_losses = 8 [
+    (cosmos_proto.scalar) = "cosmos.Uint",
+    (gogoproto.customtype) = "cosmossdk.io/math.Uint",
+    (gogoproto.nullable) = false,
+    (amino.dont_omitempty) = true
+  ];
+  repeated WorkerAttributedLoss one_in_naive_losses = 9 [
+    (cosmos_proto.scalar) = "cosmos.Uint",
+    (gogoproto.customtype) = "cosmossdk.io/math.Uint",
+    (gogoproto.nullable) = false,
+    (amino.dont_omitempty) = true
+  ];
+}
+```
+
+## Stake
+
+The role of _reputers_ is to indicate their view of the reputation of others. They source the ground truth and compare it to the workers' inferences by running a topic-specific loss function (the _loss logic_ defined above). _Reputers_ assert their authority by providing _stake_ to the protocol. This is a financial signal saying how confident a reputer is in their ability to promptly source ground truth and calculate losses. Stake also contributes to the protocol-determined "importance" of that topic relative to others such that a topic with more stake receives more inflation (see [below](#rewards)).
+
+Similarly, to _register_ within a topic, reputers and workers must place a minimum stake in the Allora native token. This is a relatively small, fixed amount intended to thwart Sybil and DDoS attacks. Once this minimum amount is staked, workers and reputers are entitled to participate in the network and receive emissions in return for their work. Participants can no longer receive emissions when the stake dips below this amount. The stake used to register an actor does not influence how much inflation the topic receives.
+
+Participants can stake using the [Allora chain CLI](./cli).
+
+In the protobufs for the Allora chain, stakes are defined as follows:
+
+```go
+message StakePlacement {
+  uint64 topic_id = 1;
+  string amount = 2 [
+    (cosmos_proto.scalar) = "cosmos.Uint",
+    (gogoproto.customtype) = "cosmossdk.io/math.Uint",
+    (gogoproto.nullable) = false,
+    (amino.dont_omitempty) = true
+  ];
+}
+
+message StakeRemoval {
+  uint64 timestamp_removal_started = 1;
+  repeated StakePlacement placements = 2;
+}
+```
+
+## Delegated Stake
+
+One may passively earn funds (not without risk) by delegating stake to a reputer in a particular topic. In other words, one may receive a fraction of the rewards a reputer receives in a particular topic by simply delegating one's funds to them. These funds are used by reputers to supplement their stake, bolstering their means of securing the topic. In other words, with more staked funds, one lessens the distance between a reputer's report of network losses -- and, in turn, the ground truth -- and the consensus losses reached by soliciting all available reputers in a topic. Delegating stake to a reputer makes their report of losses more authoritative on a particular topic.
+
+The delegated stake is subject to the same stake withdrawal delay as the regular stake defined above, thwarting "flash attacks."
+
+In the protobufs for the Allora chain, delegated stake and its removal are defined as follows:
+
+```go
+message DelegatedStakePlacement {
+  uint64 topic_id = 1;
+  string reputer = 2;
+  string amount = 3 [
+    (cosmos_proto.scalar) = "cosmos.Uint",
+    (gogoproto.customtype) = "cosmossdk.io/math.Uint",
+    (gogoproto.nullable) = false,
+    (amino.dont_omitempty) = true
+  ];
+}
+
+message DelegatedStakeRemoval {
+  uint64 timestamp_removal_started = 1;
+  repeated DelegatedStakePlacement placements = 2;
+}
+```
+
+## Withdrawal Delays
+
+In our effort to secure the system, Allora has a mandatory waiting period for withdrawals of stake and rewards. This means that when you request to withdraw stake or rewards, you must first initiate the withdrawal, then wait a delay time, and then finalize the withdrawal with an additional transaction. This two-step process is crucial for protecting against flash attacks, ensuring the protocol remains secure without significantly affecting user experience.
+
+## Validators
+
+Allora is first implemented as an appchain built with the Cosmos SDK. Such appchains are secured by _validators_ running CometBFT, a form of delegated proof of stake. This form of stake exists independently of the form mentioned above, placed by reputers. Similarly, one can delegate stake to validators, but this form of delegation is also distinct from the type of delegation mentioned above. In other words, one can delegate to or stake and participate as a reputer, as discussed above, _and_, separately, one can delegate to or stake and participate as a CometBFT validator.
+
+### Topic Security vs. Chain Security
+
+Hence, there is a difference between _topic security_ and _chain security_. Topic security refers to how accurately workers and reputers are compensated for their work, whereas chain security refers to how incorruptible the underlying appchain state is. Topic security may be viewed as a subset of chain security in that if the underlying state is updated in a corrupted manner, one cannot trust that workers and reputers were accurately rewarded in any topic. However, one can have chain security without topic security if validators are overall honest (weighted by stake), but reputers of a particular topic are overall dishonest (weighted by stake).
+
+### Learn More
+
+One can become a validator of the Allora appchain by following [the instructions here](../nops).
+
+CometBFT can be explored in the following two articles, among many other places:
+
+- [Staking and Delegation in Cosmos](https://medium.com/@notional-ventures/staking-and-delegation-in-cosmos-db660154bcf9)
+- [CometBFT: Security and Consensus in Cosmos](https://medium.com/@notional-ventures/cometbft-security-and-consensus-in-cosmos-part-1-a7be84f0bf25)
+
+## Consumption
+
+As mentioned earlier, the Allora Cosmos appchain provides a trustless settlement layer for all financial flows and is Allora's source of truth. However, _consumers_ of inferences produced by Allora will wish to leverage the power of decentralized AI on applications located in various places on any blockchain.
+
+### Inference Requests
+
+Consumers kickoff the entire process outlined above by submitting _inference requests_ to the appchain along with some ALLO. Inference requests subscribe the consumer to the topic and contribute to the incentives appealing to workers and reputers. In the protobufs for the Allora chain, inference requests are defined as follows:
+
+```go
+
+// num_inference_possible = bid_amount / max_price_per_inference,
+// length of time this inference repeats for =  num_inference_possible * cadence
+message InferenceRequest {
+  string sender = 1;
+  uint64 nonce = 2;
+  uint64 topic_id = 3;
+  uint64 cadence = 4;       // time in seconds between inferences. zero means oneshot inference
+  string max_price_per_inference = 5 [
+    (cosmos_proto.scalar) = "cosmos.Uint",
+    (gogoproto.customtype) = "cosmossdk.io/math.Uint",
+    (gogoproto.nullable) = false,
+    (amino.dont_omitempty) = true
+  ];                        // maximum price per inference that alice is willing to pay
+  string bid_amount = 6 [
+    (cosmos_proto.scalar) = "cosmos.Uint",
+    (gogoproto.customtype) = "cosmossdk.io/math.Uint",
+    (gogoproto.nullable) = false,
+    (amino.dont_omitempty) = true
+  ];                        // amount of funds to take from requester to fulfill their request
+  uint64 last_checked = 7;  // last time the inference was checked and was possibly drawn from
+  uint64 timestamp_valid_until = 8;
+  bytes extra_data = 9;
+}
+
+```
+
+Inference requests are only considered valid if they meet certain conditions. The requested cadence of inferences must be at least the `min_request_cadence` and no greater than the `max_request_cadence`. The `timestamp_valid_until` property must be no greater than the current time plus `max_inference_request_validity`. If at any point the current time exceeds `timestamp_valid_until`, then the request is booted from the _mempool_, which stores all inference requests. The funds in `bid_amount` must also be greater than `min_request_unmet_demand`. If the amount of _unmet_ or unfulfilled funds in the topic falls below this threshold (i.e., if funds are drained to pay for inferences and the amount remaining is below this threshold), then the request is booted from the mempool. This means that the `min_request_unmet_demand` can be viewed as a "tax per new request or subscription," encouraging consumers to commit the most funds they are willing to pay over the longest duration they are willing to accept inferences. This assures workers and reputers that it is worth keeping their machines running for extended periods. Finally, the requester must have at least as much funds in their wallet as they specify in the `bid_amount` property.
+
+### Topic Inactivation
+
+At each call to `EndBlock`, topics that are at or past the next start of their inference epoch and active are enumerated. For each topic, the total set of requests that have not had their unmet demand drained at all or for the past `cadence` number of seconds are enumerated. Across these topic requests, if there is insufficient demand at this timestep for that topic, then the topic is deactivated and no longer considered to have its inference solicitation or loss calculation run. In particular, the topic is inactivated if the total _unmet demand_, or sum unfulfilled funds across all bid requests in the topic mempool, falls below `min_topic_unmet_demand`. Anyone can reactivate a topic at any time if the topic's unmet demand is raised above this point. This is achieved by submitting enough requests with enough total unmet demand to the topic and then calling the `ReactivateTopic` transaction.
+
+### Optimizing the Return
+
+With the topic shown to have sufficient unmet demand and the total set of valid topic requests for this round solidified, requests are parsed to uncover the price, which maximizes the total return to be received by the supply side. For example, if there are 3 requests with their `max_price_per_inference` set at or above 50 ALLO, but 2 requests with their `max_price_per_inference` set at or above 100 ALLO, then the price which maximizes the return from consumer demand may be set to 100 ALLO because 100 ALLO times 2 requests willing to pay the price that is greater than 3 times 50.
+
+### Topic Treasury
+
+For each topic, the funds at their respective return-maximizing price are drained from the affected inference requests and sent to a _topic treasury_. This treasury is drained at a fixed, topic-specific rate `f_treasury` every rewards epoch (discussed below). For example, if the topic treasury now has 100 ALLO and `f_treasury=0.1`, then 10 ALLO will be payable to the supply side from this inference solicitation epoch. This protects the supply side from volatility in demand and encourages their liveness and continuous participation.
+
+### Capped Computation across Topics
+
+The enumerated list of active topics is then sorted by total return descending, and the top `max_topic_per_block` topics are then permitted to have their inference solicitation and loss calculation begin. Randomness is applied to break ties if two topics admit equal total returns, enshrining fairness. This cap ensures that a set of topic calculations fits the given block size and time. It also helps make the total set of topics subject to have their inferences solicited more predictable despite the added randomness.
+
+### Global Parameters
+
+Most of the parameters mentioned above are global parameters. The complete list of global parameters can be found [here](../nops).
+
+### Inference Consumption
+
+After requests are fulfilled, the resultant data can now be "consumed" or used. The Allora appchain features a recent record of inferences, forecasts, and losses. With this data, and for a fee, consumers can bridge data from the Allora appchain to any other chain on which a "spoke" of the Allora protocol is deployed. Such "spoke" contracts ensure the data was correctly bridged and consumers burned the ALLO token. This increases the value of all stakes and emissions earned via emissions from participation within the network.
+
+### Unsafe Requests
+
+Consumers may avert the entirety of the above by making off-chain requests for inferences directly to workers, as supported by the default implementation of the [Allora worker base repo](https://github.com/allora-network/allora-inference-base). This mimics the standard means of soliciting inferences in today's web2-dominated world and may be preferred by consumers who value cheap inferences at the cost of security and accuracy. This, however, is unsafe for several reasons. The worker may alter or turn off this request to any and all traffic at any point. The returned inferences are also not subject to any form of grading -- they may exist entirely off-chain and are not necessarily the same inferences submitted to the chain. Finally, the "self-improving" properties of Allora, including its ability to generate "network inferences" more accurately than the sum of its constituent inferences, are entirely absent. Hence, these inferences are nearly guaranteed never to be better than the network inferences computed by Allora, found on-chain. One can learn how to make such unsafe requests [here](../devs/offchain-query-existing-workers).
+
+## Rewards
+
+Rewards are calculated and distributed to the "supply side" of the network -- workers, reputers, validators -- after every _reward_cadence_ seconds, a global parameter. This allows the protocol to batch compute together, saving total and amortized compute across multiple blocks.
+
+### Inflationary Rewards
+
+Rewards are sourced from two places: consumer demand and ALLO inflation. Consumer demand is discussed at length above. ALLO inflation follows a Bitcoin-like schedule, where the total emissions per block decreases over time until a maximum supply of 1 billion ALLO is reached.
+
+Inflationary rewards are allocated across topics by analyzing the proportion of reputer stake dedicated to that topic. The proportion of reputer stake (including delegated stake) placed in a particular topic out of all reputer stake (including delegated stake) across all topics is calculated, and this determines the percent of newly minted ALLO, from inflation, added to the topic rewards for that topic.
+
+### Distributing Rewards within a Topic
+
+Now rewards can be disbursed to the supply-side participants of each topic. The total rewards include the sum return from consumer demand across inference solicitation rounds in the past reward epoch and the inflation allotment determined above. A global fixed percent `percent_rewards_reputers_workers` of these total rewards are calculated, and their complement with the total topic rewards (i.e., `1-x`) is siphoned for validators, who therefore benefit from all activity on Allora. The rest of these rewards are split among workers and reputers as specified in [the Allora litepaper](https://allora.network/allora-litepaper.pdf). In short, workers are compensated based on their accuracy, reputers are compensated based on the discrepancy between their reported losses and the consensus losses reached among each other, and the proportion of topic rewards dedicated to workers vs. reputers is calculated based on how decentralized each set of actors is within the topic and how decentralized the topic would prefer each cadre be at that moment.
+
+## Infrastructure
+
+Our implementation's deployments follow standard Cosmos SDK best practices. Our validator, worker, and reputer nodes are guarded by sentry nodes, caching layers, and more to protect their integrity while operating on the open Internet. Please contact us if you are interested in setting up a similar stack on your own infrastructure to participate in the Allora Network or if there is a concern left unaddressed by other parts of our docs.
