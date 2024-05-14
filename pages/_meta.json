@@ -1,29 +1,11 @@
 {
   "index": "Welcome",
-  "community": {
-    "title": "Community",
-    "type": "page"
-  },
-  "datasci": {
-    "title": "Workers",
-    "type": "page"
-  },
-  "devs": {
-    "title": "Consumers",
-    "type": "page"
-  },
-  "nops": {
-    "title": "Validators & Reputers",
-    "type": "page"
-  },
-  "ref": {
-    "title": "Reference",
-    "type": "page"
-  },
-  "--": {
-    "type": "separator"
-  },
+  "community": "Community",
   "learn": "Learn",
+  "datasci": "Workers",
+  "devs": "Consumers",
+  "nops": "Validators & Reputers",
+  "ref": "Reference",
   "glossary": "Glossary",
   "---": {
     "type": "separator"
