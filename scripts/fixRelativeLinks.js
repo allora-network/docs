@@ -49,7 +49,7 @@ async function findAndUpdateLinks(files) {
     const dir = path.dirname(file);
     let modified = content;
 
-    const linkRegex = /\]\((?!http)(.+?)\)/g;
+    const linkRegex = /\[.+\]\((?!http)(.+?)\)/g;
     let match;
 
     while ((match = linkRegex.exec(content)) !== null) {
@@ -68,8 +68,16 @@ async function findAndUpdateLinks(files) {
       if (!fs.existsSync(targetFile + '.mdx')) {
         console.log(`Broken link found in ${file}: ${linkPath} does not exist.`);
       } else {
-        const correctPath = path.relative(dir, fileMap[path.basename(targetFile)][0]) + (fragment ? `#${fragment}` : '');
-        modified = modified.replace(fullMatch, `](${correctPath})`);
+        if ((fileMap[path.basename(targetFile)] ?? []).length === 1) {
+          try {
+            const correctPath = path.relative(dir, fileMap[path.basename(targetFile)][0]) + (fragment ? `#${fragment}` : '');
+            modified = modified.replace(fullMatch, `](${correctPath})`);
+          } catch (error) {
+            console.log('targetFile', targetFile)
+            console.log('path.basename(targetFile)', path.basename(targetFile))
+            console.log('fileMap', fileMap)
+          }
+        }
       }
     }
 

@@ -1,5 +1,4 @@
 {
-  "index": "Consumers",
   "how-to-create-topic": "How to Create a Topic",
   "create-deploy-inference-generation-function": "Create, Deploy, and Invoke an Inference Generation Function",
   "create-deploy-weight-adjustment-function": "Create, Deploy, and Invoke a Weight Adjustment Function",
