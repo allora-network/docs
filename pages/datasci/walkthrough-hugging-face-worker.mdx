@@ -7,7 +7,7 @@
 
 Before you start, ensure you have the following:
 
-- A Python environment with pip installed.
+- A Python environment with `pip` installed.
 - A Docker environment with `docker compose` installed.
 - Basic knowledge of machine learning and the [Hugging Face](https://huggingface.co/) ecosystem.
 - Familiarity with Allora Network documentation on [allocmd](./deploy-worker-with-allocmd) and [building and deploying a worker node from scratch](./build-and-deploy-worker-from-scratch).
@@ -186,7 +186,7 @@ After a few minutes, you will see your Flask application running in the logs:
 inference-hf  |  * Serving Flask app 'app'
 ```
 
-To test our inference server first, we can issue the following HTTP request:
+To test our inference server first by directly querying it. To do that, we can issue the following HTTP request:
 
 ```bash
 curl -X POST http:/localhost:8000/inference -H "Content-Type: application/json" \
@@ -205,7 +205,9 @@ And we have a response!
 }
 ```
 
-Now that our inference server is tested successfully, let's try to query our worker with:
+Now that we know our inference server is working as expected, lets ensure it can interact with the [Blockless network](https://blockless.network/). This is how Allora nodes respond to [requests for inference from chain validators](../learn/architecture.mdx#inferences).
+
+We can issue a Blockless request with:
 
 ```bash
 curl --location 'http://localhost:6000/api/v1/functions/execute' \
@@ -259,7 +261,7 @@ And here is the response:
 }
 ```
 
-Congratulations! Your worker node running the Hugging Face model is now up and running locally on your machine. 
+Congratulations! Your worker node running the Hugging Face model is now up and running locally on your machine. We've also verified that it can participate in Allora by responding to Blockless requests.
 
 
 ## Initializing the worker for production
