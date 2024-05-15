@@ -1,0 +1,335 @@
+# Walkthrough: Deploying a Hugging Face Model as a Worker Node on the Allora Network
+
+> This guide provides a step-by-step process to deploy a Hugging Face model as a Worker Node within the Allora Network. By following these instructions, you will be able to integrate and run models from Hugging Face, contributing to the Allora decentralized machine intelligence ecosystem.
+
+
+## Prerequisites
+
+Before you start, ensure you have the following:
+
+- A Python environment with `pip` installed.
+- A Docker environment with `docker compose` installed.
+- Basic knowledge of machine learning and the [Hugging Face](https://huggingface.co/) ecosystem.
+- Familiarity with Allora Network documentation on [allocmd](./deploy-worker-with-allocmd) and [building and deploying a worker node from scratch](./build-and-deploy-worker-from-scratch).
+
+
+## Installing allocmd
+
+First, install `allocmd` as [explained in the documentation](./deploy-worker-with-allocmd):
+
+```bash
+pip install allocmd==1.0.4
+```
+
+
+## Initializing the worker for development
+
+Initialize the worker with your preferred name and topic ID in a development environment:
+
+```bash
+allocmd init --name <preffered name> --topic <topic id> --env dev
+cd <preffered name>
+```
+
+> Note:
+> To deploy on the Allora Network, you will need to [pick the topic ID](../devs/existing-topics) you wish to generate inference for, or [create a new topic](../devs/how-to-create-topic).
+
+## Creating the inference server
+
+We will create a very simple Flask application to serve inference from the Hugging Face model. In this example, we will be using [ElKulako/cryptobert](https://huggingface.co/ElKulako/cryptobert) model, which is a pre-trained NLP model to analyse the language and sentiments of cryptocurrency-related social media posts and messages.
+Here is an example of our newly created `app.py`:
+
+```python
+from flask import Flask, request, jsonify
+from transformers import TextClassificationPipeline, AutoModelForSequenceClassification, AutoTokenizer
+
+# create our Flask app
+app = Flask(__name__)
+
+# define the Hugging Face model we will use
+model_name = "ElKulako/cryptobert"
+
+# import the model through Hugging Face transformers lib
+# https://huggingface.co/docs/hub/transformers
+try:
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSequenceClassification.from_pretrained(model_name)
+except Exception as e:
+    print("Failed to load model: ", e)
+
+# use a pipeline as a high-level helper
+try:
+    pipe = TextClassificationPipeline(model=model, tokenizer=tokenizer, max_length=64, truncation=True, padding = 'max_length')
+except Exception as e:
+    print("Failed to create pipeline: ", e)
+
+# define our endpoint
+@app.route('/inference', methods=['POST'])
+def predict_sentiment():
+    try:
+        input_text = request.json['input']
+        output = pipe(input_text)
+        return jsonify({"output": output})
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+# run our Flask app
+if __name__ == '__main__':
+    app.run(host="0.0.0.0", port=8000, debug=True)
+```
+
+## Modifying requirements.txt
+
+Update the `requirements.txt` to include the necessary packages for the inference server:
+
+```
+flask[async]
+gunicorn[gthread]
+transformers[torch]
+```
+
+## Modifying main.py to call the inference server
+
+Update `main.py` to integrate with the inference server:
+
+```python
+import requests
+import sys
+import json
+
+def process(argument):
+    headers = {'Content-Type': 'application/json'}
+    url = f"http://host.docker.internal:8000/inference"
+    payload = {"input": str(argument)}
+    response = requests.post(url, headers=headers, json=payload)
+    if response.status_code == 200:
+        data = response.json()
+        if 'output' in data:
+            print(data['output'])
+    else:
+        print(str(response.text))
+
+if __name__ == "__main__":
+    try:
+        topic_id = sys.argv[1]
+        inference_argument = sys.argv[2]
+        process(inference_argument)
+    except Exception as e:
+        response = json.dumps({"error": {str(e)}})
+        print(response)
+```
+
+## Updating the Docker configuration
+
+Modify the generated `Dockerfile` for the head and worker nodes:
+
+```dockerfile
+FROM --platform=linux/amd64 alloranetwork/allora-inference-base:latest
+
+RUN pip install requests
+
+COPY main.py /app/
+```
+
+And create the `Dockerfile_inference` for the inference server:
+
+```dockerfile
+FROM amd64/python:3.9-buster
+
+WORKDIR /app
+
+COPY . /app
+
+# Install any needed packages specified in requirements.txt
+RUN pip install --upgrade pip \
+    && pip install -r requirements.txt
+
+EXPOSE 8000
+
+ENV NAME sample
+
+# Run gunicorn when the container launches and bind port 8000 from app.py
+CMD ["gunicorn", "-b", ":8000", "app:app"]
+```
+
+Finally, add the inference service in the `dev-docker-compose.yaml`:
+
+```dockerfile
+[...]
+services:
+  inference:
+    container_name: inference-hf
+    build:
+      context: .
+      dockerfile: Dockerfile_inference
+    command: python -u /app/app.py
+    ports:
+      - "8000:8000"
+    networks:
+      b7s-local:
+        aliases:
+          - inference
+        ipv4_address: 172.19.0.4
+[...]
+```
+
+## Testing our worker node
+
+Now that everything is set up correctly, we can build our containers with the following command:
+
+```bash
+docker compose -f dev-docker-compose.yaml up --build
+```
+
+After a few minutes, you will see your Flask application running in the logs:
+```bash
+inference-hf  |  * Serving Flask app 'app'
+```
+
+To test our inference server first by directly querying it. To do that, we can issue the following HTTP request:
+
+```bash
+curl -X POST http:/localhost:8000/inference -H "Content-Type: application/json" \
+    -d '{"input": "i am so bullish on $ETH: this token will go to the moon"}'
+```
+
+And we have a response!
+```json
+{
+  "output": [
+    {
+      "label": "Bullish",
+      "score": 0.7626203298568726
+    }
+  ]
+}
+```
+
+Now that we know our inference server is working as expected, lets ensure it can interact with the [Blockless network](https://blockless.network/). This is how Allora nodes respond to [requests for inference from chain validators](../learn/architecture.mdx#inferences).
+
+We can issue a Blockless request with:
+
+```bash
+curl --location 'http://localhost:6000/api/v1/functions/execute' \
+--header 'Content-Type: application/json' \
+--data '{
+    "function_id": "bafybeigpiwl3o73zvvl6dxdqu7zqcub5mhg65jiky2xqb4rdhfmikswzqm",
+    "method": "allora-inference-function.wasm",
+    "parameters": null,
+    "topic": "1",
+    "config": {
+        "env_vars": [
+            {
+                "name": "BLS_REQUEST_PATH",
+                "value": "/api"
+            },
+            {
+                "name": "ALLORA_ARG_PARAMS",
+                "value": "i am so bullish on $ETH: this token will go to the moon"
+            }
+        ],
+        "number_of_nodes": -1,
+        "timeout": 2
+    }
+}' | jq
+```
+
+And here is the response:
+
+```json
+{
+  "code": "200",
+  "request_id": "7a3f25de-d11d-4f55-b4fa-59ae97d9d8e2",
+  "results": [
+    {
+      "result": {
+        "stdout": "[{'label': 'Bullish', 'score': 0.7626203298568726}]\n\n",
+        "stderr": "",
+        "exit_code": 0
+      },
+      "peers": [
+        "12D3KooWJM8cCyVmC45UpSNjBvknqQbsS7HTVx4bWYgxjcbkxxpC"
+      ],
+      "frequency": 100
+    }
+  ],
+  "cluster": {
+    "peers": [
+      "12D3KooWJM8cCyVmC45UpSNjBvknqQbsS7HTVx4bWYgxjcbkxxpC"
+    ]
+  }
+}
+```
+
+Congratulations! Your worker node running the Hugging Face model is now up and running locally on your machine. We've also verified that it can participate in Allora by responding to Blockless requests.
+
+
+## Initializing the worker for production
+
+Your worker node is now ready to be deployed!
+> Remember that you will need to [pick the topic ID](../devs/existing-topics) you wish to generate inference for, or [create a new topic](../devs/how-to-create-topic) to deploy to in production.
+
+The following command will handle the generation of the `prod-docker-compose.yaml` file which contains all the keys and parameters needed for your worker to function perfectly in production:
+
+```bash
+allocmd init --env prod
+chmod -R +rx ./data/scripts
+```
+
+By running this command, `prod-docker-compose.yaml` will be generated with appropriate keys and parameters. 
+> You will need to modify this file to add your inference service, as you did for `dev-docker-compose.yaml`.
+
+You can now run the `prod-docker-compose.yaml` file with: 
+```bash
+docker compose -f prod-docker-compose.yaml up
+```
+or deploy the whole codebase in your preferred cloud instance. 
+
+At this stage, your worker should be responding to inference request from the Allora Chain - Congratulations!
+
+```bash
+curl --location 'https://heads.testnet.allora.network/api/v1/functions/execute' \
+--header 'Content-Type: application/json' \
+--data '{
+    "function_id": "bafybeigpiwl3o73zvvl6dxdqu7zqcub5mhg65jiky2xqb4rdhfmikswzqm",
+    "method": "allora-inference-function.wasm",
+    "parameters": null,
+    "topic": "TOPIC_ID",
+    "config": {
+        "env_vars": [
+            {
+                "name": "BLS_REQUEST_PATH",
+                "value": "/api"
+            },
+            {
+                "name": "ALLORA_ARG_PARAMS",
+                "value": "i am so bullish on $ETH: this token will go to the moon"
+            }
+        ],
+        "number_of_nodes": -1,
+        "timeout": 2
+    }
+}' | jq
+{
+  "code": "200",
+  "request_id": "7fd769d0-ac65-49a5-9759-d4cefe8bb9ea",
+  "results": [
+    {
+      "result": {
+        "stdout": "[{'label': 'Bullish', 'score': 0.7626203298568726}]\n\n",
+        "stderr": "",
+        "exit_code": 0
+      },
+      "peers": [
+        "12D3KooWJM8cCyVmC45UpSNjBvknqQbsS7HTVx4bWYgxjcbkxxpC"
+      ],
+      "frequency": 50
+    }
+  ],
+  "cluster": {
+    "peers": [
+      "12D3KooWJM8cCyVmC45UpSNjBvknqQbsS7HTVx4bWYgxjcbkxxpC"
+    ]
+  }
+}
+```
