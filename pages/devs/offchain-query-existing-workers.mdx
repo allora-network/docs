@@ -4,7 +4,7 @@
 
 ## Querying Workers
 
-There are workers today, mostly maintained by Upshot, that produce inferences for a set of [existing topics](./existing-topics). They can be queried for inferences via standard Blockless function calls, which in turn can be used today in on-chain applications via [Allora adapter contracts](./adapters). A Blockless function call can be submitted in a format like this:
+There are workers today, mostly maintained by Upshot, that produce inferences for a set of [existing topics](./existing-topics). They can be queried for inferences via standard Blockless function calls, which in turn can be used today in on-chain applications via [Allora adapter contracts](./dev-adapters). A Blockless function call can be submitted in a format like this:
 
 ```curl
 curl --request POST \
@@ -36,7 +36,7 @@ Let's break down this request body:
 
 ## Convenience Endpoint from Upshot
 
-To conveniently relay inferences from worker nodes to developers, Upshot has created an endpoint to solicit inferences from worker nodes and merge them into a format compatible with our adapters. The output of this endpoint can be passed directly as-is to our adapter. To use this endpoint and obtain inferences, one can use the curl requests below, depending on the topic of interest. Note that the `extra_data ` query parameter, where it is found, can be set to be any relevant argument of interest. `extra_data` is an arbitrary string that is hashed by our endpoint using `keccak256` so that it is compatible with the `extraData: bytes` field of [Allora adapter contracts](./adapters).
+To conveniently relay inferences from worker nodes to developers, Upshot has created an endpoint to solicit inferences from worker nodes and merge them into a format compatible with our adapters. The output of this endpoint can be passed directly as-is to our adapter. To use this endpoint and obtain inferences, one can use the curl requests below, depending on the topic of interest. Note that the `extra_data ` query parameter, where it is found, can be set to be any relevant argument of interest. `extra_data` is an arbitrary string that is hashed by our endpoint using `keccak256` so that it is compatible with the `extraData: bytes` field of [Allora adapter contracts](./dev-adapters).
 
 Note that to use this endpoint you'll need an API key. To obtain an API key, you can create [an account here](https://developer.upshot.xyz).
 
