@@ -72,3 +72,4 @@ An explanation in more detail of some of these fields.
 - `InferenceLogic`  defines a WASM blockless function to trigger the call to the `main.py` file in the worker. These values are expected to be reused from the example.
 - `WeightCadence` and `InferenceCadence`: the cadence (in seconds) at which the inference and weight adjustment cycles are run. Weight adjustment will use several runs of inferences to make the adjustment, so normally the weight cadence will be several times higher than the inference. This can be adjusted to fit each particular predictive case.
 - `DefaultArg` value will be passed as an argument to the python script, i.e. when the worker receives the request, it will attempt to run `python3 <location-of-main.py> <TopicId> <DefaultArg>`. This will be used in the scoring stage to request inferences from the chain.
+

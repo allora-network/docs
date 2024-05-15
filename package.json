@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@netlify/plugin-nextjs": "^5.2.2",
     "next": "^14.2.3",
     "nextra": "^2.13.4",
     "nextra-theme-docs": "^2.13.4",
