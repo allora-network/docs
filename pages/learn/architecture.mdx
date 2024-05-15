@@ -145,7 +145,7 @@ message WorkerAttributedLoss {
 }
 
 // eq13 in the litepaper
-message LossBundle {
+message ValueBundle {
   option (gogoproto.equal) = true;
 
   uint64 topic_id = 1;
@@ -157,21 +157,21 @@ message LossBundle {
     (gogoproto.nullable) = false,
     (amino.dont_omitempty) = true
   ];
-  repeated WorkerAttributedLoss inferer_losses = 5;
-  repeated WorkerAttributedLoss forcaster_losses = 6;
+  repeated WorkerAttributedValue inferer_values = 5;
+  repeated WorkerAttributedValue forcaster_values = 6;
   string naive_loss = 7 [
     (cosmos_proto.scalar) = "cosmos.Uint",
     (gogoproto.customtype) = "cosmossdk.io/math.Uint",
     (gogoproto.nullable) = false,
     (amino.dont_omitempty) = true
   ];
-  repeated WorkerAttributedLoss one_out_losses = 8 [
+  repeated WorkerAttributedValue one_out_values = 8 [
     (cosmos_proto.scalar) = "cosmos.Uint",
     (gogoproto.customtype) = "cosmossdk.io/math.Uint",
     (gogoproto.nullable) = false,
     (amino.dont_omitempty) = true
   ];
-  repeated WorkerAttributedLoss one_in_naive_losses = 9 [
+  repeated WorkerAttributedValue one_in_naive_values = 9 [
     (cosmos_proto.scalar) = "cosmos.Uint",
     (gogoproto.customtype) = "cosmossdk.io/math.Uint",
     (gogoproto.nullable) = false,

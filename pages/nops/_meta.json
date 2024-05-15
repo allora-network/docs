@@ -4,5 +4,6 @@
   "deploy-chain": "Deploy Allora Chain",
   "run-full-node": "Run a Full Node",
   "stake-a-validator": "Stake a Validator",
-  "validator-operations": "Validator Operations"
+  "validator-operations": "Validator Operations",
+  "reputers": "Reputers"
 }
