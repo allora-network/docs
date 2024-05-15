@@ -3,7 +3,7 @@ name: Deploy to Netlify
 on:
   push:
     branches:
-      - major_upgrade
+      - major-upgrade
 
 jobs:
   build:
