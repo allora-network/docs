@@ -1,3 +1,5 @@
+import { Callout } from 'nextra/components'
+
 # Reputers
 
 Reputers do the following actions on Allora:
@@ -16,7 +18,15 @@ Reputers do the following actions on Allora:
 
 ## Setup a Reputer Node with `docker-compose`
 
-A full working example for a reputer node for ETH price prediction topics is provided in the [`docker-compose.yml` file](https://github.com/allora-network/coin-prediction-reputer/blob/main/docker-compose.yml) of our example repo.
+A full working example for a reputer node for ETH price prediction topics is provided in the [`docker-compose.yml` file](https://github.com/allora-network/coin-prediction-reputer/blob/main/docker-compose.yml) of our example repo. Simply run
+
+```
+docker compose up
+```
+
+<Callout type="warning" emoji="⚠️">
+  Our containers are not yet compatible with Apple Silicon hardware!
+</Callout>
 
 ### Components of the Example Reputer Node
 
@@ -32,6 +42,8 @@ If you were just acting as a reputer, you would only be responding to requests f
 ## Setup a Reputer Node Manually
 
 Here, we'll recreate the steps contained within the `docker-compose.yml` file. We'll setup a reputer that sources ground truth and calculates losses for ETH price prediction topics, plus a head node for development and testing purposes.
+
+First, be sure to clone and `cd` into [our example reputer repo](https://github.com/allora-network/coin-prediction-reputer).
 
 ### Generate keys
 
