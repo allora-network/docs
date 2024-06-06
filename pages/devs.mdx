@@ -1,0 +1,12 @@
+# For Developers
+
+> Learn how your applications can consume streams of inferences from the Allora Network
+
+You can seamlessly integrate Allora Network's inferences into your blockchain applications following these steps:
+
+1. **Create a Topic**: start by [creating a topic on the Allora appchain](./devs/how-to-create-topic). This attracts data scientists with relevant domain expertise who are incentivized to provide high-quality and ever-improving inferences.
+2. **Deploy an Adapter**: Once inferences are collected on the appchain, [stream them to your target blockchain](./devs/using-adapter-price-data). This is essential for powering your applications. Check if [an adapter is already deployed](./devs/existing-adapters) on your target chain and, if not, [deploy one](./devs/deploy-adapter).
+3. **Verify Data**: Bring your data to the deployed adapter for verification. This can be done in two ways, depending on your topic's structure:
+   - For topics without subtopics: [submit data without specifying `extraData`](./devs/walkthrough-update-adapter-with-index-level).
+   - For topics with subtopics: [submit data with `extraData`](./devs/walkthrough-update-adapter-with-nft-appraisal).
+4. **Integrate Data into Applications**: you can now start using the verified data in your applications on the desired blockchain.

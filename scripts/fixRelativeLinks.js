@@ -7,7 +7,8 @@ const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
 const stat = util.promisify(fs.stat);
 
-const directoryPath = '/Users/kenny/Documents/projects/upshot/docs/pages';
+const relativeDirectoryPath = './pages';
+const directoryPath = path.resolve(relativeDirectoryPath);
 
 async function getAllFiles(dirPath, arrayOfFiles) {
   const files = await readdir(dirPath);
@@ -41,6 +42,7 @@ async function findAndUpdateLinks(files) {
     if (paths.length > 1 && !filename.startsWith('index')) {
       // There are duplicate index.mdx files, which shouldn't be too link-worthy anyway
       console.log(`Duplicate filename detected: ${filename}. Files: ${paths.join(', ')}. Please rename to make them unique.`);
+      throw new Error('Duplicate filename detected');
     }
   }
 
@@ -48,10 +50,10 @@ async function findAndUpdateLinks(files) {
     const content = await readFile(file, 'utf8');
     const dir = path.dirname(file);
     let modified = content;
-
-    const linkRegex = /\]\((?!http)(.+?)\)/g;
+  
+    const linkRegex = /\[.+\]\((?!http)(?!#)(?!mailto:)(?!\d)(.+?)\)/g;
     let match;
-
+  
     while ((match = linkRegex.exec(content)) !== null) {
       // Skip images
       if (match[1].endsWith('.png') || match[1].endsWith('.jpg') || match[1].endsWith('.jpeg') || match[1].endsWith('.gif')) {
@@ -61,18 +63,26 @@ async function findAndUpdateLinks(files) {
       let [resolvedPath, fragment] = linkPath.split('#');
       const targetFile = path.resolve(dir, resolvedPath);
 
-      // console.log('dir', dir)
-      // console.log('file', file)
-      // console.log('targetFile', targetFile)
-
-      if (!fs.existsSync(targetFile + '.mdx')) {
+      targetFileMDX = targetFile.endsWith('.mdx') ? targetFile : `${targetFile}.mdx`;
+      if (!fs.existsSync(targetFileMDX)) {
         console.log(`Broken link found in ${file}: ${linkPath} does not exist.`);
+        throw new Error('Broken link found');
       } else {
-        const correctPath = path.relative(dir, fileMap[path.basename(targetFile)][0]) + (fragment ? `#${fragment}` : '');
-        modified = modified.replace(fullMatch, `](${correctPath})`);
+        if ((fileMap[path.basename(targetFile)] ?? []).length === 1) {
+          try {
+            let correctPath = path.relative(dir, fileMap[path.basename(targetFile)][0]) + (fragment ? `#${fragment}` : '');
+            if (!correctPath.startsWith('../')) {
+              correctPath = `./${correctPath}`;
+            }
+            modified = modified.replace(linkPath, correctPath);
+          } catch (error) {
+            console.error('An error occurred:', error);
+            throw new Error('Error updating links');
+          }
+        }
       }
     }
-
+  
     if (modified !== content) {
       await writeFile(file, modified, 'utf8');
       console.log(`Updated links in ${file}`);

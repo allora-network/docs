@@ -4,10 +4,6 @@
   },
   "what": "What is Allora?",
   "architecture": "Technical Architecture",
-  "architecture-v2": {
-    "title": "Technical Architecture v2",
-    "display": "hidden"
-  },
   "cli": "CLI Spec",
   "adapters": "Adapters",
   "code": "Open-Source Code"

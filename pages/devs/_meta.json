@@ -1,5 +1,4 @@
 {
-  "index": "Consumers",
   "how-to-create-topic": "How to Create a Topic",
   "create-deploy-inference-generation-function": "Create, Deploy, and Invoke an Inference Generation Function",
   "create-deploy-weight-adjustment-function": "Create, Deploy, and Invoke a Weight Adjustment Function",
@@ -8,7 +7,7 @@
   "existing-topics": "Existing Topics on Allora",
   "offchain-query-existing-workers": "How to Query Workers of Existing Topics Off-Chain",
   "onchain-query-existing-data": "How to Query On-Chain Data of Existing Topics",
-  "adapters": "Getting Started with Adapters",
+  "dev-adapters.": "Getting Started with Adapters",
   "deploy-adapter": "Deploying an Adapter to an EVM Target Chain",
   "existing-adapters": "Existing Deployments of Adapters",
   "walkthrough-update-adapter-with-index-level": "Walkthrough: Update an Adapter with Index Level Data",
