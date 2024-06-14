@@ -5,6 +5,5 @@
   "register-worker-node": "Register a Worker Node",
   "connect-worker-node": "Connect a Worker Node to the Allora Network",
   "walkthrough-hugging-face-worker": "Walkthrough: Hugging Face Worker",
-  "walkthrough-index-level-worker": "Walkthrough: Index Level Worker",
   "walkthrough-price-prediction-worker": "Walkthrough: Price Prediction Worker"
 }
