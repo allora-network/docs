@@ -1,8 +1,8 @@
 import { Callout } from 'nextra/components'
 
-# Reputers
+# Deploy a Reputer Node
 
-Reputers do the following actions on Allora:
+## What Reputers Do? 
 
 * Source ground truth as specified by the [topic metadata](../learn/architecture.mdx#topics)
    * e.g. the actual price of ETH as of a moment in time
@@ -15,14 +15,15 @@ Reputers do the following actions on Allora:
    * a stake-weighted average of each reported loss is taken among reputers per topic per epoch
    * the closer a reputer's values are to the average, the more they are rewarded
 
-
 ## Setup a Reputer Node with `docker-compose`
 
-A full working example for a reputer node for ETH price prediction topics is provided in the [`docker-compose.yml` file](https://github.com/allora-network/coin-prediction-reputer/blob/main/docker-compose.yml) of our example repo. Simply run
+A full working example for a reputer node for ETH price prediction topics is provided in the [`docker-compose.yml` file](https://github.com/allora-network/coin-prediction-reputer/blob/main/docker-compose.yml) of our example repo. Simply run:
 
 ```
 docker compose up
 ```
+
+If you're using Apple Silicon hardware, please make sure to use run docker-compose.arm64.yml instead
 
 <Callout type="warning" emoji="⚠️">
   Our containers are not yet compatible with Apple Silicon hardware!
@@ -138,24 +139,3 @@ To only test the truth service, you can simply follow these steps:
   ```
     $ curl http://localhost:8000/update/ETHUSD/ethereum/usd
   ```
-
-
-## Connecting to the Allora network
-
-In order to connect to the Allora network, both the head and the worker need to register against it.  More details on [allora-inference-base](https://github.com/allora-network/allora-inference-base) repo.
-
-The following optional flags are used in the `command:` section of the `docker-compose.yml` file to define the connectivity with the Allora network.
-
-```
---allora-chain-key-name=index-provider  # your local key name in your keyring
---allora-chain-restore-mnemonic='pet sock excess ...'  # your node's Allora address mnemonic
---allora-node-rpc-address=  # RPC address of a node in the chain
---allora-chain-topic-id=  # The topic id from the chain that you want to provide predictions for
-```
-In order for the nodes to register with the chain, a funded address is needed first.
-If these flags are not provided, the nodes will not register to the appchain and will not attempt to connect to the appchain.
-
-
-## Learn More
-
-Learn more by directly checking out the code and README for [the example ETH price reputer](https://github.com/allora-network/coin-prediction-reputer).
