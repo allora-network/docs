@@ -241,7 +241,7 @@ And we have a response!
 
 Now that we know our inference server is working as expected, lets ensure it can interact with the [Blockless network](https://blockless.network/). This is how Allora nodes respond to [requests for inference from chain validators](../learn/architecture.mdx#inferences).
 
-We can issue a Blockless request with:
+We can issue a Blockless request with this command, by specifying the correct `<topicId>`:
 
 ```bash
 curl --location 'http://localhost:6000/api/v1/functions/execute' \
@@ -250,7 +250,7 @@ curl --location 'http://localhost:6000/api/v1/functions/execute' \
     "function_id": "bafybeigpiwl3o73zvvl6dxdqu7zqcub5mhg65jiky2xqb4rdhfmikswzqm",
     "method": "allora-inference-function.wasm",
     "parameters": null,
-    "topic": "1",
+    "topic": "<topicId>",
     "config": {
         "env_vars": [
             {
