@@ -126,9 +126,9 @@
     "@napi-rs/simple-git-win32-x64-msvc" "0.1.16"
 
 "@netlify/plugin-nextjs@^5.2.2":
-  version "5.3.3"
-  resolved "https://registry.yarnpkg.com/@netlify/plugin-nextjs/-/plugin-nextjs-5.3.3.tgz#414cb0f4c21e6b80d6127b824efb00ae2f732a89"
-  integrity sha512-QhvZLOHhPuTnh6TZ5G0/jtjAJ1Y52A67b39eygKv6znQUPti8p+8y2WulcntpCRzVp2stzEULMNPlnptna1ikg==
+  version "5.2.2"
+  resolved "https://registry.yarnpkg.com/@netlify/plugin-nextjs/-/plugin-nextjs-5.2.2.tgz#3c283d335001f9e0fbcb4db75557e5fe1660db72"
+  integrity sha512-jV/P7o8+v1XaEGb7wvFfkF1fSLggAxjg7WYoBPkD3R93bsI6xmCDKBcUJ/6g7lqECRXt4dGKApSFtGk/pUmAHw==
 
 "@next/env@14.2.3":
   version "14.2.3"
