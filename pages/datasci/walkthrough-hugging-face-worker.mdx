@@ -13,6 +13,22 @@ Before you start, ensure you have the following:
 - Familiarity with Allora Network documentation on [allocmd](./deploy-worker-with-allocmd) and [building and deploying a worker node from scratch](./build-and-deploy-worker-from-scratch).
 
 
+## Overview
+
+During this walkthrough, we will build a worker node from an existing Hugging Face model to deploy and participate on the Allora Network. We will use this model to predict the price of BTC in 24h. 
+
+In this example, we will use the Chronos model: [amazon/chronos-t5-tiny](https://huggingface.co/amazon/chronos-t5-tiny). 
+Chronos is a family of pretrained time series forecasting models based on language model architectures. A time series is transformed into a sequence of tokens via scaling and quantization, and a language model is trained on these tokens using the cross-entropy loss. Once trained, probabilistic forecasts are obtained by sampling multiple future trajectories given the historical context. Chronos models have been trained on a large corpus of publicly available time series data, as well as synthetic data generated using Gaussian processes.
+For simplicity, we will use Zero-shot forecasting, which refers to the ability of models to generate forecasts from unseen datasets.
+
+Our worker will provide inferences on the BTC 24h Prediction, which is Topic `3` on Allora.
+
+> Note:
+> To deploy on the Allora Network, you will need to [pick the topic ID](../devs/existing-topics) you wish to generate inference for, or [create a new topic](../devs/how-to-create-topic).
+
+We will use [Coingecko](https://www.coingecko.com/en/api) to fetch the data. You will need to [create an API key](https://www.coingecko.com/en/api/pricing).
+
+
 ## Installing allocmd
 
 First, install `allocmd` as [explained in the documentation](./deploy-worker-with-allocmd):
@@ -31,7 +47,7 @@ allocmd version 2.0.3
 Initialize the worker with your preferred name and topic ID in a development environment:
 
 ```bash
-allocmd generate worker --name <workerName> --topic <topicId> --env dev
+allocmd generate worker --name <workerName> --topic 3 --env dev
 cd <workerName>/worker
 ```
 
@@ -62,18 +78,16 @@ tree .
 6 directories, 15 files
 ```
 
-> Note:
-> To deploy on the Allora Network, you will need to [pick the topic ID](../devs/existing-topics) you wish to generate inference for, or [create a new topic](../devs/how-to-create-topic).
 
 ## Creating the inference server
 
-We will create a very simple Flask application to serve inference from the Hugging Face model. In this example, we will be using [amazon/chronos-t5-tiny](https://huggingface.co/amazon/chronos-t5-tiny) model. 
-Chronos is a family of pretrained time series forecasting models based on language model architectures. A time series is transformed into a sequence of tokens via scaling and quantization, and a language model is trained on these tokens using the cross-entropy loss. Once trained, probabilistic forecasts are obtained by sampling multiple future trajectories given the historical context. Chronos models have been trained on a large corpus of publicly available time series data, as well as synthetic data generated using Gaussian processes.
+We will create a very simple Flask application to serve inference from the Hugging Face model.
 
 Here is an example of our newly created `app.py`:
 
 ```python
 from flask import Flask, Response
+import requests
 import json
 import pandas as pd
 import torch
@@ -85,28 +99,53 @@ app = Flask(__name__)
 # define the Hugging Face model we will use
 model_name = "amazon/chronos-t5-tiny"
 
-# use a pipeline as a high-level helper
-pipeline = ChronosPipeline.from_pretrained(
-  model_name,
-  device_map="auto",
-  torch_dtype=torch.bfloat16,
-)
-
-# get the data
-# Note: this is the key part, where you'll define the data to use to forecast the future values 
-# You could change this to be data prices for a token for instance, fetching it dynamically to be updated on each call 
-df = pd.read_csv("https://raw.githubusercontent.com/AileenNielsen/TimeSeriesAnalysisWithPython/master/data/AirPassengers.csv")
-
-# define the context and the prediction length
-context = torch.tensor(df["#Passengers"]) # target variable
-prediction_length = 1 # only predict the next value
-
 # define our endpoint
-@app.route('/inference')
-def get_inference():
+@app.route("/inference/<string:token>")
+def get_inference(token):
+    """Generate inference for given token."""
+    if not token or token != "BTC":
+        error_msg = "Token is required" if not token else "Token not supported"
+        return Response(json.dumps({"error": error_msg}), status=400, mimetype='application/json')
+    try:
+        # use a pipeline as a high-level helper
+        pipeline = ChronosPipeline.from_pretrained(
+            model_name,
+            device_map="auto",
+            torch_dtype=torch.bfloat16,
+        )
+    except Exception as e:
+        return Response(json.dumps({"pipeline error": str(e)}), status=500, mimetype='application/json')
+
+    # get the data from Coingecko
+    # here we'll use last 30 days of BTC/USD
+    url = "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=30&interval=daily"
+
+    headers = {
+        "accept": "application/json",
+        "x-cg-demo-api-key": "CG-API_KEY" # replace with your API key
+    }
+
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        data = response.json()
+        df = pd.DataFrame(data["prices"])
+        df.columns = ["date", "price"]
+        df["date"] = pd.to_datetime(df["date"], unit = "ms")
+        df = df[:-1] # removing today's price
+        print(df.tail(5))
+    else:
+        return Response(json.dumps({"Failed to retrieve data from the API": str(response.text)}), 
+                        status=response.status_code, 
+                        mimetype='application/json')
+
+    # define the context and the prediction length
+    context = torch.tensor(df["price"])
+    prediction_length = 1
+
     try:
         forecast = pipeline.predict(context, prediction_length)  # shape [num_series, num_samples, prediction_length]
-        return Response(str(forecast[0].mean().item()), status=200) # returning the mean forecasted value
+        print(forecast[0].mean().item()) # taking the mean of the forecasted prediction
+        return Response(str(forecast[0].mean().item()), status=200)
     except Exception as e:
         return Response(json.dumps({"error": str(e)}), status=500, mimetype='application/json')
 
@@ -231,12 +270,12 @@ inference-hf  |  * Serving Flask app 'app'
 To test our inference server first by directly querying it. To do that, we can issue the following HTTP request:
 
 ```bash
-curl http://127.0.0.1:8000/inference                                                                      
+curl http://127.0.0.1:8000/inference/BTC
 ```
 
 And we have a response!
 ```bash
-438.32623291015625
+66600.6124078708
 ```
 
 Now that we know our inference server is working as expected, lets ensure it can interact with the [Blockless network](https://blockless.network/). This is how Allora nodes respond to [requests for inference from chain validators](../learn/architecture.mdx#inferences).
@@ -250,7 +289,7 @@ curl --location 'http://localhost:6000/api/v1/functions/execute' \
     "function_id": "bafybeigpiwl3o73zvvl6dxdqu7zqcub5mhg65jiky2xqb4rdhfmikswzqm",
     "method": "allora-inference-function.wasm",
     "parameters": null,
-    "topic": "<topicId>",
+    "topic": "3",
     "config": {
         "env_vars": [
             {
@@ -259,7 +298,7 @@ curl --location 'http://localhost:6000/api/v1/functions/execute' \
             },
             {
                 "name": "ALLORA_ARG_PARAMS",
-                "value": ""
+                "value": "BTC"
             }
         ],
         "number_of_nodes": -1,
@@ -273,11 +312,11 @@ And here is the response:
 ```json
 {
   "code": "200",
-  "request_id": "339feec1-14ed-4f2c-979b-ac1dc8500b9f",
+  "request_id": "779d2b33-52ad-4d3e-8981-24b65045dd0b",
   "results": [
     {
       "result": {
-        "stdout": "{\"infererValue\": \"438.32623291015625\"}\n\n",
+        "stdout": "{\"infererValue\": \"66600.6124078708\"}\n\n",
         "stderr": "",
         "exit_code": 0
       },
@@ -301,8 +340,6 @@ Congratulations! Your worker node running the Hugging Face model is now up and r
 ## Initializing the worker for production
 
 Your worker node is now ready to be deployed!
-> Remember that you will need to [pick the topic ID](../devs/existing-topics) you wish to generate inference for, or [create a new topic](../devs/how-to-create-topic) to deploy to in production.
-
 The following command will handle the generation of the `prod-docker-compose.yaml` file which contains all the keys and parameters needed for your worker to function perfectly in production:
 
 ```bash
@@ -312,7 +349,6 @@ chmod -R +rx ./data/scripts
 
 By running this command, `prod-docker-compose.yaml` will be generated with appropriate keys and parameters. 
 > You will need to modify this file to add your inference service, as you did for `dev-docker-compose.yaml`.
-> You will also need to fund your worker node's address by using `allocmd fund <address>`
 
 You can now run the `prod-docker-compose.yaml` file with: 
 ```bash
@@ -327,6 +363,7 @@ At this stage, your worker should be responding to inference request from the Al
 
 This basic example illustrates how to integrate a Hugging Face model in an Allora worker node. 
 There are now several ways for you to improve this code:
-- Use your own data for your use case: price prediction, APY forecasting, gas fees predictions, ...
-- Use a different model size from Chronos to compare the results 
-- Use another model from Hugging Face or your own model to deploy a worker node on the Allora Network! 
+- Use your own data or another data provider, or add more features to improve the accuracy 
+- Use a different model size from Chronos to compare the results
+- Change the accepted token or the timeframe to predict on another [Allora topic](../devs/existing-topics)
+- Use another model from Hugging Face or your own model to deploy a worker node on the Allora Network!
