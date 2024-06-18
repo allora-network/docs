@@ -18,17 +18,48 @@ Before you start, ensure you have the following:
 First, install `allocmd` as [explained in the documentation](./deploy-worker-with-allocmd):
 
 ```bash
-pip install allocmd==1.0.4
+pip install allocmd --upgrade
 ```
-
+At the time of writing, the latest `allocmd` version is `2.0.1`:
+```bash
+allocmd --version
+allocmd version 2.0.1
+```
 
 ## Initializing the worker for development
 
 Initialize the worker with your preferred name and topic ID in a development environment:
 
 ```bash
-allocmd generate worker --name <workerName> --topic <topicId> --env <dev|prod>
-cd <workerName>
+allocmd generate worker --name <workerName> --topic <topicId> --env dev
+cd <workerName>/worker
+```
+
+```
+tree .
+.
+├── Dockerfile
+├── config.yaml
+├── data
+│   ├── head
+│   │   └── key
+│   │       ├── identity
+│   │       ├── priv.bin
+│   │       ├── priv.txt
+│   │       ├── pub.bin
+│   │       └── pubkey.txt
+│   └── worker
+│       └── key
+│           ├── identity
+│           ├── priv.bin
+│           ├── priv.txt
+│           ├── pub.bin
+│           └── pubkey.txt
+├── dev-docker-compose.yaml
+├── main.py
+└── requirements.txt
+
+6 directories, 15 files
 ```
 
 > Note:
@@ -36,42 +67,48 @@ cd <workerName>
 
 ## Creating the inference server
 
-We will create a very simple Flask application to serve inference from the Hugging Face model. In this example, we will be using [ElKulako/cryptobert](https://huggingface.co/ElKulako/cryptobert) model, which is a pre-trained NLP model to analyse the language and sentiments of cryptocurrency-related social media posts and messages.
+We will create a very simple Flask application to serve inference from the Hugging Face model. In this example, we will be using [amazon/chronos-t5-tiny](https://huggingface.co/amazon/chronos-t5-tiny) model. 
+Chronos is a family of pretrained time series forecasting models based on language model architectures. A time series is transformed into a sequence of tokens via scaling and quantization, and a language model is trained on these tokens using the cross-entropy loss. Once trained, probabilistic forecasts are obtained by sampling multiple future trajectories given the historical context. Chronos models have been trained on a large corpus of publicly available time series data, as well as synthetic data generated using Gaussian processes.
+
 Here is an example of our newly created `app.py`:
 
 ```python
-from flask import Flask, request, jsonify
-from transformers import TextClassificationPipeline, AutoModelForSequenceClassification, AutoTokenizer
+from flask import Flask, Response
+import json
+import pandas as pd
+import torch
+from chronos import ChronosPipeline
 
 # create our Flask app
 app = Flask(__name__)
 
 # define the Hugging Face model we will use
-model_name = "ElKulako/cryptobert"
-
-# import the model through Hugging Face transformers lib
-# https://huggingface.co/docs/hub/transformers
-try:
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForSequenceClassification.from_pretrained(model_name)
-except Exception as e:
-    print("Failed to load model: ", e)
+model_name = "amazon/chronos-t5-tiny"
 
 # use a pipeline as a high-level helper
-try:
-    pipe = TextClassificationPipeline(model=model, tokenizer=tokenizer, max_length=64, truncation=True, padding = 'max_length')
-except Exception as e:
-    print("Failed to create pipeline: ", e)
+pipeline = ChronosPipeline.from_pretrained(
+  model_name,
+  device_map="auto",
+  torch_dtype=torch.bfloat16,
+)
+
+# get the data
+# Note: this is the key part, where you'll define the data to use to forecast the future values 
+# You could change this to be data prices for a token for instance, fetching it dynamically to be updated on each call 
+df = pd.read_csv("https://raw.githubusercontent.com/AileenNielsen/TimeSeriesAnalysisWithPython/master/data/AirPassengers.csv")
+
+# define the context and the prediction length
+context = torch.tensor(df["#Passengers"]) # target variable
+prediction_length = 1 # only predict the next value
 
 # define our endpoint
-@app.route('/inference', methods=['POST'])
-def predict_sentiment():
+@app.route('/inference')
+def get_inference():
     try:
-        input_text = request.json['input']
-        output = pipe(input_text)
-        return jsonify({"output": output})
+        forecast = pipeline.predict(context, prediction_length)  # shape [num_series, num_samples, prediction_length]
+        return Response(str(forecast[0].mean().item()), status=200) # returning the mean forecasted value
     except Exception as e:
-        return jsonify({"error": str(e)})
+        return Response(json.dumps({"error": str(e)}), status=500, mimetype='application/json')
 
 # run our Flask app
 if __name__ == '__main__':
@@ -86,11 +123,13 @@ Update the `requirements.txt` to include the necessary packages for the inferenc
 flask[async]
 gunicorn[gthread]
 transformers[torch]
+pandas
+git+https://github.com/amazon-science/chronos-forecasting.git
 ```
 
 ## Modifying main.py to call the inference server
 
-Update `main.py` to integrate with the inference server:
+Update `main.py` to integrate your worker node with the inference server:
 
 ```python
 import requests
@@ -99,24 +138,27 @@ import json
 
 def process(argument):
     headers = {'Content-Type': 'application/json'}
-    url = f"http://host.docker.internal:8000/inference"
-    payload = {"input": str(argument)}
-    response = requests.post(url, headers=headers, json=payload)
-    if response.status_code == 200:
-        data = response.json()
-        if 'output' in data:
-            print(data['output'])
-    else:
-        print(str(response.text))
+    url = f"http://inference:8000/inference"
+    response = requests.get(url, headers=headers)
+    return response.text
 
 if __name__ == "__main__":
+    # Your code logic with the parsed argument goes here
     try:
-        topic_id = sys.argv[1]
-        inference_argument = sys.argv[2]
-        process(inference_argument)
+        if len(sys.argv) < 5:
+            value = json.dumps({"error": f"Not enough arguments provided: {len(sys.argv)}, expected 4 arguments: topic_id, blockHeight, blockHeightEval, default_arg"})
+        else:
+            topic_id = sys.argv[1]
+            blockHeight = sys.argv[2]
+            blockHeightEval = sys.argv[3]
+            default_arg = sys.argv[4]
+            
+            response_inference = process(argument=default_arg)
+            response_dict = {"infererValue": response_inference}
+            value = json.dumps(response_dict)
     except Exception as e:
-        response = json.dumps({"error": {str(e)}})
-        print(response)
+        value = json.dumps({"error": {str(e)}})
+    print(value)
 ```
 
 ## Updating the Docker configuration
@@ -189,20 +231,12 @@ inference-hf  |  * Serving Flask app 'app'
 To test our inference server first by directly querying it. To do that, we can issue the following HTTP request:
 
 ```bash
-curl -X POST http:/localhost:8000/inference -H "Content-Type: application/json" \
-    -d '{"input": "i am so bullish on $ETH: this token will go to the moon"}'
+curl http://127.0.0.1:8000/inference                                                                      
 ```
 
 And we have a response!
-```json
-{
-  "output": [
-    {
-      "label": "Bullish",
-      "score": 0.7626203298568726
-    }
-  ]
-}
+```bash
+438.32623291015625
 ```
 
 Now that we know our inference server is working as expected, lets ensure it can interact with the [Blockless network](https://blockless.network/). This is how Allora nodes respond to [requests for inference from chain validators](../learn/architecture.mdx#inferences).
@@ -225,7 +259,7 @@ curl --location 'http://localhost:6000/api/v1/functions/execute' \
             },
             {
                 "name": "ALLORA_ARG_PARAMS",
-                "value": "i am so bullish on $ETH: this token will go to the moon"
+                "value": ""
             }
         ],
         "number_of_nodes": -1,
@@ -239,23 +273,23 @@ And here is the response:
 ```json
 {
   "code": "200",
-  "request_id": "7a3f25de-d11d-4f55-b4fa-59ae97d9d8e2",
+  "request_id": "339feec1-14ed-4f2c-979b-ac1dc8500b9f",
   "results": [
     {
       "result": {
-        "stdout": "[{'label': 'Bullish', 'score': 0.7626203298568726}]\n\n",
+        "stdout": "{\"infererValue\": \"438.32623291015625\"}\n\n",
         "stderr": "",
         "exit_code": 0
       },
       "peers": [
-        "12D3KooWJM8cCyVmC45UpSNjBvknqQbsS7HTVx4bWYgxjcbkxxpC"
+        "12D3KooWSeEuvfhDKPsjpJYhV5ZnCufdHbh5eSVqSZbToQ3aFaju"
       ],
       "frequency": 100
     }
   ],
   "cluster": {
     "peers": [
-      "12D3KooWJM8cCyVmC45UpSNjBvknqQbsS7HTVx4bWYgxjcbkxxpC"
+      "12D3KooWSeEuvfhDKPsjpJYhV5ZnCufdHbh5eSVqSZbToQ3aFaju"
     ]
   }
 }
@@ -272,12 +306,13 @@ Your worker node is now ready to be deployed!
 The following command will handle the generation of the `prod-docker-compose.yaml` file which contains all the keys and parameters needed for your worker to function perfectly in production:
 
 ```bash
-allocmd init --env prod
+allocmd generate worker --env prod
 chmod -R +rx ./data/scripts
 ```
 
 By running this command, `prod-docker-compose.yaml` will be generated with appropriate keys and parameters. 
 > You will need to modify this file to add your inference service, as you did for `dev-docker-compose.yaml`.
+> You will also need to fund your worker node's address by using `allocmd fund <address>`
 
 You can now run the `prod-docker-compose.yaml` file with: 
 ```bash
@@ -287,49 +322,11 @@ or deploy the whole codebase in your preferred cloud instance.
 
 At this stage, your worker should be responding to inference request from the Allora Chain - Congratulations!
 
-```bash
-curl --location 'https://heads.testnet.allora.network/api/v1/functions/execute' \
---header 'Content-Type: application/json' \
---data '{
-    "function_id": "bafybeigpiwl3o73zvvl6dxdqu7zqcub5mhg65jiky2xqb4rdhfmikswzqm",
-    "method": "allora-inference-function.wasm",
-    "parameters": null,
-    "topic": "TOPIC_ID",
-    "config": {
-        "env_vars": [
-            {
-                "name": "BLS_REQUEST_PATH",
-                "value": "/api"
-            },
-            {
-                "name": "ALLORA_ARG_PARAMS",
-                "value": "i am so bullish on $ETH: this token will go to the moon"
-            }
-        ],
-        "number_of_nodes": -1,
-        "timeout": 2
-    }
-}' | jq
-{
-  "code": "200",
-  "request_id": "7fd769d0-ac65-49a5-9759-d4cefe8bb9ea",
-  "results": [
-    {
-      "result": {
-        "stdout": "[{'label': 'Bullish', 'score': 0.7626203298568726}]\n\n",
-        "stderr": "",
-        "exit_code": 0
-      },
-      "peers": [
-        "12D3KooWJM8cCyVmC45UpSNjBvknqQbsS7HTVx4bWYgxjcbkxxpC"
-      ],
-      "frequency": 50
-    }
-  ],
-  "cluster": {
-    "peers": [
-      "12D3KooWJM8cCyVmC45UpSNjBvknqQbsS7HTVx4bWYgxjcbkxxpC"
-    ]
-  }
-}
-```
+
+## Next steps
+
+This basic example illustrates how to integrate a Hugging Face model in an Allora worker node. 
+There are now several ways for you to improve this code:
+- Use your own data for your use case: price prediction, APY forecasting, gas fees predictions, ...
+- Use a different model size from Chronos to compare the results 
+- Use another model from Hugging Face or your own model to deploy a worker node on the Allora Network! 
