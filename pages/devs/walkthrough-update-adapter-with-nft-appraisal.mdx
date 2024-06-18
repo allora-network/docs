@@ -6,7 +6,7 @@ Add data using a specific ID within a topic, for example, a specific NFT ID for 
 
 ## Complete Example:
 
-```sol
+```solidity
     /**
      * @notice Example for calling a protocol function with a prediction value from the Allora Adapter
      * 
@@ -50,7 +50,7 @@ await alloraAdapter.verifyData({
   extraData: '0x'
 })
 ```
-```sol
+```solidity
 UpshotAdapter upshotAdapter = UpshotAdapter(0x238D0abD53fC68fAfa0CCD860446e381b400b5Be);
 
 SignedNumericData[] memory signedNumericData = new SignedNumericData[](1);
