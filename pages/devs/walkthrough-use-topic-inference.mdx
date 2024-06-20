@@ -1,8 +1,8 @@
-# Walkthrough: Adding Price Index Data
+# Walkthrough: Using Inference Data On-chain
 
 > A specific example of using an adapter
 
-Follow these instructions to bring the most recent price data on-chain for a given price index. 
+Follow these instructions to bring the most recent inference data on-chain for a given topic. 
 
 ## Complete Example:
 
@@ -36,7 +36,7 @@ Follow these instructions to bring the most recent price data on-chain for a giv
 
 1. Create an Upshot API key by [creating an account](https://developer.upshot.xyz/signup).
 2. [Call the Consumer Inference API](./offchain-query-existing-workers#yuga-index-levels-id2) using the `topicId` found in the [deployed topics list](./existing-topics) and the correct chainId. For example, if you use sepolia, you would provide `ethereum-11155111`.
-3. Construct a call to the Allora Consumer contract on the chain of your choice (options listed under [deployments](./existing-adapters)) using the returned `signature` and `numeric_data` as follows:
+3. Construct a call to the Allora Consumer contract on the chain of your choice (options listed under [deployments](./existing-adapters)) using the returned `signature` and `network-inference` as follows:
 
 ## Creating the Transaction:
 
@@ -55,6 +55,8 @@ await alloraAdapter.verifyData({
 })
 ```
 
+Note that if you are doing something like `callProtocolFunctionWithAlloraTopicInference` in the example above, you would want to call a function that you have created.
+
 ## Notes
 
 - The API endpoint uses `snake_case`, while the smart contract uses `camelCase` for attribute names.
@@ -63,4 +65,4 @@ await alloraAdapter.verifyData({
 ## Code Links
 
 - [Open source consumer code](https://github.com/allora-network/allora-consumer/blob/main/src/)
-- [IAlloraAdapter](https://github.com/allora-network/allora-consumer/blob/main/src/interface/IAlloraConsumer.sol), including the structs used for Solidity code.
+- [IAlloraConsumer](https://github.com/allora-network/allora-consumer/blob/main/src/interface/IAlloraConsumer.sol), including the structs used for Solidity code.

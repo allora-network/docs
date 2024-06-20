@@ -1,6 +1,6 @@
-# Using Price Index Data
+# Using an existing Topic Inference On-chain
 
-You can follow these instructions to view the most recent price data brought on-chain for a given price index. 
+You can follow these instructions to view the most recent inference data brought on-chain for a given topic.
 
 ```sol
     /**
@@ -14,7 +14,7 @@ You can follow these instructions to view the most recent price data brought on-
         uint256 protocolFunctionArgument,
         uint256 topicId
     ) external payable {
-        TopicValue memory topicValue = IAlloraConsumer(0x4341a3F0a350C2428184a727BAb86e16D4ba7018).getTopicValue(topicId, '');
+        TopicValue memory topicValue = IAlloraConsumer(0x08f305A3449F51BFd79D7582A1630304664B1474).getTopicValue(topicId, '');
 
         if (topicValue.recentValueTime + 1 hours < block.timestamp) {
             revert('AlloraConsumerBringPredictionOnChainExample: stale value');

@@ -11,6 +11,6 @@
   "deploy-consumer": "Deploying a Consumer to an EVM Target Chain",
   "existing-consumers": "Existing Deployments of Consumers",
   "walkthrough-use-topic-inference": "Walkthrough: Using a Topic Inference on-chain",
-  "walkthrough-use-existing-topic-inference": "Walkthrough: Using an existing Topic Inference on-chain",
-  "how-to-use-faucet": "How to Use the Faucet"
+  "walkthrough-use-existing-topic-inference": "Walkthrough: Using an existing Topic Inference On-chain",
+  "get-faucet-funds": "How to get faucet funds"
 }
