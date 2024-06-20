@@ -1,6 +1,4 @@
-# Walkthrough: Using Inference Data On-chain
-
-> A specific example of using an adapter
+# Walkthrough: Using a Topic Inference on-chain
 
 Follow these instructions to bring the most recent inference data on-chain for a given topic. 
 
@@ -36,9 +34,11 @@ Follow these instructions to bring the most recent inference data on-chain for a
 
 1. Create an Upshot API key by [creating an account](https://developer.upshot.xyz/signup).
 2. [Call the Consumer Inference API](./offchain-query-existing-workers#yuga-index-levels-id2) using the `topicId` found in the [deployed topics list](./existing-topics) and the correct chainId. For example, if you use sepolia, you would provide `ethereum-11155111`.
-3. Construct a call to the Allora Consumer contract on the chain of your choice (options listed under [deployments](./existing-adapters)) using the returned `signature` and `network-inference` as follows:
+3. Construct a call to the Allora Consumer contract on the chain of your choice (options listed under [deployments](./existing-consumers)) using the returned `signature` and `network-inference` as follows:
 
 ## Creating the Transaction:
+
+Note you be doing something more like `callProtocolFunctionWithAlloraTopicInference` in the example above, so you would want to construct your call to that contract in a similar way to the following:
 
 ```typescript
 await alloraAdapter.verifyData({  
@@ -55,7 +55,6 @@ await alloraAdapter.verifyData({
 })
 ```
 
-Note that if you are doing something like `callProtocolFunctionWithAlloraTopicInference` in the example above, you would want to call a function that you have created.
 
 ## Notes
 
