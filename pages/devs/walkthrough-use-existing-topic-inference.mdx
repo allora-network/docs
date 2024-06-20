@@ -31,7 +31,7 @@ You can follow these instructions to view the most recent price data brought on-
 
 ## Step by Step Guide:
 
-1. Call the `getTopicValue(uint256 topicId, bytes extraData)` function with the correct `topicId` on the consumer contract for your desired chain. You can provide `''` for `extraData` in solidity, or `'0x'` for `extraData` in typescript. The list of deployed contracts and topicIds can be found under [deployments](./existing-adapters).
+1. Call the `getTopicValue(uint256 topicId, bytes extraData)` function with the correct `topicId` on the consumer contract for your desired chain. You can provide `''` for `extraData` in solidity, or `'0x'` for `extraData` in typescript. The list of deployed contracts and topicIds can be found under [deployments](./existing-consumers).
 2. Access the `recentValue` attribute.
 3. Optional: check the unix-timestamp under the `recentValueTime` attribute to see how recently the value was updated.
 
