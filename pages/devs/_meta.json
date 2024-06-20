@@ -7,11 +7,10 @@
   "existing-topics": "Existing Topics on Allora",
   "offchain-query-existing-workers": "How to Query Workers of Existing Topics Off-Chain",
   "onchain-query-existing-data": "How to Query On-Chain Data of Existing Topics",
-  "dev-adapters.": "Getting Started with Adapters",
-  "deploy-adapter": "Deploying an Adapter to an EVM Target Chain",
-  "existing-adapters": "Existing Deployments of Adapters",
-  "walkthrough-update-adapter-with-index-level": "Walkthrough: Update an Adapter with Index Level Data",
-  "walkthrough-update-adapter-with-nft-appraisal": "Walkthrough: Update an Adapter with NFT Appraisal Data",
-  "using-adapter-price-data": "Using Adapter Price Data",
+  "dev-consumers": "Getting Started with Consumers",
+  "deploy-consumer": "Deploying a Consumer to an EVM Target Chain",
+  "existing-consumers": "Existing Deployments of Consumers",
+  "walkthrough-use-topic-inference": "Walkthrough: Using a Topic Inference on-chain",
+  "walkthrough-use-existing-topic-inference": "Walkthrough: Using an existing Topic Inference on-chain",
   "how-to-use-faucet": "How to Use the Faucet"
 }

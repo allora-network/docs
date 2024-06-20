@@ -1,0 +1,66 @@
+# Walkthrough: Adding Price Index Data
+
+> A specific example of using an adapter
+
+Follow these instructions to bring the most recent price data on-chain for a given price index. 
+
+## Complete Example:
+
+```sol
+    /**
+     * @notice Example for calling a protocol function with topic inference data
+     * 
+     * @param protocolFunctionArgument An argument for the protocol function
+     * @param alloraNetworkInferenceData The signed data from the Allora Consumer
+     */
+    function callProtocolFunctionWithAlloraTopicInference(
+        uint256 protocolFunctionArgument,
+        AlloraConsumerNetworkInferenceData calldata alloraNetworkInferenceData
+    ) external payable {
+        (
+            uint256 value,
+            uint256[] memory confidenceIntervalPercentiles,
+            uint256[] memory confidenceIntervalValues,
+        ) = IAlloraConsumer(0x4341a3F0a350C2428184a727BAb86e16D4ba7018).verifyNetworkInference(alloraNetworkInferenceData);
+
+        _protocolFunctionRequiringPredictionValue(
+            protocolFunctionArgument, 
+            value,
+            confidenceIntervalPercentiles,
+            confidenceIntervalValues
+        );
+    }
+```
+
+## Step by Step Guide:
+
+1. Create an Upshot API key by [creating an account](https://developer.upshot.xyz/signup).
+2. [Call the Consumer Inference API](./offchain-query-existing-workers#yuga-index-levels-id2) using the `topicId` found in the [deployed topics list](./existing-topics) and the correct chainId. For example, if you use sepolia, you would provide `ethereum-11155111`.
+3. Construct a call to the Allora Consumer contract on the chain of your choice (options listed under [deployments](./existing-adapters)) using the returned `signature` and `numeric_data` as follows:
+
+## Creating the Transaction:
+
+```typescript
+await alloraAdapter.verifyData({  
+  signature: signature,  
+  networkInference: {
+    networkInference: networkInference,
+    confidenceIntervalPercentiles: confidenceIntervalPercentiles,
+    confidenceIntervalValues: confidenceIntervalValues,
+    timestamp: timestamp,
+    topicId: topicId,
+    extraData: '0x'
+  },
+  extraData: '0x'
+})
+```
+
+## Notes
+
+- The API endpoint uses `snake_case`, while the smart contract uses `camelCase` for attribute names.
+- Ethers.js does not accept `''` for `extraData`. Empty `extraData` should be denoted with `'0x'`.
+
+## Code Links
+
+- [Open source consumer code](https://github.com/allora-network/allora-consumer/blob/main/src/)
+- [IAlloraAdapter](https://github.com/allora-network/allora-consumer/blob/main/src/interface/IAlloraConsumer.sol), including the structs used for Solidity code.
