@@ -28,20 +28,26 @@ type MsgCreateNewTopic struct {
   Creator          string   `json:"creator,omitempty"`
   // Information about the topic
   Metadata         string   `json:"metadata,omitempty"`
-  // The logic that governs weight calculations (function id)
-  WeightLogic      string   `json:"weight_logic,omitempty"`
-  // The method used for weight calculations (.wasm)
-  WeightMethod     string   `json:"weight_method,omitempty"`
+  // The logic that governs loss calculations (function id)
+  LossLogic        string   `json:"loss_logic,omitempty"`
+  // The method used for loss calculations (.wasm)
+  LossMethod       string   `json:"loss_method,omitempty"`
   // The frequency (in seconds) of weight calculations
-  WeightCadence    uint64   `json:"weight_cadence,omitempty"`
-  // The logic that governs inference calculations (function id)
   InferenceLogic   string   `json:"inference_logic,omitempty"`
   // The method used for inference calculations (.wasm)
   InferenceMethod  string   `json:"inference_method,omitempty"` 
   // The frequency (in blocks) of inference calculations
-  InferenceCadence uint64   `json:"inference_cadence,omitempty"`
-  // Default argument the worker will receive when py script is called
+  EpochLength      int64    `json:"epoch_length,omitempty"`
+  //
+  GroundTruthLag   int64    `json:"ground_truth_lag,omitempty"`
+  //
   DefaultArg       string   `json:"default_arg,omitempty"`
+  //
+  PNorm            github_com_allora_network_allora_chain_math.Dec `json:"p_norm"`
+  //
+  AlphaRegret      github_com_allora_network_allora_chain_math.Dec  `json:"alpha_regret"`
+  //
+  AllowNegative    bool     `json:"allow_negative,omitempty"`
 }
 ```
 

@@ -1,3 +1,5 @@
+import { Callout } from 'nextra/components'
+
 # Allora Appchain CLI Spec
 
 > Install the allorad binary for interacting with Allora via a CLI
@@ -10,6 +12,32 @@ The Appchain CLI is an easy means of interacting with the Allora Network. It can
 curl -sSL https://raw.githubusercontent.com/allora-network/allora-chain/main/install.sh | bash -s -- v0.0.7
 
 ```
+
+A **successful** installation should output the following line:
+
+```bash
+YYYY-MM-DD hh:mm:ss (N MB/s) - ‘/tmp/allorad’ saved [116706514/116706514]
+```
+
+<Callout type="warning">
+  Running the installation command may output `Installation complete.` even though there are **errors** during the installation process.
+</Callout>
+
+**Example:**
+
+```bash
+  ➜ curl -sSL https://raw.githubusercontent.com/allora-network/allora-chain/main/install.sh | bash -s -- v0.0.7
+
+  bash: line 39: wget: command not found
+  mv: rename /tmp/allorad to /Users/kushdave/.local/bin/allorad: No such file or directory
+  chmod: /Users/kushdave/.local/bin/allorad: No such file or directory
+  Installation complete. The allorad is now available in /Users/kushdave/.local/bin
+  To make allorad available from any terminal session, add the following line to your .bashrc or .zshrc:
+  export PATH="$PATH:/Users/kushdave/.local/bin"
+```
+
+In the example above, the message `wget: command not found` indicates that `wget` needs to be installed for `allorad` to install successfully. Despite this error, the script still logs `Installation complete.` after encountering issues such as `No such file or directory` for the `allorad` module.
+
 
 # Build Requirements and Setup
 
