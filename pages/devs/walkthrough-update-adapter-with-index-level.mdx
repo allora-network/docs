@@ -1,0 +1,82 @@
+# Walkthrough: Adding Price Index Data
+
+> A specific example of using an adapter
+
+Follow these instructions to bring the most recent price data on-chain for a given price index. 
+
+## Complete Example:
+
+```solidity
+    /**
+     * @notice Example for calling a protocol function with a prediction value from the Upshot Adapter
+     * 
+     * @param protocolFunctionArgument An argument for the protocol function
+     * @param upshotAdapterData The signed data from the Upshot Adapter
+     */
+    function callProtocolFunctionWithUpshotAdapterPredictionValue(
+        uint256 protocolFunctionArgument,
+        UpshotAdapterNumericData calldata upshotAdapterData
+    ) external {
+        uint256 value = upshotAdapter.verifyData(upshotAdapterData);
+
+        _protocolFunctionRequiringPredictionValue(protocolFunctionArgument, value);
+    }
+
+    function _protocolFunctionRequiringPredictionValue(uint256 protocolFunctionArgument, uint256 value) internal {
+        // use arguments and value 
+    }
+
+```
+
+## Step by Step Guide:
+
+1. Create an Upshot API key by [creating an account](https://developer.upshot.xyz/signup).
+2. [Call the Adapter Index Prices API](./offchain-query-existing-workers#yuga-index-levels-id2) using the `topicId` found in the [deployed topics list](./existing-topics) and the correct chainId. For example, if you use sepolia, you would provide `ethereum-11155111`.
+3. Construct a call to the Allora Adapter contract on the chain of your choice (options listed under [deployments](./existing-adapters)) using the returned `signature` and `numeric_data` as follows:
+
+## Creating the Transaction:
+
+```typescript
+await alloraAdapter.verifyData({  
+  signedNumericData: [{  
+    signature: signature,  
+    numericData: {
+      topicId: topicId,
+      timestamp: timestamp,
+      numericValue: numericValue,
+      extraData: extraData
+    }
+  }],  
+  extraData: '0x'
+})
+```
+```solidity
+AlloraAdatper alloraAdatper = AlloraAdatper(0x238D0abD53fC68fAfa0CCD860446e381b400b5Be);
+
+SignedNumericData[] memory signedNumericData = new SignedNumericData[](1);
+
+signedNumericData[0] = SignedNumericData({
+    signature: signature,
+    numericData: NumericData({
+      	topicId: topicId,
+        timestamp: timestamp,
+        numericValue: numericValue,
+        extraData: extraData
+    });
+});
+
+alloraAdapter.verifyData(AlloraAdapterNumericData({
+    signedNumericData: signedNumericData,
+    extraData: ''
+}));
+```
+
+## Notes
+
+- The API endpoint uses `snake_case`, while the smart contract uses `camelCase` for attribute names.
+- Ethers.js does not accept `''` for `extraData`. Empty `extraData` should be denoted with `'0x'`.
+
+## Code Links
+
+- [Open source adapter code](https://github.com/allora-network/allora-adapter/blob/main/src/)
+- [IAlloraAdapter](https://github.com/allora-network/allora-adapter/blob/main/src/interface/IAlloraAdapter.sol), including the structs used for Solidity code.
