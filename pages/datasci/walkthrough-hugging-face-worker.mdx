@@ -177,7 +177,7 @@ import json
 
 def process(argument):
     headers = {'Content-Type': 'application/json'}
-    url = f"http://inference:8000/inference"
+    url = f"http://inference:8000/inference/{argument}"
     response = requests.get(url, headers=headers)
     return response.text
 
@@ -283,7 +283,7 @@ Now that we know our inference server is working as expected, lets ensure it can
 We can issue a Blockless request with this command, by specifying the correct `<topicId>`:
 
 ```bash
-curl --location 'http://localhost:6000/api/v1/functions/execute' \
+curl --location 'http://127.0.0.1:6000/api/v1/functions/execute' \
 --header 'Content-Type: application/json' \
 --data '{
     "function_id": "bafybeigpiwl3o73zvvl6dxdqu7zqcub5mhg65jiky2xqb4rdhfmikswzqm",
