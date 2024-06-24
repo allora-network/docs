@@ -177,7 +177,7 @@ import json
 
 def process(argument):
     headers = {'Content-Type': 'application/json'}
-    url = f"http://inference:8000/inference"
+    url = f"http://inference:8000/inference/{argument}"
     response = requests.get(url, headers=headers)
     return response.text
 
@@ -270,7 +270,7 @@ inference-hf  |  * Serving Flask app 'app'
 To test our inference server first by directly querying it. To do that, we can issue the following HTTP request:
 
 ```bash
-curl http://127.0.0.1:8000/inference/BTC
+curl http://localhost:8000/inference/BTC
 ```
 
 And we have a response!
