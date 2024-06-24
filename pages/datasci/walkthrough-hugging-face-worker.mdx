@@ -270,7 +270,7 @@ inference-hf  |  * Serving Flask app 'app'
 To test our inference server first by directly querying it. To do that, we can issue the following HTTP request:
 
 ```bash
-curl http://127.0.0.1:8000/inference/BTC
+curl http://localhost:8000/inference/BTC
 ```
 
 And we have a response!
@@ -283,7 +283,7 @@ Now that we know our inference server is working as expected, lets ensure it can
 We can issue a Blockless request with this command, by specifying the correct `<topicId>`:
 
 ```bash
-curl --location 'http://127.0.0.1:6000/api/v1/functions/execute' \
+curl --location 'http://localhost:6000/api/v1/functions/execute' \
 --header 'Content-Type: application/json' \
 --data '{
     "function_id": "bafybeigpiwl3o73zvvl6dxdqu7zqcub5mhg65jiky2xqb4rdhfmikswzqm",
