@@ -39,6 +39,10 @@ You will begin with installing the tool on your machine.
 ```shell
 pipx install allocmd
 ```
+At the time of writing, the latest `allocmd` version is `2.0.3`:
+```shell
+allocmd --version
+allocmd version 2.0.3
 
 > You can run `allocmd --help` to get general help or `allocmd [command] --help` to get help relating to a particular command.
 
@@ -102,7 +106,7 @@ Your worker node is now ready to be deployed, the `main.py` has been modified, a
 > Note: make sure you run this command in the `<workerName>/worker` folder
 
 ```shell
-allocmd init --env prod
+allocmd generate worker --env prod
 chmod -R +rx ./data/scripts
 ```
 
