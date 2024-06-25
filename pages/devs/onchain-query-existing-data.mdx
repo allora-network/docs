@@ -2,16 +2,18 @@
 
 To query the latest inferences and weights attributed to each worker for a specific topic:
 
-**Latest Inferences for a Topic: **
+**Latest Inferences and weights for a Topic:**
 
 ```
-allorad query get-inferences-to-score [topic_id]
+allorad query emissions latest-network-inference [topic_id] --node {RPC_URL}
 ```
 
-**Latest Weights for a Topic:**
+
+
+{/* **Latest Weights for a Topic:**
 
 ```
 allorad query get-weight [topic_id] [reputer] [worker]
 ```
 
-Learn more by checking our [Allora CLI docs](../learn/cli).
+Learn more by checking our [Allora CLI docs](../learn/cli). */}

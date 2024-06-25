@@ -26,14 +26,14 @@ YYYY-MM-DD hh:mm:ss (N MB/s) - ‘/tmp/allorad’ saved [116706514/116706514]
 **Example:**
 
 ```bash
-  ➜ curl -sSL https://raw.githubusercontent.com/allora-network/allora-chain/main/install.sh | bash -s -- v0.0.7
+  ➜ curl -sSL https://raw.githubusercontent.com/allora-network/allora-chain/main/install.sh | bash -s -- v0.2.7
 
   bash: line 39: wget: command not found
-  mv: rename /tmp/allorad to /Users/kushdave/.local/bin/allorad: No such file or directory
-  chmod: /Users/kushdave/.local/bin/allorad: No such file or directory
-  Installation complete. The allorad is now available in /Users/kushdave/.local/bin
+  mv: rename /tmp/allorad to /Users/{YOUR_USERNAME}/.local/bin/allorad: No such file or directory
+  chmod: /Users/{YOUR_USERNAME}/.local/bin/allorad: No such file or directory
+  Installation complete. The allorad is now available in /Users/{YOUR_USERNAME}/.local/bin
   To make allorad available from any terminal session, add the following line to your .bashrc or .zshrc:
-  export PATH="$PATH:/Users/kushdave/.local/bin"
+  export PATH="$PATH:/Users/{YOUR_USERNAME}/.local/bin"
 ```
 
 In the example above, the message `wget: command not found` indicates that `wget` needs to be installed for `allorad` to install successfully. Despite this error, the script still logs `Installation complete.` after encountering issues such as `No such file or directory` for the `allorad` module.
