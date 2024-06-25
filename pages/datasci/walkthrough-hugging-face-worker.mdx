@@ -7,7 +7,7 @@
 
 Before you start, ensure you have the following:
 
-- A Python environment with `pip` installed.
+- A Python environment with `pipx` installed.
 - A Docker environment with `docker compose` installed.
 - Basic knowledge of machine learning and the [Hugging Face](https://huggingface.co/) ecosystem.
 - Familiarity with Allora Network documentation on [allocmd](./deploy-worker-with-allocmd) and [building and deploying a worker node from scratch](./build-and-deploy-worker-from-scratch).
@@ -16,7 +16,7 @@ Before you start, ensure you have the following:
 ## Overview
 
 During this walkthrough, we will build a worker node from an existing Hugging Face model to deploy and participate on the Allora Network. We will use this model to predict the price of BTC in 24h. 
-
+ 
 In this example, we will use the Chronos model: [amazon/chronos-t5-tiny](https://huggingface.co/amazon/chronos-t5-tiny). 
 Chronos is a family of pretrained time series forecasting models based on language model architectures. A time series is transformed into a sequence of tokens via scaling and quantization, and a language model is trained on these tokens using the cross-entropy loss. Once trained, probabilistic forecasts are obtained by sampling multiple future trajectories given the historical context. Chronos models have been trained on a large corpus of publicly available time series data, as well as synthetic data generated using Gaussian processes.
 For simplicity, we will use Zero-shot forecasting, which refers to the ability of models to generate forecasts from unseen datasets.
