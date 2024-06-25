@@ -1,3 +1,5 @@
+import { Callout } from 'nextra/components'
+
 # Running a full node
 
 > How to become a Validator on Allora
@@ -58,12 +60,24 @@ curl -s http://localhost:26657/status | jq .
 
 This command uses `curl` to send a request to the node's RPC interface and `jq` to format the JSON response. 
 
-Once your node has finished synching and is caught up with the network, this command will return `false`:
+Once your node has finished syncing and is caught up with the network, this command will return `false`:
 
 ```shell
 curl -so- http\://localhost:26657/status | jq .result.sync_info.catching_up
 ```
 
+<Callout type="info">
+**Info**: The time required to sync depends on the chain's size and height. 
+
+    - For newly launched chains, syncing will take **minutes**.
+    - Established chains like Ethereum can take around **a day** to sync using Nethermind or similar clients.
+    - Some chains may take **several days** to sync.
+    - Syncing an archival node will take significantly more time.
+</Callout> 
+
+<Callout type="warning">
+**Warning**: Network participants will not be able to connect to your node until it is finished syncing and the command above returns `false`.
+</Callout> 
 ***
 
 ## Method 2: Using a Script
@@ -108,7 +122,7 @@ Once the node is running, its RPC interface will be available at `http://localho
 curl -s http://localhost:26657/status | jq .
 ```
 
-Once your node has finished synching and is caught up with the network, this command will return `false`:
+Once your node has finished syncing and is caught up with the network, this command will return `false`:
 
 ```shell
 curl -so- http\://localhost:26657/status | jq .result.sync_info.catching_up

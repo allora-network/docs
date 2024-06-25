@@ -8,6 +8,7 @@
 Before you start, ensure you have the following:
 
 - A Python environment with `pip` installed.
+  - **Note:** If `pip` does not work, please use `pipx`
 - A Docker environment with `docker compose` installed.
 - Basic knowledge of machine learning and the [Hugging Face](https://huggingface.co/) ecosystem.
 - Familiarity with Allora Network documentation on [allocmd](./deploy-worker-with-allocmd) and [building and deploying a worker node from scratch](./build-and-deploy-worker-from-scratch).
@@ -16,6 +17,7 @@ Before you start, ensure you have the following:
 ## Overview
 
 During this walkthrough, we will build a worker node from an existing Hugging Face model to deploy and participate on the Allora Network. We will use this model to predict the price of BTC in 24h. 
+
 You can find all the files in [this Git repository](https://github.com/allora-network/huggingface-walkthrough).
 
 In this example, we will use the Chronos model: [amazon/chronos-t5-tiny](https://huggingface.co/amazon/chronos-t5-tiny). 
@@ -37,6 +39,13 @@ First, install `allocmd` as [explained in the documentation](./deploy-worker-wit
 ```bash
 pip install allocmd --upgrade
 ```
+
+Using `pipx`:
+
+```bash
+pipx install allocmd --upgrade
+```
+
 At the time of writing, the latest `allocmd` version is `2.0.3`:
 ```bash
 allocmd --version

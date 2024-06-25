@@ -8,7 +8,7 @@ There are workers today, mostly maintained by Upshot, that produce inferences fo
 
 ```curl
 curl --request POST \
-  --url https://heads.testnet.allora.network/api/v1/functions/execute \
+  --url https://heads.testnet.allora.network/api/v2/functions/execute \
   --header 'accept: application/json, text/plain, */*' \
   --header 'content-type: application/json;charset=UTF-8' \
   --data '{
@@ -49,10 +49,8 @@ Finally, note that these inferences returned by either of the above means are "u
 Request:
 
 ```curl
-curl -X 'GET'  
-  'https://api.upshot.xyz/v2/allora/adapter/ethereum-11155111?allora_topic_id=1&inference_value_type=uint256'  
-  -H 'accept: application/json'   
-  -H 'x-api-key: <YOUR_KEY_HERE>'
+curl -X 'GET' --url 'https://api.upshot.xyz/v2/allora/adapter/ethereum-11155111?allora_topic_id=1&inference_value_type=uint256' 
+-H 'accept: application/json' -H 'x-api-key: <YOUR_KEY_HERE>'
 ```
 
 Example response:
@@ -80,10 +78,8 @@ Example response:
 Request:
 
 ```curl
-curl -X 'GET'  
-  'https://api.upshot.xyz/v2/allora/adapter/ethereum-11155111?allora_topic_id=2&inference_value_type=uint256'  
-  -H 'accept: application/json'   
-  -H 'x-api-key: <YOUR_KEY_HERE>'
+curl -X 'GET' --url 'https://api.upshot.xyz/v2/allora/adapter/ethereum-11155111?allora_topic_id=2&inference_value_type=uint256' 
+-H 'accept: application/json' -H 'x-api-key: <YOUR_KEY_HERE>'
 ```
 
 Example response:
@@ -113,10 +109,8 @@ The `extra_data` field for Upshot nodes of this topic accepts NFT (721 or 1155) 
 Request:
 
 ```curl
-curl -X 'GET'  
-  'https://api.upshot.xyz/v2/allora/adapter/ethereum-11155111?allora_topic_id=3&inference_value_type=uint256&extra_data=0x42069abfe407c60cf4ae4112bedead391dba1cdb%2F1465'  
-  -H 'accept: application/json'  
-  -H 'x-api-key: <YOUR_KEY_HERE>'
+curl -X 'GET' --url ''https://api.upshot.xyz/v2/allora/adapter/ethereum-11155111?allora_topic_id=3&inference_value_type=uint256&extra_data=0x42069abfe407c60cf4ae4112bedead391dba1cdb%2F1465' ' 
+-H 'accept: application/json' -H 'x-api-key: <YOUR_KEY_HERE>'
 ```
 
 Example response:
@@ -156,10 +150,8 @@ utils.keccak256(utils.solidityPack(
 Request:
 
 ```curl
-curl --request 'GET' \
-  "https://api.upshot.xyz/v2/allora/adapter/nft/ethereum-11155111?asset_id=0x75f9f22d1070fdd56bd1ddf2db4d65ab0f759431%2F23&allora_topic_id=4&inference_value_type=uint256" \
-  -H 'accept: application/json' \
-  -H 'x-api-key: <Your Upshot API key>'
+curl -X 'GET' --url "https://api.upshot.xyz/v2/allora/adapter/nft/ethereum-11155111?asset_id=0x75f9f22d1070fdd56bd1ddf2db4d65ab0f759431%2F23&allora_topic_id=4&inference_value_type=uint256" 
+-H 'accept: application/json' -H 'x-api-key: <YOUR_KEY_HERE>'
 ```
 
 Example response:
