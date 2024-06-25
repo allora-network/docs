@@ -73,8 +73,10 @@ curl -so- http\://localhost:26657/status | jq .result.sync_info.catching_up
     - Established chains like Ethereum can take around **a day** to sync using Nethermind or similar clients.
     - Some chains may take **several days** to sync.
     - Syncing an archival node will take significantly more time.
+</Callout> 
 
-**Network participants will not be able to connect to your node until it is fully synced.**
+<Callout type="warning">
+**Warning**: Network participants will not be able to connect to your node until it is finished syncing and the command above returns `false`.
 </Callout> 
 ***
 
