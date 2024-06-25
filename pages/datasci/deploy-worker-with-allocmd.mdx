@@ -40,7 +40,7 @@ You will begin with installing the tool on your machine.
 pipx install allocmd
 ```
 
-> you can run `allocmd --help` to get general help or `allocmd [command] --help` to get help relating to a particular command.
+> You can run `allocmd --help` to get general help or `allocmd [command] --help` to get help relating to a particular command.
 
 ### 2. Generate worker scaffold files
 
@@ -48,6 +48,15 @@ The next step is initializing the CLI to bootstrap all the needed components to 
 
 ```shell
 allocmd generate worker --name <workerName> --topic <topicId> --env dev
+cd <workerName>/worker
+```
+
+> Note: if you're facing `Permission denied` issues, please try to create the folders before running the `allocmd generate` command:
+```shell
+mkdir -p <workerName>/worker/data/head
+mkdir -p <workerName>/worker/data/worker
+chmod -R 777 ./<workerName>/worker/data/head
+chmod -R 777 ./<workerName>/worker/data/worker
 ```
 
 Before running this command you will have to [pick the topic Id](../devs/existing-topics) you wish to generate inference for after which you can run this command with the topic Id. The command will auto-create some files, the most important of which is the `dev-docker-compose.yaml`file which is an already complete docker-compose that you can run immediately to see your worker and head nodes running on your local machine. You can edit the files as you wish. for instance the `main.py` is meant for you to call your inference server, hence you will have to edit the sample code with actual URLs and logic as you prefer.
@@ -90,9 +99,11 @@ The `<TOPIC_ID>` needs to be [an existing topic on the chain](../devs/existing-t
 ### 3. Initialize the worker for production
 
 Your worker node is now ready to be deployed, the `main.py` has been modified, all env variables passed, and the worker node is running locally and you are now ready to deploy your worker to run in the production environment. The following command will handle the generation of the `prod-docker-compose.yaml` file which contains all the keys and parameters needed for your worker to function perfectly in production.
+> Note: make sure you run this command in the `<workerName>/worker` folder
 
 ```shell
-allocmd generate worker --env prod
+allocmd init --env prod
+chmod -R +rx ./data/scripts
 ```
 
-By running this command, `prod-docker-compose.yaml` will be generated with appropriate keys and parameters. You can now run the docker-compose file or deploy the whole codebase in your preferred cloud instance. At this stage, your worker should be responding to inference request from the Allora Chain.
+By running this command, `prod-docker-compose.yaml` will be generated with appropriate keys and parameters. You can now run the docker-compose file or deploy the whole codebase in your preferred cloud instance. At this stage, your worker should be responding to inference request from the Allora Chain!
