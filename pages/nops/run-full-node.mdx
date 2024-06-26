@@ -1,3 +1,5 @@
+import { Callout } from 'nextra/components'
+
 # Running a full node
 
 > How to become a Validator on Allora
@@ -58,10 +60,50 @@ curl -s http://localhost:26657/status | jq .
 
 This command uses `curl` to send a request to the node's RPC interface and `jq` to format the JSON response. 
 
-Once your node has finished synching and is caught up with the network, this command will return `false`:
+Once your node has finished syncing and is caught up with the network, this command will return `false`:
 
 ```shell
 curl -so- http\://localhost:26657/status | jq .result.sync_info.catching_up
+```
+
+<Callout type="info">
+**Info**: The time required to sync depends on the chain's size and height. 
+
+    - For newly launched chains, syncing will take **minutes**.
+    - Established chains like Ethereum can take around **a day** to sync using Nethermind or similar clients.
+    - Some chains may take **several days** to sync.
+    - Syncing an archival node will take significantly more time.
+</Callout> 
+
+<Callout type="warning">
+**Warning**: Network participants will not be able to connect to your node until it is finished syncing and the command above returns `false`.
+</Callout> 
+
+### Syncing from Snapshot
+
+Users can also opt to sync their nodes from our [latest snapshot script](https://github.com/allora-network/allora-chain/blob/main/scripts/restore_snapshot.sh) following the instructions below:
+
+1. Install [`rclone`](https://rclone.org/), a command-line program to manage files on cloud storage
+
+```bash
+brew install rclone
+```
+
+2. Follow the instructions to configure `rclone` after running `rclone config` in the command line
+
+3. Uncomment the [following lines](https://github.com/allora-network/allora-chain/blob/ccad6d27e55b27a7ec3b2aebd7e55f1bc26798ed/scripts/l1_node.sh#L15) from your Allora Chain repository:
+
+```go
+# uncomment this block if you want to restore from a snapshot
+# SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# "${SCRIPT_DIR}/restore_snapshot.sh"
+```
+
+4. Run the node using Docker:
+
+```bash
+docker compose pull
+docker compose up -d
 ```
 
 ***
@@ -108,7 +150,7 @@ Once the node is running, its RPC interface will be available at `http://localho
 curl -s http://localhost:26657/status | jq .
 ```
 
-Once your node has finished synching and is caught up with the network, this command will return `false`:
+Once your node has finished syncing and is caught up with the network, this command will return `false`:
 
 ```shell
 curl -so- http\://localhost:26657/status | jq .result.sync_info.catching_up

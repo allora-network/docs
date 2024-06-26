@@ -34,11 +34,19 @@ To build a worker node with `allocmd`, you will need to follow the following ste
 
 ### 1. Install `allocmd` CLI
 
-You will begin with installing the tool on your machine. 
+You will begin with installing the tool on your machine using `pip`.
+- **Note:** If `pip` does not work, please use `pipx`.
 
-```shell
+```bash
 pip install allocmd --upgrade
 ```
+
+Using `pipx`:
+
+```bash
+pipx install allocmd --upgrade
+```
+
 At the time of writing, the latest `allocmd` version is `2.0.3`:
 ```shell
 allocmd --version
