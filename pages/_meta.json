@@ -4,7 +4,8 @@
   "learn": "Learn",
   "datasci": "Workers",
   "devs": "Consumers",
-  "nops": "Validators & Reputers",
+  "nops": "Validators",
+  "reputers": "Reputers",
   "ref": "Reference",
   "glossary": "Glossary",
   "---": {
