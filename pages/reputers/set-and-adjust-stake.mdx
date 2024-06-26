@@ -2,7 +2,7 @@
 
 > We define stake, motivate its use, and demonstrate how it can be adjusted
 
-## What is stake?
+## How Stake works for Reputers
 
 Stake is used to signal confidence. An inference node (worker) stands to earn more rewards when they stake more on themselves. Similarly, a reputer earns more rewards if they stake on a more-accurate worker.
 
@@ -15,10 +15,9 @@ The [Allora appchain CLI spec](../learn/cli) lists functions that can be used to
 1. [Query recent inferences](../learn/cli#get-inference). One can evaluate workers' abilities by viewing recent inferences and comparing them against one's expectations or revealed ground truth. These evaluations determine how much stake one should be willing to place in oneself or another worker to get the highest return.
 2. [Querying weights](../learn/cli#get-weight). One can learn about whose inferences the crowd values the most by viewing the current distribution of weights across workers. Like any actor, the revealed preferences of an incentive-compatible crowd likely indicate how one should adjust their stake.
 3. [Register as a reputer](../learn/cli#register-network-actor). Reputers can begin to earn rewards for staking on accurate workers after registering, which involves setting a minimum stake.
-4. [Register as a worker](../learn/cli#register-network-actor). Workers can begin to earn rewards for producing accurate inferences after registering, which involves setting a minimum stake.
-5. [Add stake](../learn/cli#add-stake)
-6. [Remove stake](../learn/cli#remove-stake)
-7. [Remove all stake](../learn/cli#remove-all-stake)
+4. [Add stake](../learn/cli#add-stake)
+5. [Remove stake](../learn/cli#remove-stake)
+6. [Remove all stake](../learn/cli#remove-all-stake)
 
 To learn how to run a validator node and add stake, refer to [this tutorial](./run-full-node).
 

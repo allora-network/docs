@@ -2,7 +2,7 @@ import { Callout } from 'nextra/components'
 
 # Reputers
 
-Reputers do the following actions on Allora:
+## What do Reputers do?
 
 * Source ground truth as specified by the [topic metadata](../learn/architecture.mdx#topics)
    * e.g. the actual price of ETH as of a moment in time
@@ -18,7 +18,7 @@ Reputers do the following actions on Allora:
 
 ## Setup a Reputer Node with `docker-compose`
 
-A full working example for a reputer node for ETH price prediction topics is provided in the [`docker-compose.yml` file](https://github.com/allora-network/coin-prediction-reputer/blob/main/docker-compose.yml) of our example repo. Simply run
+A full working example for a reputer node for ETH price prediction topics is provided in the [`docker-compose.yml` file](https://github.com/allora-network/coin-prediction-reputer/blob/main/docker-compose.yml) of our example repo. Simply run:
 
 ```bash
 git clone https://github.com/allora-network/coin-prediction-reputer.git
@@ -28,6 +28,8 @@ cd coin-prediction-reputer
 ```
 docker compose up
 ```
+
+If you're using Apple Silicon hardware, please make sure to use run docker-compose.arm64.yml instead.
 
 <Callout type="warning" emoji="⚠️">
   Our containers are not yet compatible with Apple Silicon hardware!
