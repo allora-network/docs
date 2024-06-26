@@ -67,7 +67,26 @@ allorad tx emissions create-topic \
   3 \                                             # PNorm 
   1 \                                             # AlphaRegret 
   true \                                          # AllowNegative
+  --node <RPC_URL>
+  --chain-id <CHAIN_ID>
 ```
+
+Be sure to swap out `RPC_URL`, `YOUR_ADDRESS`, `CHAIN_ID` and all other arguments as appropriate with the desired values.
+
+#### Testnet
+
+- **RPC_URL**: https://allora-rpc.testnet.allora.network/
+- **CHAIN_ID**: `testnet`
+
+#### Edgenet
+
+- **RPC_URL**: https://allora-rpc.edgenet.allora.network/
+- **CHAIN_ID**: `edgenet`
+
+{/* #### Testnet v2
+
+- **RPC_URL**: https://allora-rpc.edgenet.allora.network/
+- **CHAIN_ID**: `v2testnet` */}
 
 After successfully processing your transaction, the topic's functions will be triggered on the Blockless network according to the desired cadence. When there are registered workers and validators on your topic, they will be sending inferences and weights, respectively.
 
