@@ -296,6 +296,46 @@ Inference requests are only considered valid if they meet certain conditions. Th
 
 At each call to `EndBlock`, topics that are at or past the next start of their inference epoch and active are enumerated. For each topic, the total set of requests that have not had their unmet demand drained at all or for the past `cadence` number of seconds are enumerated. Across these topic requests, if there is insufficient demand at this timestep for that topic, then the topic is deactivated and no longer considered to have its inference solicitation or loss calculation run. In particular, the topic is inactivated if the total _unmet demand_, or sum unfulfilled funds across all bid requests in the topic mempool, falls below `min_topic_unmet_demand`. Anyone can reactivate a topic at any time if the topic's unmet demand is raised above this point. This is achieved by submitting enough requests with enough total unmet demand to the topic and then calling the `ReactivateTopic` transaction.
 
+### Topic States
+
+At any given time, a topic can be in one of the following states:
+
+* *Active* - The topic has more than a threshold amount of *weight*, which is a function of the amount of reputer stake placed in the topic, including delegated stake, and revenue garnered by the topic.
+* *Churnable* - A topic is active, is one of the top topics by weight, descending, and the topic's cadence ("EpochLength") has passed since its inception or last epoch. If a topic is churnable, the chain can emit worker and evenutally reputer requests to topic workers and reptuers, respectively. Reputer requsets start after a topic's "ground-truth lag" amount of blocks have passed.
+* *Rewardable* - The topic was churned and now has fulfilled reputer request (and therefore also an earlier-fulfilled worker request) that is ready to have its rewards calculated, payable to all participating actors.
+
+### Nonces
+
+Every topic will ineviatably have incited multiple worker and reputer requests whose well-formed responses need to be paired with rewards for all participants. The chain must be able to differentiate between responses that are still pending rewards and those that have already been met with rewards. Similarly, reputers must know which among the multiple worker payloads they should calculate losses with. This necessitates a notion of uniquely identifying outbound requests.
+
+Every outbound request from chain validators has a unique id, a composite of topic id, the type of request being made (be it a worker or reputer request), and the block height at which the request was emitted. This block height is referred to as a *nonce*.
+
+When requests are made, a new worker or reputer nonce is made for that topic and sent as part of the request. This nonce is returned as part of the worker or reputer response that is committed to the chain. This is how their newly committed data is associated to the correct nonce and therefore the correct data. This is managed automatically by `allora-inference-base` and the chain.
+
+Nonces are managed as part of a wrapped object that varies by the type of request being made.
+
+```proto
+message Nonce {
+  option (gogoproto.equal) = true;
+  int64 block_height = 1;  // block height of the request
+}
+
+message Nonces {
+  repeated Nonce nonces = 1;
+}
+
+message ReputerRequestNonce {
+  option (gogoproto.equal) = true;
+  // associated with the reputer request
+  Nonce reputer_nonce = 1;
+  // the reputers should respond to the reputer request with losses for work
+  // found at this worker nonce
+  Nonce worker_nonce = 2;
+}
+```
+
+The reputer nonce is slightly more advanced in that it contains information about the associated worker nonce. At the worker nonce (for the same topic id) we find the inferences for which
+
 ### Optimizing the Return
 
 With the topic shown to have sufficient unmet demand and the total set of valid topic requests for this round solidified, requests are parsed to uncover the price, which maximizes the total return to be received by the supply side. For example, if there are 3 requests with their `max_price_per_inference` set at or above 50 ALLO, but 2 requests with their `max_price_per_inference` set at or above 100 ALLO, then the price which maximizes the return from consumer demand may be set to 100 ALLO because 100 ALLO times 2 requests willing to pay the price that is greater than 3 times 50.
@@ -320,6 +360,8 @@ After requests are fulfilled, the resultant data can now be "consumed" or used. 
 
 Consumers may avert the entirety of the above by making off-chain requests for inferences directly to workers, as supported by the default implementation of the [Allora worker base repo](https://github.com/allora-network/allora-inference-base). This mimics the standard means of soliciting inferences in today's web2-dominated world and may be preferred by consumers who value cheap inferences at the cost of security and accuracy. This, however, is unsafe for several reasons. The worker may alter or turn off this request to any and all traffic at any point. The returned inferences are also not subject to any form of grading -- they may exist entirely off-chain and are not necessarily the same inferences submitted to the chain. Finally, the "self-improving" properties of Allora, including its ability to generate "network inferences" more accurately than the sum of its constituent inferences, are entirely absent. Hence, these inferences are nearly guaranteed never to be better than the network inferences computed by Allora, found on-chain. One can learn how to make such unsafe requests [here](../devs/offchain-query-existing-workers).
 
+Neither `allora-inference-base` nor any of its related code distinguishes between types of incoming traffic, therefore many of the risks associated with "unsafe requests" mentioned above are somewhat mitigated.
+
 ## Rewards
 
 Rewards are calculated and distributed to the "supply side" of the network -- workers, reputers, validators -- after every _reward_cadence_ seconds, a global parameter. This allows the protocol to batch compute together, saving total and amortized compute across multiple blocks.
@@ -336,4 +378,4 @@ Now rewards can be disbursed to the supply-side participants of each topic. The 
 
 ## Infrastructure
 
-Our implementation's deployments follow standard Cosmos SDK best practices. Our validator, worker, and reputer nodes are guarded by sentry nodes, caching layers, and more to protect their integrity while operating on the open Internet. Please contact us if you are interested in setting up a similar stack on your own infrastructure to participate in the Allora Network or if there is a concern left unaddressed by other parts of our docs.
+Our implementation's deployments follow standard Cosmos SDK best practices. Our validator, worker, and reputer nodes are guarded by sentry nodes, caching layers, and more to protect their integrity while operating on the open Internet. Please [contact us](/community/contribute) if you are interested in setting up a similar stack on your own infrastructure to participate in the Allora Network or if there is a concern left unaddressed by other parts of our docs.

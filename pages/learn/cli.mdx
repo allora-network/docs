@@ -1,3 +1,5 @@
+import { Callout } from 'nextra/components'
+
 # Allora Appchain CLI Spec
 
 > Install the allorad binary for interacting with Allora via a CLI
@@ -7,8 +9,14 @@ The Appchain CLI is an easy means of interacting with the Allora Network. It can
 # Install
 
 ```Text bash
-curl -sSL https://raw.githubusercontent.com/allora-network/allora-chain/main/install.sh | bash -s -- v0.0.7
+curl -sSL https://raw.githubusercontent.com/allora-network/allora-chain/main/install.sh | bash -s -- v0.2.7
 
+```
+
+A **successful** installation should output the following line:
+
+```bash
+YYYY-MM-DD hh:mm:ss (N MB/s) - ‘/tmp/allorad’ saved [116706514/116706514]
 ```
 
 # Build Requirements and Setup
@@ -230,7 +238,7 @@ These functions write to the appchain.
 - **Description:** Add stake [amount] from a sender [reputer or worker] to a target [reputer or worker]. If the target is not the sender, then this is equivalent to "delegating stake."
 - **Positional Arguments:**
   - `sender` The staker. This is the address of the transaction sender.
-  - `target` The stakee
+  - `target` The stake
   - `amount` The amount staked
 
 ## Remove Stake
