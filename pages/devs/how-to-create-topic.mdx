@@ -46,7 +46,7 @@ type MsgCreateNewTopic struct {
   PNorm            github_com_allora_network_allora_chain_math.Dec `json:"p_norm"`
   // Raising this parameter lowers how much workers historical performances influence their current reward distribution (Must be between 0 and 1)
   AlphaRegret      github_com_allora_network_allora_chain_math.Dec  `json:"alpha_regret"`
-  // When true, assigns Log calculation to the worker/reputer (recommended); when false, the validator performs it
+  // Indicates if the loss function's output can be negative. If false, the reputer submits logs of losses; if true, the reputer submits raw losses.
   AllowNegative    bool     `json:"allow_negative,omitempty"`
 }
 ```
@@ -77,10 +77,9 @@ An explanation in more detail of some of these fields.
 
 - `Metadata` is a descriptive field to let users know what this topic is about and/or any specific indication about how it is expected to work.
 - `LossLogic` and `LossMethod` define a WASM blockless function that receives inferences and previous losses from workers, and that generates a new set of losses. 
-  - If your topic expects workers to return a numerical value, then the `LossLogic`and `LossMethod` values provided in the example above most likely will work for you. Please contact us for further details on your specific case.
+  - If your topic expects workers to return a numerical value, then the `LossLogic`and `LossMethod` values provided in the example above most likely will work for you. Please [contact us](/community/contribute) for further details on your specific case.
 - `InferenceLogic`  defines a WASM blockless function to trigger the call to the `main.py` file in the worker. These values are expected to be reused from the example.
 - `DefaultArg` value will be passed as an argument to the python script, i.e. when the worker receives the request, it will attempt to run `python3 <location-of-main.py> <TopicId> <DefaultArg>`. This will be used in the scoring stage to request inferences from the chain.
-- `allowNegative` determines whether the worker/reputer or the validator performs the `Log` calculation
-  - If **true**, the worker/reputer calculates and sends it to the validator
-  - If **false**, the validator performs the calculation
-  - It's recommended to set to true to reduce the workload of the validator and perform more calculations at the worker/reputer level
+- `allowNegative` determines whether the loss function output can be negative.
+  - If **true**, the reputer submits raw losses.
+  - If **false**, the reputer submits logs of losses.
