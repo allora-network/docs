@@ -42,6 +42,16 @@ docker compose up -d
 
 The `-d` flag runs the container in detached mode, allowing it to run in the background.
 
+<Callout type="warning">
+Make sure that any previous containers you launched are killed, before launching a new container that uses the same port.
+
+You can run the following command to kill any containers running on the same port:
+```bash
+docker container ls
+docker rm -f <container-name>
+```
+</Callout> 
+
 ### Monitoring Logs
 
 To view the node's logs, use the following command:

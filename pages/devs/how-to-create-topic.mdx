@@ -48,6 +48,8 @@ type MsgCreateNewTopic struct {
   AlphaRegret      github_com_allora_network_allora_chain_math.Dec  `json:"alpha_regret"`
   // Indicates if the loss function's output can be negative. If false, the reputer submits logs of losses; if true, the reputer submits raw losses.
   AllowNegative    bool     `json:"allow_negative,omitempty"`
+  // Sensitivity to order of magnitude adjustments in the model (domain-specific).
+  Tolerance       github_com_allora_network_allora_chain_math.Dec `json:"tolerance"`
 }
 ```
 
@@ -67,6 +69,7 @@ allorad tx emissions create-topic \
   3 \                                             # PNorm 
   1 \                                             # AlphaRegret 
   true \                                          # AllowNegative
+  0.01 \                                           # Tolerance
   --node <RPC_URL>
   --chain-id <CHAIN_ID>
 ```
