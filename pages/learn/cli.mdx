@@ -212,11 +212,6 @@ allorad q emissions [Command] --node <RPC_URL>
 - **Command:** `get-multi-reputer-stake-in-topic`
 - **Description:** Execute the GetMultiReputerStakeInTopic RPC method.
 
-## Execute GetTopicStake RPC Method
-- **RPC Method:** `GetTopicStake`
-- **Command:** `get-topic-stake`
-- **Description:** Execute the GetTopicStake RPC method.
-
 ## Get All Inferences Produced for a Topic in a Particular Timestamp
 - **RPC Method:** `GetInferencesAtBlock`
 - **Command:** `inferences-at-block [topic_id] [block_height]`
@@ -357,7 +352,7 @@ allorad tx emissions [Command]
 
 ## Create New Topic
 - **RPC Method:** `CreateNewTopic`
-- **Command:** `create-topic [creator] [metadata] [loss_logic] [loss_method] [inference_logic] [inference_method] [epoch_length] [ground_truth_lag] [default_arg] [p_norm] [alpha_regret] [allow_negative]`
+- **Command:** `create-topic [creator] [metadata] [loss_logic] [loss_method] [inference_logic] [inference_method] [epoch_length] [ground_truth_lag] [default_arg] [p_norm] [alpha_regret] [allow_negative] [tolerance]`
 - **Description:** Add a new topic to the network.
 - **Positional Arguments:**
   - `creator` The creator is the owner of the topic that is able to update the topic in the future
@@ -372,6 +367,7 @@ allorad tx emissions [Command]
   - `p_norm`
   - `alpha_regret`
   - `allow_negative`
+  - `tolerance`
 
 Detailed instructions on [how to create a topic](/devs/how-to-create-topic) are linked.
 
