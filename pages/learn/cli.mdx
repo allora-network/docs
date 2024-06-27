@@ -190,6 +190,15 @@ allorad q emissions [Command] --node <RPC_URL>
 - **Positional Arguments:**
   - `topic_id` Identifier of the topic whose information will be returned.
 
+## Get Active Topics
+
+- **RPC Method:** `GetActiveTopics`
+- **Command:** `get-active-topics [pagination]`
+- **Description:** Get topic by topic_id.
+- **Positional Arguments:**
+  - `pagination` The json key-value pair of the limit of topics outputted
+    - **Example:** `'{"limit":10}'`
+
 ## Get Forecasts for a Topic at Block Height
 - **RPC Method:** `GetForecastsAtBlock`
 - **Command:** `forecasts-at-block [topic_id] [block_height]`
