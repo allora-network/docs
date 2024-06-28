@@ -35,8 +35,8 @@ contract AlloraConsumerBringPredictionOnChainExample is Ownable2Step {
     // ***************************************************************
 
     /**
-     * @notice Example for calling a protocol function with using an inedex value already stored on the
-     *   Allora Consumer, only if the value is not stale
+     * @notice Example for calling a protocol function with using an inference and confidence 
+     *   intervals already stored on the Allora Consumer, only if the value is not stale.
      * 
      * @param protocolFunctionArgument An argument for the protocol function
      * @param topicId The id of the topic to use the most recent stored value for
@@ -45,7 +45,7 @@ contract AlloraConsumerBringPredictionOnChainExample is Ownable2Step {
         uint256 protocolFunctionArgument,
         uint256 topicId
     ) external payable {
-        TopicValue memory topicValue = IAlloraConsumer(0x4341a3F0a350C2428184a727BAb86e16D4ba7018).getTopicValue(topicId, '');
+        TopicValue memory topicValue = alloraConsumer.getTopicValue(topicId, '');
 
         if (topicValue.recentValueTime + 1 hours < block.timestamp) {
             revert('AlloraConsumerBringPredictionOnChainExample: stale value');
@@ -60,12 +60,12 @@ contract AlloraConsumerBringPredictionOnChainExample is Ownable2Step {
     }
 
     /**
-     * @notice Example for calling a protocol function with a prediction value from the Allora Consumer
+     * @notice Example for calling a protocol function with an inference value from the Allora Consumer
      * 
      * @param protocolFunctionArgument An argument for the protocol function
      * @param alloraNetworkInferenceData The signed data from the Allora Consumer
      */
-    function callProtocolFunctionWithAlloraConsumerPredictionValue(
+    function callProtocolFunctionWithAlloraTopicInference(
         uint256 protocolFunctionArgument,
         AlloraConsumerNetworkInferenceData calldata alloraNetworkInferenceData
     ) external payable {
@@ -73,7 +73,7 @@ contract AlloraConsumerBringPredictionOnChainExample is Ownable2Step {
             uint256 value,
             uint256[] memory confidenceIntervalPercentiles,
             uint256[] memory confidenceIntervalValues,
-        ) = IAlloraConsumer(0x4341a3F0a350C2428184a727BAb86e16D4ba7018).verifyNetworkInference(alloraNetworkInferenceData);
+        ) = alloraConsumer.verifyNetworkInference(alloraNetworkInferenceData);
 
         _protocolFunctionRequiringPredictionValue(
             protocolFunctionArgument, 
@@ -105,4 +105,5 @@ contract AlloraConsumerBringPredictionOnChainExample is Ownable2Step {
         alloraConsumer = alloraConsumer_;
     }
 }
+
 ```
