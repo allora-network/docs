@@ -4,7 +4,7 @@ Follow these instructions to bring the most recent inference data on-chain for a
 
 ## Complete Example:
 
-```sol
+```solidity
     /**
      * @notice Example for calling a protocol function with topic inference data
      * 
@@ -19,7 +19,7 @@ Follow these instructions to bring the most recent inference data on-chain for a
             uint256 value,
             uint256[] memory confidenceIntervalPercentiles,
             uint256[] memory confidenceIntervalValues,
-        ) = IAlloraConsumer(0x4341a3F0a350C2428184a727BAb86e16D4ba7018).verifyNetworkInference(alloraNetworkInferenceData);
+        ) = IAlloraConsumer(<Consumer Contract Address>).verifyNetworkInference(alloraNetworkInferenceData);
 
         _protocolFunctionRequiringPredictionValue(
             protocolFunctionArgument, 
@@ -41,7 +41,7 @@ Follow these instructions to bring the most recent inference data on-chain for a
 Note you be doing something more like `callProtocolFunctionWithAlloraTopicInference` in the example above, so you would want to construct your call to that contract in a similar way to the following:
 
 ```typescript
-await alloraAdapter.verifyData({  
+await alloraConsumer.verifyData({  
   signature: signature,  
   networkInference: {
     networkInference: networkInference,

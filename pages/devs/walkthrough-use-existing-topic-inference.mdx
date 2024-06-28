@@ -1,4 +1,4 @@
-# Using an existing Topic Inference On-chain
+# Fetching an existing on-chain topic inference
 
 You can follow these instructions to view the most recent inference data brought on-chain for a given topic.
 
@@ -35,20 +35,22 @@ You can follow these instructions to view the most recent inference data brought
 2. Access the `recentValue` attribute.
 3. Optional: check the unix-timestamp under the `recentValueTime` attribute to see how recently the value was updated.
 
+You can see the complete example here: [Retrieve topic value example](https://github.com/allora-network/allora-consumer/blob/main/script/retrieveTopicValue.ts)
+
 ## Using Typescript
 
 ```typescript
-  const alloraAdapter = (new AlloraAdapter__factory()).attach(sepoliaAddresses.AlloraAdapter).connect(wallet) as AlloraAdapter
-  const result = await alloraAdapter.getTopicValue(TARGET_TOPIC_ID, '0x')
-  console.info({
-    value: result.config.recentValue,
-    timestamp: result.config.recentValueTime,
-  })
+const alloraConsumer = (new AlloraConsumer__factory()).attach(sepoliaAddresses.AlloraConsumer).connect(wallet) as AlloraConsumer
+const { recentValue, recentValueTime } = await alloraConsumer.getTopicValue(TARGET_TOPIC_ID, '0x')
+console.info({
+  value: recentValue,
+  timestamp: recentValueTime,
+})
 ```
 
 ## IAlloraConsumer interface
 
-```sol
+```solidity
 /**
  * @title Allora Consumer Interface
  */
@@ -105,5 +107,6 @@ interface IAlloraConsumer {
 
 ## Code Links
 
+https://github.com/allora-network/allora-consumer/blob/main/script/retrieveTopicValue.ts
 - [Open source consumer code](https://github.com/allora-network/allora-consumer/blob/main/src/)
 - [IAlloraConsumer](https://github.com/allora-network/allora-consumer/blob/main/src/interface/IAlloraConsumer.sol), including the structs used for Solidity code.
