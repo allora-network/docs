@@ -5,6 +5,6 @@
   "what": "What is Allora?",
   "architecture": "Technical Architecture",
   "cli": "CLI Spec",
-  "adapters": "Adapters",
+  "consumers": "Consumers",
   "code": "Open-Source Code"
 }
