@@ -1,0 +1,24 @@
+name: purge-netlify-cache
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  call-api:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Make POST request to Netlify API
+      env:
+        BEARER_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      run: |
+        curl -X POST https://api.netlify.com/api/v1/purge \
+        -H "Authorization: Bearer $BEARER_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{"site_id": "e055af19-2946-4564-ac6e-a2dd59fd99d1"}'
+
