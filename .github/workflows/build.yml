@@ -3,7 +3,7 @@ name: Check and Update MDX Links
 on:
   pull_request:
     branches:
-      - major-upgrade
+      - main
 
 jobs:
   check-mdx-links:
