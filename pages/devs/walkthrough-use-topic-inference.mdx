@@ -33,7 +33,32 @@ Follow these instructions to bring the most recent inference data on-chain for a
 ## Step by Step Guide:
 
 1. Create an Upshot API key by [creating an account](https://developer.upshot.xyz/signup).
-2. [Call the Consumer Inference API](./offchain-query-existing-workers#yuga-index-levels-id2) using the `topicId` found in the [deployed topics list](./existing-topics) and the correct chainId. For example, if you use sepolia, you would provide `ethereum-11155111`.
+2. Call the Consumer Inference API using the `topicId` found in the [deployed topics list](./existing-topics) and the correct chainId. For example, if you use sepolia, you would provide `ethereum-11155111`.
+
+```shell
+curl -X 'GET' --url 'https://api.upshot.xyz/v2/allora/consumer/<chainId>?allora_topic_id=<topicId>' -H 'accept: application/json' -H 'x-api-key: <apiKey>'
+```
+
+Here is an example response: 
+```json
+{
+    "request_id": "409de397-99f8-4911-91ed-74e6fe748115",
+    "status": true,
+    "data": {
+        "signature": "0x8165fff89ca07fadff3f4e27b200bd3eae2132055aa8f0a224832446505c0662033b3038c9694000af60d4e9fbf8504cd9729b9841db286f45070a9c92f2531d1c",
+        "inference_data": {
+            "network_inference": "61022689135670660000000",
+            "confidence_interval_percentiles": [],
+            "confidence_interval_values": [],
+            "topic_id": "11",
+            "timestamp": 1719688595,
+            "extra_data": "0x"
+        }
+    }
+}
+```
+
+
 3. Construct a call to the Allora Consumer contract on the chain of your choice (options listed under [deployments](./existing-consumers)) using the returned `signature` and `network-inference` as follows:
 
 ## Creating the Transaction:
@@ -41,7 +66,7 @@ Follow these instructions to bring the most recent inference data on-chain for a
 Note you be doing something more like `callProtocolFunctionWithAlloraTopicInference` in the example above, so you would want to construct your call to that contract in a similar way to the following:
 
 ```typescript
-await alloraConsumer.verifyData({  
+await alloraConsumer.verifyNetworkInference({  
   signature: signature,  
   networkInference: {
     networkInference: networkInference,
