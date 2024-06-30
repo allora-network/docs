@@ -132,7 +132,7 @@ Here we'll setup a reputer with only the "truth service", which fetches the grou
 
 To only test the truth service, you can simply follow these steps:
 
-- Run `docker compose up --build truth` and wait for the initial data load.
+- Run `docker compose up --build data-provider` and wait for the initial data load.
 - Requests can now be sent, e.g. ETH price ground truths can be fetched with: 
   ```
     $ curl http://localhost:8000/get/ETHUSD/1711105645
