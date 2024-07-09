@@ -1,0 +1,28 @@
+import { Callout } from 'nextra/components'
+
+# Calculating Total Reward Distribution Across all Network Participants
+
+Now that we've explained the mechanisms behind distributing rewards for the actors of each network participant, let's dive in to how total rewards are distributed across:
+- inference workers
+- forecast workers 
+- reputers
+
+The common objective of the calculated reward distribution across the network is to incentivize decentralization.
+
+## Key Factors
+### Modified Entropy
+
+Entropy, in this context, is a measure of how spread out the rewards are among participants. We calculate entropy for each class of tasks (inference, forecast, reputer), which helps in determining how decentralized the reward distribution is.
+
+<Callout type="info">
+Higher entropy means rewards are more evenly spread out across all participants.
+</Callout>
+
+### Effective Number of Participants
+
+To prevent manipulation of the reward system against sybil attacks, we calculate the effective number of participants (actors). It ensures that the reward distribution remains fair even if someone tries to game the system.
+
+## Putting it all Together
+
+The total reward allocated to each type of task is determined using the entropy values and the effective number of participants.
+

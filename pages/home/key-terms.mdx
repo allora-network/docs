@@ -1,0 +1,59 @@
+# Key Terminology
+
+## Topics
+
+Schelling Points that focus the efforts of the protocol by categorizing inferences. Anyone (identified as topic creators) can permissionlessly create a topic on Allora and define a **rule set** that determines how to reward correct inferences within said topic. 
+Workers can then submit inferences to these topics and earn rewards based on how accurate their inferences are.
+
+### Rule Set
+
+Loss calculation logic determined at topic creation by a topic creator who decides how to evaluate inferences, and consists of:
+
+- The loss function to use (e.g., mean absolute directional loss, L1-norm)
+- The source of ground truth (e.g., some endpoint, some oracle, the median of gathered inferences)
+
+## Inferences
+
+Predictions or conclusions made by workers about specific outcomes within a given topic. 
+
+## Forecasts
+
+Predictions made by workers about the performance of their peers in the current epoch. Forecasts are used to gauge the reliability and accuracy of the participants' inferences.
+
+## Epochs
+
+Discrete periods during which inferences and forecasts are submitted, and rewards are distributed. Each epoch provides a timeframe for evaluating and scoring the performance of workers and reputers.
+
+## Reputers
+
+Participants who evaluate and score the inferences made by workers. They play a crucial role in maintaining the quality and reliability of the predictions by providing consensus on the ground truth.
+
+## Rewards
+
+Incentives given to workers and reputers based on their accuracy and performance. These rewards are distributed at the end of each epoch, encouraging high-quality contributions.
+
+## Network Participants
+
+A network participant in the Allora Network is an individual or entity that contributes to the network by fulfilling specific roles.
+
+## Stake
+
+A financial commitment made by reputers to show confidence in their ability to assess reputation by sourcing the truth and comparing it to workers' inferences. 
+This stake increases the importance and rewards of a topic. 
+
+- Reputers and workers must place a minimum stake to participate, ensuring network security and preventing attacks 
+- This registration stake allows participation but **does not** influence topic rewards
+- Participants use the Allora chain CLI to stake
+
+### Delegated Stake
+
+A method for passive earnings where funds are delegated to a reputer, allowing the delegator to receive rewards based on the reputer's performance. 
+- These delegated funds enhance the reputer's stake, improving topic security and the accuracy of loss reports
+- A withdrawal delay prevents quick attacks
+- Delegating involves risk but offers rewards based on the reputer's success
+
+## Regrets
+
+A measure of how the performance of a worker’s inference compares to the network’s previously reported accuracy.
+
+A positive regret implies that the inference of worker j is expected to outperform, whereas a negative regret implies lower expected performance.

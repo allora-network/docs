@@ -1,22 +1,10 @@
 {
-  "index": "Welcome",
-  "community": "Community",
-  "learn": "Learn",
-  "datasci": "Workers",
-  "devs": "Consumers",
-  "nops": "Validators",
-  "reputers": "Reputers",
-  "ref": "Reference",
-  "glossary": "Glossary",
-  "---": {
-    "type": "separator"
+  "home": {
+    "title": "Home",
+    "type": "page"
   },
-  "paper": {
-    "title": "Litepaper",
-    "href": "https://litepaper.assets.allora.network/allora-litepaper.pdf"
-  },
-  "main": {
-    "title": "Main Site",
-    "href": "https://allora.network"
+  "devs": {
+    "title": "Developers",
+    "type": "page"
   }
 }

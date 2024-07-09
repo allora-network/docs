@@ -1,16 +1,9 @@
 {
-  "how-to-create-topic": "How to Create a Topic",
-  "create-deploy-inference-generation-function": "Create, Deploy, and Invoke an Inference Generation Function",
-  "create-deploy-weight-adjustment-function": "Create, Deploy, and Invoke a Weight Adjustment Function",
-  "walkthrough-create-index-level-topic": "Walkthrough: Create a Yuga Index-Level Topic",
-  "walkthrough-create-eth-price-topic": "Walkthrough: Create an Ether Price Prediction Topic",
-  "existing-topics": "Existing Topics on Allora",
-  "offchain-query-existing-workers": "How to Query Workers of Existing Topics Off-Chain",
-  "onchain-query-existing-data": "How to Query On-Chain Data of Existing Topics",
-  "dev-consumers": "Getting Started with Consumers",
-  "deploy-consumer": "Deploying a Consumer to an EVM Target Chain",
-  "existing-consumers": "Existing Consumers Deployments ",
-  "walkthrough-use-topic-inference": "Walkthrough: Using a Topic Inference on-chain",
-  "walkthrough-use-existing-topic-inference": "Walkthrough: Using an existing Topic Inference On-chain",
-  "get-faucet-funds": "How to get faucet funds"
+  "blockless": "Blockless Nodes",
+  "get-started": "Get Started",
+  "topic-creators": "Topic Creators",
+  "consumers": "Consumers",
+  "workers": "Workers",
+  "reputers": "Reputers",
+  "validators": "Validators"
 }

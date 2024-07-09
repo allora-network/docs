@@ -1,0 +1,33 @@
+# Consensus
+
+The Allora Network is built as a hub chain on Cosmos. Network Validators handle fees and distribute rewards to different network participants. 
+
+Consumers pay fees in the native network token to the Validators in return for inferences.
+
+## Differentiated Incentives
+
+Each network participant has a different reward mechanism to incentivize the growth and security of the network.
+- Workers are rewarded based on the quality of their inferences
+- Reputers are rewarded based on the accuracy of their data and their stake in the network 
+- Network Validators are rewarded solely based on their stake in the network
+
+For workers and reputers, we'll explain why a 'naive' approach to calculating rewards is insufficient, how rewards are calculated for the total number of actors within each individual participant, and finally how total rewards are distributed between participants.
+
+### The 'Naive' Approach
+
+A naive approach involves making predictions or decisions based solely on raw data, without considering any additional context. 
+This simplistic method disregards supplementary information that could refine or enhance the prediction, relying only on the basic inputs available.
+
+#### Workers
+
+- A 'naive' inference is a prediction made by the network without including any information from forecasting workers.
+- To create this naive inference, the weights of all forecast-implied inferences are set to zero. Essentially, it’s like ignoring everything the forecasting tasks have added and just using the raw inferences.
+
+#### Reputers
+
+- Reputers are scored based on their accuracy in reporting the ground truth. 
+- The naive method involves calculating the stake-weighted average of all losses reported by a reputer. Rewards are then added to the reputers' stakes based on their performance.
+
+_**Both Reputers and Workers could theoretically be scored using only a 'naive' network solution, however, this is not sufficient...**_
+
+Let's dive into why in the following sections.

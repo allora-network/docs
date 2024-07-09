@@ -1,0 +1,40 @@
+# Consensus: Workers
+
+Workers are specifically rewarded based on their unique contribution to the synthesized network inference provided by the Allora Network to a consumer.
+
+- Inference workers are scored using a one-out inference
+- Forecasting workers are scored using both one-out and one-in inferences
+
+Scores are used to calculate rewards.
+
+## Inference Workers
+
+**One-out Inference**: evaluating the performance of an inference by removing one worker’s inference and seeing how much the loss increases.
+
+The performance score Tij for inference worker j is calculated as the difference in the logarithm of losses with and without the worker’s inference. If removing a worker's contribution increases the loss, their performance score is positive, indicating a valuable contribution. 
+
+![one-out](/one-out-equation.png)
+
+## Forecast Workers
+
+### Why One-Out Inferences Aren't Enough
+
+In forecasting tasks, multiple workers often contribute similar information. This means they can back each other up. If one worker is missing, the others can still maintain a similar level of performance because they provide overlapping information.
+
+When you remove one worker to see their impact (**one-out inference**), the overall performance might not change much because the remaining workers can cover for the missing one. This makes it hard to see the true value of the removed worker's contribution.
+
+### Why One-In Inferences Are Needed
+To better understand each forecast worker's unique contribution, you need to also see what happens when you specifically include their work (**one-in inference**).
+By adding a worker’s specific input to the group and measuring the change, you can see how much they really help.
+
+![one-in](/one-in-equation.png)
+
+### Combining Both
+
+To fairly measure each forecasting worker's contribution, we combine the one-out and one-in scores.
+This combined score gives a balanced view of how removing or adding each forecasting worker impacts the prediction accuracy.
+
+![combining-both](/combining-both.png)
+
+- f+ is a weighting factor that adjusts the importance of the one-in score.
+

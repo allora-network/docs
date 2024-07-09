@@ -1,0 +1,27 @@
+# Consensus: Reputers
+
+Reputers are rewarded based on their accuracy comparative to consensus (the other reputers providing data for a topic) and stake, with added functionality to prevent centralization of rewards caused by reputers with larger stakes.
+
+## Problem: Runaway Centralization
+1. **Stake-Weighted Average:**
+- Reputers are actors who report on how accurate certain predictions or inferences are against the ground truth.
+- Normally, we might average the accuracy (or "losses") they report, but give more weight to reputers with bigger stakes (more reputation or investment).
+- This means reputers with more stake have more influence on the consensus (agreed-upon truth).
+2. **Runaway Effect:**
+- The problem is that reputers with higher stakes get more rewards, which further increases their stakes.
+- This creates a cycle where the rich get richer, leading to centralization. A few reputers end up controlling most of the influence and rewards, which is unfair and unhealthy for the system.
+
+## Solution: Adjusted Stake
+1. **Adjusted Stake:**
+- To prevent runaway centralization, we adjust how much weight each reputer's stake has when setting the consensus.
+- Instead of using the full stake for weighting, we use an adjusted version that doesn’t let any one reputer dominate.
+2. **How It Works:**
+- The formula for adjusted stake ensures that if a reputer's stake goes above a certain level, it doesn’t keep increasing their weight.
+- It levels the playing field, so reputers with smaller stakes still have some influence.
+
+![reputer-balance](/reputer-balance.png)
+
+Where:
+- Nr​ is the number of reputers.
+- aim is a listening coefficient, which is a measure of how much the network considers each reputer's input, based on their past performance.
+- Sim​ is the original stake.

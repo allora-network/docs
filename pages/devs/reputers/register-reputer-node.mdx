@@ -1,0 +1,49 @@
+# Register a Reputer Node
+
+Registering a reputer node on the Allora Network requires downloading the `allorad` blockchain client, creating and backup up a blockchain account, funding that account, and then configuring your reputer node. Additionally, there is a registration fee that must be paid during the registration process.
+
+- Install the `allorad`client by following the instructions [here](../learn/cli)
+- Using the `allorad` application, create a new key. Take note of the mnemonic restore phrase. It will be needed for the configuration options to start the node.
+- ```Text bash
+  allorad keys add myNewNode
+  ```
+- Fund the Key on the network environment you plan to run the reputer, (i.e. testnet faucet, the reputer will be running on testnet). One can obtain funds on our testnet through our faucet as [explained here](../devs/how-to-use-faucet).
+- The node will initialize and verify its registration on the chain, and then attempt a registration transaction using the provided configuration. As long as the account is funded, this registration process should be seamless, and the node should automatically update when needed through this path.
+
+## Using Docker to Access `allora-node`
+
+You will need to access the node's command line in order to register it. To access `allora-node` using Docker, follow these steps:
+
+1. Run the following commands to obtain the `container-id` of the specific node you want to register
+```bash
+$ docker compose up
+$ docker ps       # choose container
+```
+
+2. Once you have the `container-id`, access the node's command line
+
+```bash
+$ docker exec -it <container_id> bash
+~$ allora-node --help
+```
+
+## Register the Node
+
+- When initializing the node, you need to use allora flags to be able to successfully register. The whole set of options can be seen by running `allora-node --help`. The most important ones are:
+- ```Text bash
+  --allora-chain-home-dir /data/.allorad                       #The home folder of the client, use the user home if not set
+  --allora-chain-key-name "mNodeKey"                			 #The name of a key stored in the Allora Blockchain Wallet
+  --allora-chain-restore-mnemonic "roses turkeys ..."   		 #The restore mnemonic for an Allora Blockchain Wallet
+  --allora-chain-account-password 12345                        #The password for an Allora Blockchain Wallet Key
+  --allora-node-rpc-address "https://some-allora-rpc-address"  #The address for the client to connect to a node (default "http://localhost:26657") 
+  --allora-chain-topic-id "1"                                  #The topic id for the topic that the node will subscribe to
+  --allora-chain-worker-mode "reputer"                         #The type of node to be registered
+  ```
+- To be able to earn rewards for a topic, a reputer needs to have a minimum stake in that topic. This stake can be added using:
+
+`--allora-chain-initial-stake 1000`
+
+If the transaction is successfully processed, the initial stake amount set in the flag plus the registration fee will be deducted from the account, and you will be able to start participating as a reputer in the topic.
+
+The node will create a registration to the Allora L1 using this key information for registration.
+

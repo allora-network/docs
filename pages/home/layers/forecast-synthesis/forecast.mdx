@@ -1,0 +1,27 @@
+# Forecast
+
+## Context Awareness
+
+Some workers function to forecast the expected performance of other workers inferences' and make the network **Context Aware**. Context awareness enables the aggregated inference produced by the network to be better than any individual model's output.
+
+Inference Synthesis becomes possible due to the context awareness of the workers.
+
+![forecast-initial](/forecast-initial.png)
+
+## Losses
+
+Some workers forecast, some workers produce inferences and some do both. Forecast workers use their own data and models to predict the accuracy of produced inferences, generating **forecasted losses**.
+
+Forecasted losses allow the network to become context aware.
+
+![forecast-inference-workers](/forecast-inference-workers.png)
+
+## Regrets
+
+Forecasted losses are used to calculate "regret," which indicates how much better or worse each prediction is expected to be compared to previous predictions.
+Positive regret means a prediction is expected to be more accurate, while negative regret means it is expected to be less accurate.
+
+Regrets are used to generate 'weights', where more accurate predictions get higher weights.
+
+Losses and weights are collectively used to synthesize inferences. Let's dive into how inference synthesis works in the next section.
+

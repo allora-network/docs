@@ -1,0 +1,107 @@
+# Allora CLI Spec
+
+Allora provides two CLI tools that allow network participants to perform different functions on the Allora Network:
+
+1. `allorad` -  Used to read and write data to the chain, e.g. to read the distribution of weights across workers or to create new topics
+2. `allocmd` - Handles worker nodes' seamless creation and deployment. With this tool, you do not need to write the worker node from scratch, the CLI tool will help you bootstrap all the needed components to get worker nodes working.
+
+Let's dive into how to install each CLI tool using a few different methods.
+
+## Installing `allorad`
+
+### Prerequisites
+
+You will need to install `go` to download and use `allorad` successfully.
+
+To install Go, follow one of the recommended methods below or consult the [official Go documentation](https://go.dev/doc/install) for the correct download for your operating system. The command-line instructions are based on standard installation locations, but you may customize them as needed.
+
+### Installation
+
+```Text bash
+curl -sSL https://raw.githubusercontent.com/allora-network/allora-chain/main/install.sh | bash -s -- v0.2.11
+
+```
+
+A **successful** installation should output the following line:
+
+```bash
+YYYY-MM-DD hh:mm:ss (N MB/s) - ‘/tmp/allorad’ saved [116706514/116706514]
+```
+
+### Verifying Installation
+
+After installation, verify that `allorad` is correctly installed and ready to interact with the Allora Network by running:
+
+```
+allorad version
+```
+
+`allorad` supports general Cosmos SDK and Tendermint commands. You can run the tool to see a list of commands with explanations of what they do:
+
+```text
+$ allorad
+allorad - the Allora chain
+
+Usage:
+  allorad [command]
+
+Available Commands:
+  comet       CometBFT subcommands
+  completion  Generate the autocompletion script for the specified shell
+  config      Utilities for managing application configuration
+  debug       Tool for helping with debugging your application
+  export      Export state to JSON
+  genesis     Application's genesis-related subcommands
+  help        Help about any command
+  init        Initialize private validator, p2p, genesis, and application configuration files
+  keys        Manage your application's keys
+  prune       Prune app history states by keeping the recent heights and deleting old heights
+  query       Querying subcommands
+  rollback    rollback Cosmos SDK and CometBFT state by one height
+  snapshots   Manage local snapshots
+  start       Run the full node
+  status      Query remote node for status
+  tx          Transactions subcommands
+  version     Print the application binary version information
+
+Flags:
+  -h, --help                help for allorad
+      --home string         directory for config and data (default "/Users/<USER>/.allorad")
+      --log_format string   The logging format (json|plain) (default "plain")
+      --log_level string    The logging level (trace|debug|info|warn|error|fatal|panic|disabled or '*:<level>,<key>:<level>') (default "info")
+      --log_no_color        Disable colored logs
+      --trace               print out full stack trace on errors
+
+Use "allorad [command] --help" for more information about a command.
+```
+
+For an explanatin of every command that can be used with `allorad`, see the reference section.
+
+## Installing `allocmd`
+
+### Prerequisites
+
+You will need to install `pip` or `pipx` to download and use `allocmd` successfully.
+
+- For `pip` installation, follow the instructions here: https://pip.pypa.io/en/stable/installation/
+- For `pipx` installation, follow the instructions here: https://pipx.pypa.io/stable/installation/
+
+### Installation
+
+```bash
+pip install allocmd --upgrade
+```
+
+Using `pipx`:
+
+```bash
+pipx install allocmd
+```
+
+At the time of writing, the latest `allocmd` version is `2.0.5`:
+```shell
+allocmd --version
+allocmd version 2.0.5
+```
+
+> You can run `allocmd --help` to get general help or `allocmd [command] --help` to get help relating to a particular command.

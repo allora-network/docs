@@ -1,0 +1,22 @@
+# Inference Consumption
+
+## Request/Response Flow
+At it's core, Allora facilitates the exchange of inferences, enabling Consumers to request them and Workers to supply them. 
+
+![supply-demand](/exchange-inferences.png)
+
+## Topic Coordination
+
+Inferences are categorized using Topics. Anyone, including network participants, can permissionlessly create topics to coordinate network collaboration. 
+A single topic is stored inside a Topic Coordinator and is identified using a _rule set_, which consists of a target variable and a loss function which are used to score topic inferences.
+
+![supply-demand](/topic-coordinator.png)
+
+## Reputers
+
+As the number of workers in the network increases, some will naturally perform better than others due to the system's permissionless nature. 
+To maintain quality, Reputers validate each worker's performance against the ground truth when available.
+
+![supply-demand](/reputers.png)
+
+The final architecture of the inference consumption layer shows how consumers request inferences, how workers supply them, and how reputers verify the accuracy of inference workers.
