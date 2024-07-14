@@ -67,8 +67,8 @@ helm install \
 
 ### Edit Chain Parameters
 
-The public mainnet uses standard cosmos governance modules to vote on global network parameters (such as reward epoch time in blocks, for example). For testnets and devnets, however, you can use the following allorad CLI command to set the global parameters of the blockchain (if you are whitelisted to do so. The parameters below are just example values):
+The public mainnet uses standard cosmos governance modules to vote on global network parameters (such as reward epoch time in blocks, for example). For testnets and devnets, however, you can use the following allorad CLI command to set the global parameters of the blockchain if you are whitelisted to do so. The parameters below are just example values:
 
 ```Text bash
-allorad tx emissions update-params  "$VALIDATOR_KEY_FOR_TX_SEND" '{"version":["v0.0.4"], "epoch_length":[5], "emissions_per_epoch":["1000"], "min_topic_unmet_demand":["100"], "max_topics_per_block":[1000], "min_request_unmet_demand":["1"], "max_allowable_missing_inference_percent":[10], "required_minimum_stake":["1"], "remove_stake_delay_window":[172800], "min_fastest_allowed_cadence":[60], "max_inference_request_validity":[36000], "max_slowest_allowed_cadence":[36000]}'
+allorad tx emissions update-params  "$VALIDATOR_KEY_FOR_TX_SEND" '{"version":["v0.0.4"], "min_topic_weight":["5"], "max_topics_per_block":[50]}'
 ```
