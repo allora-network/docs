@@ -306,11 +306,11 @@ At any given time, a topic can be in one of the following states:
 
 ### Nonces
 
-Every topic will ineviatably have incited multiple worker and reputer requests whose well-formed responses need to be paired with rewards for all participants. The chain must be able to differentiate between responses that are still pending rewards and those that have already been met with rewards. Similarly, reputers must know which among the multiple worker payloads they should calculate losses with. This necessitates a notion of uniquely identifying outbound requests.
+Every topic will inevitably have incited multiple worker and reputer requests whose well-formed responses need to be paired with rewards for all participants. The chain must be able to differentiate between responses that are still pending rewards and those that have already been met with rewards. Similarly, reputers must know which among the multiple worker payloads they should calculate losses with. This necessitates a notion of uniquely identifying outbound requests.
 
 Every outbound request from chain validators has a unique id, a composite of topic id, the type of request being made (be it a worker or reputer request), and the block height at which the request was emitted. This block height is referred to as a *nonce*.
 
-When requests are made, a new worker or reputer nonce is made for that topic and sent as part of the request. This nonce is returned as part of the worker or reputer response that is committed to the chain. This is how their newly committed data is associated to the correct nonce and therefore the correct data. This is managed automatically by `allora-inference-base` and the chain.
+When requests are made, a new worker or reputer nonce is made for that topic and sent as part of the request. This nonce is returned as part of the worker or reputer response that is committed to the chain. This is how their newly committed data is associated to the correct nonce and therefore the correct data. This is managed automatically by the chain and `allora-inference-base`.
 
 Nonces are managed as part of a wrapped object that varies by the type of request being made.
 
@@ -326,19 +326,17 @@ message Nonces {
 
 message ReputerRequestNonce {
   option (gogoproto.equal) = true;
-  // associated with the reputer request
-  Nonce reputer_nonce = 1;
   // the reputers should respond to the reputer request with losses for work
   // found at this worker nonce
-  Nonce worker_nonce = 2;
+  Nonce reputer_nonce = 1;
 }
 ```
 
-The reputer nonce is slightly more advanced in that it contains information about the associated worker nonce. At the worker nonce (for the same topic id) we find the inferences for which
+The same nonce value will be used to fulfil a complete work and reputation cycle. A request for inferences and forecasts using a particular nonce is issued first. Once the workers have submitted their work, the worker nonce is fulfilled - and a reputer nonce is created using the same value. This reputer nonce will be processed when appropriate, triggering a reputation request. When the reputers respond submitting their work, the reputer nonce is also fulfilled, ending its cycle.
 
 ### Optimizing the Return
 
-With the topic shown to have sufficient unmet demand and the total set of valid topic requests for this round solidified, requests are parsed to uncover the price, which maximizes the total return to be received by the supply side. For example, if there are 3 requests with their `max_price_per_inference` set at or above 50 ALLO, but 2 requests with their `max_price_per_inference` set at or above 100 ALLO, then the price which maximizes the return from consumer demand may be set to 100 ALLO because 100 ALLO times 2 requests willing to pay the price that is greater than 3 times 50.
+With the topic shown to have sufficient unmet demand and the total set of valid topic requests for this round solidified, requests are parsed to uncover the price, which maximizes the total return to be received by the supply side. For example, if there are 3 requests with their `max_price_per_inference` set at or above 50 ALLO, but 2 requests with their `max_price_per_inference` set at or above 100 ALLO, then the price which maximizes the return from consumer demand may be set to 100 ALLO because 100 ALLO times 2 requests willing to pay the price is greater than 3 times 50.
 
 ### Topic Treasury
 
