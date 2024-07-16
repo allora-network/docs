@@ -28,7 +28,12 @@ The block height at which a given outbound request from network validators is ma
 
 Every topic will inevitably generate multiple worker and reputer requests, each needing to be matched with rewards for participants. The blockchain must differentiate between responses still pending rewards and those already rewarded, and reputers must identify which worker payloads to use for loss calculations. This requires uniquely identifying each outbound request.
 
-The same nonce value will be used to fulfill a complete work and reputation cycle. A request for inferences and forecasts using a particular nonce is issued first. Once the workers have submitted their work, the worker nonce is fulfilled and a reputer nonce is created using the same value. This reputer nonce will be processed when appropriate, triggering a reputation request. When the reputers respond by submitting their work, the reputer nonce is also fulfilled, ending its cycle.
+The same nonce value will be used to fulfill a complete work and reputation cycle. 
+
+1. A request for inferences and forecasts using a particular nonce is issued first. 
+2. Once the workers have submitted their work, the worker nonce is fulfilled and a reputer nonce is created using the same value. 
+3. This reputer nonce will be processed when appropriate, triggering a reputation request. 
+4. When the reputers respond by submitting their work, the reputer nonce is also fulfilled, ending its cycle.
 
 ### Effective Revenue
 
