@@ -50,17 +50,9 @@ The head node publishes Allora chain requests and inference topics, which are th
 When a worker node is initialized, it starts with an environment variable called `BOOT_NODES`. This variable helps manage the connection and communication between the worker nodes and the head node.
 </Callout>
 
-### Putting it all Together
+## Putting it all Together
 With these components, the worker and head nodes are registered on the Allora chain, allowing the chain to make requests to the nodes. The inference request process follows these steps:
 
 1. The chain sends an inference request to the head node.
 2. The head node publishes the request for the worker node to subscribe to.
-3. The worker node calls a node function that invoke custom logic for the actual inference.
-
-<Callout type="info">
-The request-response flow is effectively bidirectional:
-- From the Allora chain to the head node.
-- From the head node to the worker node.
-- From the worker node to the node function.
-- Finally, to the model server.
-</Callout>
+3. The worker node calls a node function that invokes custom logic for the actual inference.

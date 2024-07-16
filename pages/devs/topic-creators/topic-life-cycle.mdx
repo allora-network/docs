@@ -2,7 +2,7 @@
 
 The Topic Life Cycle in the Allora Network is a dynamic process that determines the stages a topic goes through from creation to conclusion. 
 These stages are influenced by various factors such as funding, popularity, and performance metrics. Understanding the life cycle of a topic is crucial 
-for engaging with the network, whether you are a topic creator, worker, reputer, or validator.
+for engaging with the network.
 
 ## Key Terms and Concepts
 
@@ -27,6 +27,8 @@ E.g. BTC price prediction for 1 day every 10 min
 The block height at which a given outbound request from network validators is made. Nonces ensure that responses are correctly paired with their requests to facilitate accurate reward distribution and loss calculation.
 
 Every topic will inevitably generate multiple worker and reputer requests, each needing to be matched with rewards for participants. The blockchain must differentiate between responses still pending rewards and those already rewarded, and reputers must identify which worker payloads to use for loss calculations. This requires uniquely identifying each outbound request.
+
+The same nonce value will be used to fulfill a complete work and reputation cycle. A request for inferences and forecasts using a particular nonce is issued first. Once the workers have submitted their work, the worker nonce is fulfilled and a reputer nonce is created using the same value. This reputer nonce will be processed when appropriate, triggering a reputation request. When the reputers respond by submitting their work, the reputer nonce is also fulfilled, ending its cycle.
 
 ### Effective Revenue
 
