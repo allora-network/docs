@@ -1,6 +1,6 @@
 {
-    "offchain-query-existing-topics": "How to Query Existing Topics Off-Chain",
-    "onchain-query-existing-data": "How to Query Existing Topics On-Chain",
+    "offchain-query-existing-topics": "How to Query Existing Workers Off-Chain",
+    "onchain-query-existing-data": "How to Query Topic Data On-Chain",
     "consumer-contracts": "Consumer Contracts",
     "walkthroughs": "Walkthroughs"
 }

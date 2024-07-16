@@ -9,19 +9,23 @@ import { Callout } from 'nextra/components'
 There are workers today, mostly maintained by Allora Labs, that produce inferences for a set of [existing topics](/devs/get-started/existing-topics). They can be queried for inferences via standard Blockless function calls, which in turn can be used today in on-chain applications via [Allora consumer contracts](/devs/consumers/consumer-contracts/dev-consumers)). A Blockless function call can be submitted in a format like this:
 
 ```curl
-curl --request POST \
-  --url https://heads.testnet.allora.network/api/v2/functions/execute \
-  --header 'accept: application/json, text/plain, */*' \
-  --header 'content-type: application/json;charset=UTF-8' \
-  --data '{
+curl --location 'https://heads.testnet-1.testnet.allora.network/api/v1/functions/execute' \
+--header 'Content-Type: application/json' \
+--data '{
     "function_id": "bafybeigpiwl3o73zvvl6dxdqu7zqcub5mhg65jiky2xqb4rdhfmikswzqm",
     "method": "allora-inference-function.wasm",
     "parameters": null,
-    "topic": "2",
+    "topic": "1",
     "config": {
         "env_vars": [
-            {"name": "BLS_REQUEST_PATH", "value": "/api"},
-            {"name": "ALLORA_ARG_PARAMS", "value": "yuga"}
+            {
+                "name": "BLS_REQUEST_PATH",
+                "value": "/api"
+            },
+            {
+                "name": "ALLORA_ARG_PARAMS",
+                "value": "ETH"
+            }
         ],
         "number_of_nodes": -1,
         "timeout": 2
@@ -31,11 +35,15 @@ curl --request POST \
 
 Let's break down this request body:
 
-- This request queries the index topic (topic `2`).
+- This request queries the index topic (topic `1`), on Allora Testnet, as specified by the head URL (https://heads.testnet-1.testnet.allora.network/api/v1/functions/execute).
 - We specify the `function_id` and `method` fields to indicate that we want to solicit inferences in a particular way (this concerns the internals of the worker nodes). These values can be recovered by following [this step-by-step guide](/devs/workers/deploy-worker/build-and-deploy-worker-from-scratch).
-- We pass in the input `yuga` to specify we want index levels for Yuga Labs NFT collections in particular. The workers that Upshot stood up actually can respond with index levels of a few different NFT indices, however, topic 5 only cares about Yuga Labs collections in particular, as specified in its [metadata field](./how-to-create-topic).
+- We pass in the input `ETH` to specify we want prices for Ethereum in particular, which is defined by the [`default_arg` of the topic](/devs/topic-creators/how-to-create-topic#creating-your-first-topic).
 - `number_of_nodes: -1` indicates that we don't care how many nodes respond, so long as they respond to [roll call](https://blockless.network/docs/protocol/networking/execution#acquiring-the-execution-binary-pre-cache) within `timeout: 2` seconds of the request broadcast.
 
+<Callout type="warning">
+Inferences returned by either of these methods are [Unsafe Requests](/devs/consumers#unsafe-requests).
+</Callout>
+{/* 
 ## Convenience Endpoint from Allora Labs (prev. Upshot)
 
 To conveniently relay inferences from worker nodes to developers, Allora Labs has created an endpoint to solicit inferences from worker nodes and merge them into a format compatible with our consumers. The output of this endpoint can be passed directly as-is to our consumer. To use this endpoint and obtain inferences, one can use the curl requests below, depending on the topic of interest. 
@@ -46,9 +54,7 @@ The `extra_data ` query parameter, where it is found, can be set to be any relev
 Note that to use this endpoint you'll need an API key. To obtain an API key, you can create [an account here](https://developer.upshot.xyz).
 </Callout>
 
-<Callout type="warning">
-Inferences returned by either of the above means are [Unsafe Requests](/devs/consumers#unsafe-requests).
-</Callout>
+
 ## ETH Price Projection, id=1
 
 Request:
@@ -178,3 +184,4 @@ Example response:
     }
 }
 ```
+ */}

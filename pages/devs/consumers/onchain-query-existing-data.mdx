@@ -5,7 +5,7 @@ To query the latest inferences and weights attributed to each worker for a speci
 **Active Topics:**
 
 ```
-allorad query emissions active-topics [pagination] --node {RPC_URL}
+allorad query emissions active-topics [pagination] --node <RPC_URL>
 ```
 
 `[pagination]` is the json key-value pair of the limit of topics outputted
@@ -15,13 +15,14 @@ allorad query emissions active-topics [pagination] --node {RPC_URL}
 **Latest Inferences for a Topic:**
 
 ```
-allorad query emissions latest-network-inference [topic_id] --node {RPC_URL}
+allorad query emissions latest-network-inference [topic_id] --node <RPC_URL>
 ```
 
 `[topic_id]` is the integer value of the topic
 
 **Example:** `1`
 
+Visit the [`allorad` reference section](/devs/reference/allorad#query-functions) for the complete list of available on-chain query commands.
 
 {/* **Latest Weights for a Topic:**
 

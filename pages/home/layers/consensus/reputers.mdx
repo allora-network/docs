@@ -19,9 +19,9 @@ Reputers are rewarded based on their accuracy comparative to consensus (the othe
 - The formula for adjusted stake ensures that if a reputer's stake goes above a certain level, it doesn’t keep increasing their weight.
 - It levels the playing field, so reputers with smaller stakes still have some influence.
 
-![reputer-balance](/reputer-balance.png)
+$$\hat{S}_{im} = \min \left( \frac{N_r a_{im} S_{im}}{\sum_m a_{im} S_{im}}, 1 \right)$$
 
 Where:
-- Nr​ is the number of reputers.
-- aim is a listening coefficient, which is a measure of how much the network considers each reputer's input, based on their past performance.
-- Sim​ is the original stake.
+- $$Nr$$​ is the number of reputers.
+- $$a_{im}$$ is a listening coefficient, which is a measure of how much the network considers each reputer's input, based on their past performance.
+- $$S_{im}$$​ is the original stake.

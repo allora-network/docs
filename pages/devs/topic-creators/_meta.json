@@ -1,6 +1,6 @@
 {
     "topic-life-cycle": "Topic Life Cycle",
-    "how-to-create-topic": "Topic Creation",
+    "how-to-create-topic": "Create a Topic",
     "create-deploy-inference-generation-function": "How to Create and Deploy an Inference Generation Function",
     "create-deploy-loss-calculation-function": "How to Create and Deploy a Loss Calculation Function"
 }
