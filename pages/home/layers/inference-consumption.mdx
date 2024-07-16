@@ -1,9 +1,11 @@
 # Inference Consumption
 
 ## Request/Response Flow
-At it's core, Allora facilitates the exchange of inferences, enabling Consumers to request them and Workers to supply them. 
+At it's core, Allora facilitates the exchange of inferences, enabling _Consumers_ to request them and _Workers_ to supply them. 
 
 ![supply-demand](/exchange-inferences.png)
+
+Learn how to query data and inferences [offchain](/devs/consumers/offchain-query-existing-topics) and [onchain](/devs/consumers/onchain-query-existing-data) for a given [topic](/home/key-terms#topics).
 
 ## Topic Coordination
 
@@ -15,7 +17,7 @@ A single topic is stored inside a Topic Coordinator and is identified using a _r
 ## Reputers
 
 As the number of workers in the network increases, some will naturally perform better than others due to the system's permissionless nature. 
-To maintain quality, Reputers validate each worker's performance against the ground truth when available.
+To maintain quality, Reputers evaluate each worker's performance against the ground truth when it becomes available.
 
 ![supply-demand](/reputers.png)
 

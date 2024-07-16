@@ -1,8 +1,6 @@
 {
   "requirements": "System Requirements",
-  "deploy-worker-with-allocmd": "Deploy a Worker with allocmd",
-  "build-and-deploy-worker-from-scratch": "Build and Deploy Worker from Scratch",
-  "build-and-deploy-worker-with-node-runners": "Build and Deploy Worker with AWS Node Runners",
+  "deploy-worker": "Build/Deploy a Worker",
   "register-worker-node": "Register a Worker Node", 
   "walkthroughs": "Walkthroughs"
 }

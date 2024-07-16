@@ -1,3 +1,5 @@
+import { Callout } from 'nextra/components'
+
 # Walkthrough: Deploying a Hugging Face Model as a Worker Node on the Allora Network
 
 > This guide provides a step-by-step process to deploy a Hugging Face model as a Worker Node within the Allora Network. By following these instructions, you will be able to integrate and run models from Hugging Face, contributing to the Allora decentralized machine intelligence ecosystem.
@@ -18,9 +20,15 @@ During this walkthrough, we will build a worker node from an existing Hugging Fa
 
 You can find all the files in [this Git repository](https://github.com/allora-network/huggingface-walkthrough).
 
-In this example, we will use the Chronos model: [amazon/chronos-t5-tiny](https://huggingface.co/amazon/chronos-t5-tiny). 
-Chronos is a family of pretrained time series forecasting models based on language model architectures. A time series is transformed into a sequence of tokens via scaling and quantization, and a language model is trained on these tokens using the cross-entropy loss. Once trained, probabilistic forecasts are obtained by sampling multiple future trajectories given the historical context. Chronos models have been trained on a large corpus of publicly available time series data, as well as synthetic data generated using Gaussian processes.
+In this example, we will use the Chronos model: [amazon/chronos-t5-tiny](https://huggingface.co/amazon/chronos-t5-tiny). Chronos is a family of pretrained time series forecasting models based on language model architectures. In essence:
+  - A time series is transformed into a sequence of tokens via scaling and quantization, and a language model is trained on these tokens using the cross-entropy loss. 
+  - Once trained, probabilistic forecasts are obtained by sampling multiple future trajectories given the historical context. 
+
+Chronos models have been trained on a large corpus of publicly available time series data, as well as synthetic data generated using Gaussian processes.
+
+<Callout type="info">
 For simplicity, we will use Zero-shot forecasting, which refers to the ability of models to generate forecasts from unseen datasets.
+</Callout>
 
 Our worker will provide inferences on the BTC 24h Prediction, which is Topic `3` on Allora.
 

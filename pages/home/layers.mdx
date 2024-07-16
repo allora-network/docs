@@ -1,14 +1,16 @@
 # Layers of the Network
 
+![layers-of-allora](/layers-of-allora.png)
+
 The Allora network operates through three distinct layers:
 
 - **Inference Consumption Layer**: Facilitates the exchange of inferences.
 - **Forecasting and Synthesis Layer**:
     - Inference workers provide inferences.
-    - Forecasting workers use proprietary data and models to predict the accuracy of these inferences.
-    - Synthesizes and aggregates results for consumers.
+    - Forecasting workers use models to predict the accuracy of these inferences.
+    - The Inference Synthesis mechanism aggregates results for consumers.
 - **Consensus Layer**:
     - Manages rewards and economics for network participants.
     - Ensures a permissionless and secure environment for transactions.
 
-The following sections will build each layer from scratch, show the steps and thought processes behind adding new participants to the network, and ultimately end with the final layer displayed at the bottom of each page.
+The following sections will guide you through building each layer from scratch, demonstrating the steps and thought processes involved in adding new functionality to the network.

@@ -1,0 +1,66 @@
+import { Callout } from 'nextra/components'
+
+# Workers
+
+## For Data Scientists
+
+As a data scientist, your expertise in AI and ML is invaluable to this network, enabling you to contribute predictive models and insights that power a wide range of applications. The Allora Network, powered by Allora's unique consensus mechanism, crowdsources financial predictions produced by machine learning models. The network incentivizes the contribution of machine intelligence to optimize various financial objectives.
+
+## Worker Nodes
+
+> Worker nodes are the interfaces between data scientists' models and the Allora Network
+
+A worker node is a machine-intelligent application registered on the Allora chain that provides inference on a particular topic it's subscribed to and gets rewarded by the Allora chain validators based on the inference quality.
+
+After providing more details about the structure of a worker node, this guide will walk through how to build a worker node and then deploy it to a remote environment:
+
+1. [Using the `allocmd` CLI tool](/devs/workers/deploy-worker/deploy-worker-with-allocmd)
+2. [From scratch](/devs/workers/deploy-worker/build-and-deploy-worker-from-scratch)
+3. [Using AWS Node Runners](/devs/workers/deploy-worker/build-and-deploy-worker-with-node-runners)
+
+## Components of a Worker Node
+
+A Worker Node in the Allora Protocol consists of the following components:
+
+![worker-node](/worker-node.png)
+
+### 1. Allora Inference Base Image (AIB)
+
+This Docker image serves as the base image for your Dockerfile and includes the fundamental node logic. It handles the combination of every part that makes the whole of the worker node and the accommodation for the additional functionality written in the node function.
+
+### 2. Node Function
+
+This component enhances the `allora-inference-base` Docker image and is central to your application. The node function stored on IPFS handles all custom functionalities for inferences. While AIB manages communication between the worker node and the Allora chain, the node function provides the actual inference.
+
+Here's how it works:
+
+- **IPFS Download**: AIB downloads the function from IPFS using the attached CID.
+- **Custom `main.py` Execution**: The downloaded function runs your custom `main.py`, which provides the requested inference.
+
+Each worker uses a different `main.py`, allowing for customization. Examples of what `main.py` can do include:
+
+- Running the entire process internally.
+- Interacting with a separate service (e.g., a backend with a REST API endpoint).
+- Querying a specific database.
+### 3. Head Node
+
+The head node publishes Allora chain requests and inference topics, which are then subscribed to by the worker nodes. These worker nodes provide inference data in response, which is subsequently channeled back to the chain.
+
+<Callout>
+When a worker node is initialized, it starts with an environment variable called `BOOT_NODES`. This variable helps manage the connection and communication between the worker nodes and the head node.
+</Callout>
+
+### Putting it all Together
+With these components, the worker and head nodes are registered on the Allora chain, allowing the chain to make requests to the nodes. The inference request process follows these steps:
+
+1. The chain sends an inference request to the head node.
+2. The head node publishes the request for the worker node to subscribe to.
+3. The worker node calls a node function that invoke custom logic for the actual inference.
+
+<Callout type="info">
+The request-response flow is effectively bidirectional:
+- From the Allora chain to the head node.
+- From the head node to the worker node.
+- From the worker node to the node function.
+- Finally, to the model server.
+</Callout>

@@ -1,28 +1,27 @@
-import { Callout } from 'nextra/components'
+# Calculating Total Reward Distribution Between Validators and Topics
 
-# Calculating Total Reward Distribution Across all Network Participants
+50% of the rewards in the network go to participants providing economic security and 50% of the rewards go to intelligence contributors.
 
-Now that we've explained the mechanisms behind distributing rewards for the actors of each network participant, let's dive in to how total rewards are distributed across:
-- inference workers
-- forecast workers 
-- reputers
+- Economic Security: Validators and Reputers
+- Intelligence Contributors: Forecast and Inference Workers
 
-The common objective of the calculated reward distribution across the network is to incentivize decentralization.
+## Topic vs Chain Security
 
-## Key Factors
-### Modified Entropy
+## Total Reward Distribution
 
-Entropy, in this context, is a measure of how spread out the rewards are among participants. We calculate entropy for each class of tasks (inference, forecast, reputer), which helps in determining how decentralized the reward distribution is.
+### Validator Rewards
 
-<Callout type="info">
-Higher entropy means rewards are more evenly spread out across all participants.
-</Callout>
+Validator rewards are divided from the total allocation of 25% based on how much **stake** a given validator has in the network comparative to the overall stake of all validators in the network.
 
-### Effective Number of Participants
+### Topic Rewards
 
-To prevent manipulation of the reward system against sybil attacks, we calculate the effective number of participants (actors). It ensures that the reward distribution remains fair even if someone tries to game the system.
+Topic rewards for a single topic are divided from the total allocation of 75% based on how much '**weight**' the topic has.
 
-## Putting it all Together
+#### Understanding Topic Weight
 
-The total reward allocated to each type of task is determined using the entropy values and the effective number of participants.
-
+- Weight is like a score that shows how important or valuable a topic is.
+- This weight is based on two things:
+    - How much reputer stake it has
+    - How much revenue the topic generates
+- The formula for calculating weight looks at both these factors equally
+- The weight is averaged over time to keep it stable and fair, so sudden changes don’t affect it too much.

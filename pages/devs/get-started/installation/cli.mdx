@@ -1,8 +1,13 @@
+import { Callout } from 'nextra/components'
+
 # Allora CLI Spec
 
 Allora provides two CLI tools that allow network participants to perform different functions on the Allora Network:
 
-1. `allorad` -  Used to read and write data to the chain, e.g. to read the distribution of weights across workers or to create new topics
+1. `allorad` -  Used to read and write data to the chain, e.g. to create a wallet, create new topics or add/delegate stake to a reputer
+
+  - Refer to the [Allorad Reference](/devs/reference/allorad) section for a full list of `allorad` commands with their explanations
+
 2. `allocmd` - Handles worker nodes' seamless creation and deployment. With this tool, you do not need to write the worker node from scratch, the CLI tool will help you bootstrap all the needed components to get worker nodes working.
 
 Let's dive into how to install each CLI tool using a few different methods.
@@ -104,4 +109,6 @@ allocmd --version
 allocmd version 2.0.5
 ```
 
-> You can run `allocmd --help` to get general help or `allocmd [command] --help` to get help relating to a particular command.
+<Callout>
+You can run `allocmd --help` to get general help or `allocmd [command] --help` to get help relating to a particular command.
+</Callout>

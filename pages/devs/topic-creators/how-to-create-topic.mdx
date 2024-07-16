@@ -4,13 +4,13 @@
 
 ## What is a Topic?
 
-[Topics](../learn/architecture#topics) are Schelling points where disparate-but-alike data scientists and domain experts aggregate their predictions. For example, we might create a topic for predicting the future price of ETH. There, all experts with any talent in predicting the future price of ETH will submit their inferences. Topics vary by domain and parameterization, defining how these inferences are collected and valued.
+[Topics](../learn/architecture#topics) are [Schelling points](https://en.wikipedia.org/wiki/Focal_point_(game_theory)) where disparate-but-alike data scientists and domain experts aggregate their predictions. For example, we might create a topic for predicting the future price of ETH. There, all experts with any talent in predicting the future price of ETH will submit their inferences. Topics vary by domain and parameterization, defining how these inferences are collected and valued.
 
 Developers can make topics for arbitrary categories of inferences so long as they complete these steps:
 
 ## Prerequisites:
 
-1. A wallet with sufficient funds to at least cover gas. Use [the faucet](./how-to-use-faucet) to get funds. 
+1. A wallet with sufficient funds to at least cover gas. Use [the faucet](/devs/get-started/setup-wallet) to get funds. 
 2. A deployed Blockless function that triggers node inferences (obtain `function_id` and `method`).  
    Learn more: [How to Create an Inference Generation Function](./create-deploy-inference-generation-function)
 3. A deployed Blockless function for the weight adjustment logic (obtain `function_id` and `method`).  
@@ -46,12 +46,12 @@ type MsgCreateNewTopic struct {
   AlphaRegret      github_com_allora_network_allora_chain_math.Dec  `json:"alpha_regret"`
   // Indicates if the loss function's output can be negative. If false, the reputer submits logs of losses; if true, the reputer submits raw losses.
   AllowNegative    bool     `json:"allow_negative,omitempty"`
-  // Sensitivity to order of magnitude adjustments in the model (domain-specific).
-  Tolerance       github_com_allora_network_allora_chain_math.Dec `json:"tolerance"`
+  // the numerical precision at which the network should distinguish differences in the logarithm of the loss
+  Epsilon          github_com_allora_network_allora_chain_math.Dec  `json:"epsilon"`
 }
 ```
 
-Using the [Allora CLI](../learn/cli) to create a topic:
+Using the [`allorad` CLI](/devs/get-started/installation/cli#installing-allorad) to create a topic:
 
 ```shell bash
 allorad tx emissions create-topic \
@@ -67,29 +67,12 @@ allorad tx emissions create-topic \
   3 \                                             # PNorm 
   1 \                                             # AlphaRegret 
   true \                                          # AllowNegative
-  0.01 \                                           # Tolerance
+  0.01 \                                             # Epsilon
   --node <RPC_URL>
   --chain-id <CHAIN_ID>
 ```
 
 Be sure to swap out `RPC_URL`, `YOUR_ADDRESS`, `CHAIN_ID` and all other arguments as appropriate with the desired values.
-
-#### Testnet
-
-- **RPC_URL**: https://allora-rpc.testnet.allora.network/
-- **CHAIN_ID**: `testnet`
-
-#### Edgenet
-
-- **RPC_URL**: https://allora-rpc.edgenet.allora.network/
-- **CHAIN_ID**: `edgenet`
-
-{/* #### Testnet v2
-
-- **RPC_URL**: https://allora-rpc.edgenet.allora.network/
-- **CHAIN_ID**: `v2testnet` */}
-
-After successfully processing your transaction, the topic's functions will be triggered on the Blockless network according to the desired cadence. When there are registered workers and validators on your topic, they will be sending inferences and weights, respectively.
 
 ### Notes
 

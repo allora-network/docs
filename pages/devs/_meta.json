@@ -1,9 +1,9 @@
 {
-  "blockless": "Blockless Nodes",
   "get-started": "Get Started",
   "topic-creators": "Topic Creators",
   "consumers": "Consumers",
   "workers": "Workers",
   "reputers": "Reputers",
-  "validators": "Validators"
+  "validators": "Validators",
+  "reference": "Reference"
 }

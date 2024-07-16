@@ -2,7 +2,7 @@
 
 Registering a worker node on the Allora Network requires downloading the `allorad` blockchain client, creating and backup up a blockchain key, funding that key, and then configuring your worker node.
 
-- Install the `allorad`client by following the instructions [here](../learn/cli)
+- Install the `allorad` client by following the instructions [here](/devs/get-started/installation/cli#installing-allorad)
 - Using the `allorad` application, create a new key. Take note of the mnemonic restore phrase. It will be needed for the configuration options to start the node.
 - ```Text bash
   allorad keys add myNewNode
@@ -28,6 +28,25 @@ The node will create a registration to the Allora L1 using this key information 
 - ```Text bash
   --boot-nodes /dns4/heads.testnet.allora.network/tcp/9527/p2p/12D3KooWH9GerdSEroL2nqjpd2GuE5dwmqNi7uHX7FoywBdKcP4q
   ```
+
+## Using Docker to Access `allora-node`
+
+You will need to access the node's command line in order to register it. To access `allora-node` using Docker, follow these steps:
+
+1. Run the following commands to obtain the `container-id` of the specific node you want to register
+```bash
+$ docker compose up
+$ docker ps       # choose container
+```
+
+2. Once you have the `container-id`, access the node's command line
+
+```bash
+$ docker exec -it <container_id> bash
+~$ allora-node --help
+```
+
+## Register the Node
 
 A completed startup command should resemble the following
 
@@ -59,4 +78,4 @@ For both workers and reputers, two set of keys are needed.
 
 ### Token rewards overview
 
-Workers will receive rewards based on their performance in inference and forecasting tasks, measured as losses in relation to the network values. Reputers will receive rewards based on their stake and the consensus between its evaluations and those of other reputers. The network supports stake delegation. Rewards are sent to the Allora Network balance.
+Workers will [receive rewards](/home/layers/consensus/workers) based on their performance in inference and forecasting tasks, measured as losses in relation to the network values. Reputers will [receive rewards](/home/layers/consensus/reputers) based on their stake and the consensus between its evaluations and those of other reputers. The network supports [stake delegation](/devs/reference/allorad#delegate-stake-to-a-reputer-for-a-topic). Rewards are sent to the Allora Network balance.

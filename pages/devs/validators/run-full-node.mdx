@@ -1,0 +1,171 @@
+import { Callout } from 'nextra/components'
+
+# Running a full node
+
+> How to become a Validator on Allora
+
+This guide provides instructions on how to run a full node for the Allora network. There are two primary methods for running an Allora node: using `docker compose` (preferred) or using a [script](https://github.com/allora-network/allora-chain/blob/main/scripts/l1_node.sh). It's important to choose the method that best suits your environment and needs. 
+
+***
+
+## Prerequisites
+
+- Git
+- Docker with `docker compose`
+- Basic command-line knowledge
+
+***
+
+## Method 1: Using `docker compose` (Recommended)
+
+Running the Allora node with `docker compose` simplifies the setup and ensures consistency across different environments.
+
+### Step 1: Clone the Allora Chain Repository
+
+If you haven't already, clone the latest release of the [allora-chain repository](https://github.com/allora-network/allora-chain):
+
+```shell
+git clone https://github.com/allora-network/allora-chain.git
+```
+
+### Step 2: Run the Node with Docker Compose
+
+Navigate to the root directory of the cloned repository and start the node using `docker compose`:
+
+```shell
+cd allora-chain
+docker compose pull
+docker compose up -d
+```
+
+**Note**: Don't forget to pull the images first, to ensure that you're using the latest images. 
+
+The `-d` flag runs the container in detached mode, allowing it to run in the background.
+
+<Callout type="warning">
+Make sure that any previous containers you launched are killed, before launching a new container that uses the same port.
+
+You can run the following command to kill any containers running on the same port:
+```bash
+docker container ls
+docker rm -f <container-name>
+```
+</Callout> 
+
+### Monitoring Logs
+
+To view the node's logs, use the following command:
+
+```shell
+docker compose logs -f
+```
+
+### Executing RPC Calls
+
+You can interact with the running node through RPC calls. For example, to check the node's status:
+
+```shell
+curl -s http://localhost:26657/status | jq .
+```
+
+This command uses `curl` to send a request to the node's RPC interface and `jq` to format the JSON response. 
+
+Once your node has finished syncing and is caught up with the network, this command will return `false`:
+
+```shell
+curl -so- http\://localhost:26657/status | jq .result.sync_info.catching_up
+```
+
+<Callout type="info">
+**Info**: The time required to sync depends on the chain's size and height. 
+
+    - For newly launched chains, syncing will take **minutes**.
+    - Established chains like Ethereum can take around **a day** to sync using Nethermind or similar clients.
+    - Some chains may take **several days** to sync.
+    - Syncing an archival node will take significantly more time.
+</Callout> 
+
+<Callout type="warning">
+**Warning**: Network participants will not be able to connect to your node until it is finished syncing and the command above returns `false`.
+</Callout> 
+
+### Syncing from Snapshot
+
+Users can also opt to sync their nodes from our [latest snapshot script](https://github.com/allora-network/allora-chain/blob/main/scripts/restore_snapshot.sh) following the instructions below:
+
+1. Install [`rclone`](https://rclone.org/), a command-line program to manage files on cloud storage
+
+```bash
+brew install rclone
+```
+
+2. Follow the instructions to configure `rclone` after running `rclone config` in the command line
+
+3. Uncomment the [following lines](https://github.com/allora-network/allora-chain/blob/ccad6d27e55b27a7ec3b2aebd7e55f1bc26798ed/scripts/l1_node.sh#L15) from your Allora Chain repository:
+
+```go
+# uncomment this block if you want to restore from a snapshot
+# SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# "${SCRIPT_DIR}/restore_snapshot.sh"
+```
+
+4. Run the node using Docker:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+***
+
+## Method 2: Using a Script
+
+### Step 1: Clone the Allora Chain Repository
+
+First, clone the [allora-chain repository](https://github.com/allora-network/allora-chain) from GitHub:
+
+```shell
+git clone https://github.com/allora-network/allora-chain.git
+```
+
+### Step 2: Install `allorad`
+
+Before running the node, you must install the `allorad` binary. 
+
+You can find the [release here](https://github.com/allora-network/allora-chain/releases) or install it following [the instructions](../learn/cli).
+
+**Note**: Depending on your `go` setup you may need to add `$GOPATH/bin` to your `$PATH`.
+
+```shell
+export PATH=$PATH:$(go env GOPATH)/bin
+```
+
+You can refer if needed to the [CLI spec here](../learn/cli#install-allorad-binaries) and the [repo's README.md](https://github.com/allora-network/allora-chain?tab=readme-ov-file#documentation).
+
+### Step 3: Execute the Node Script
+
+Run the `l1_node.sh` script located in the `scripts` directory. This script initializes the node and generates the necessary keys:
+
+```shell
+sh ./scripts/l1_node.sh
+```
+
+**Note**: The `l1_node.sh` script will generate keys for the node. In production environments, it is critical to use secure key storage solutions and adhere to secrets management best practices. 
+
+### Accessing the Node
+
+Once the node is running, its RPC interface will be available at `http://localhost:26657/`. You can interact with the running node through RPC calls. For example, to check the node's status:
+
+```shell
+curl -s http://localhost:26657/status | jq .
+```
+
+Once your node has finished syncing and is caught up with the network, this command will return `false`:
+
+```shell
+curl -so- http\://localhost:26657/status | jq .result.sync_info.catching_up
+```
+
+***
+
+Ensure to regularly update your node and monitor this page and the [`allora-chain` GitHub repo](https://github.com/allora-network/allora-chain) for any changes or updates.

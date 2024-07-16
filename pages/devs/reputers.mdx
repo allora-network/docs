@@ -1,0 +1,32 @@
+# Reputers
+
+Reputers ensure the accuracy and reliability of worker inferences and the overall integrity of topics. 
+
+## What do Reputers do?
+
+### Source Ground Truth
+
+Reputers source the ground truth as specified by the [topic metadata](/devs/topic-creators/how-to-create-topic#creating-your-first-topic). 
+For example, they might retrieve the actual price of ETH at a specific moment in time. 
+
+This ground truth is essential for evaluating the accuracy of inferences made by workers.
+
+### Calculate Loss
+
+Reputers calculate the loss of worker inferences and forecast-implied inferences relative to the ground truth. 
+
+For instance, if a topic's [loss function](/devs/topic-creators/create-deploy-loss-calculation-function) is an L1-norm, reputers apply this norm to each worker's inference and the actual price of ETH in 10 days. 
+They then respond with a ValueBundle of losses, detailing the calculated losses for each inference.
+
+### Secure Topics with Stake
+
+Reputers secure topics with their [stake](/devs/reputers/set-and-adjust-stake). The more a reputer stakes in a topic, the greater their influence on the consensus of losses. 
+
+Additionally, reputers can be [delegated to](/devs/reference/allorad#delegate-stake-to-a-reputer-for-a-topic), increasing their ability to secure the topic further. This delegated stake enhances the extent to which reputers secure the topic 
+compared to the broader chain security.
+
+### Receive Rewards
+
+Reputers [receive rewards](/home/layers/consensus/reputers) based on how close their reported losses are to the consensus. A stake-weighted average of each reported loss is taken among reputers per topic per epoch. The closer a reputer's values are to this average, the more they are rewarded. 
+
+This system incentivizes reputers to provide accurate and reliable loss calculations, contributing to the network's overall integrity and reliability.

@@ -1,16 +1,16 @@
-# How to Create and Deploy a Weight-Adjustment Function
+# How to Create and Deploy a Loss-Calculation Function
 
 > Blockless nodes run this function to determine how credible workers are
 
-## What Is a Weight-Adjustment Function?
+## What Is a Loss-Calculation Function?
 
-The weight-adjustment function is used to score workers based on their revealed accuracy. It does this by altering the distribution of confidence other actors have placed in their peers. This update will typically occur by calculating the loss of a worker's inferences and then setting the new weights as a running average of those losses and the current weights.
+The  function is used to score workers based on their revealed accuracy. It does this by altering the distribution of confidence other actors have placed in their peers. This update will typically occur by calculating the loss of a worker's inferences and then setting the new weights as a running average of those losses and the current weights.
 
-In this page, we'll create a weight-adjustment function for our running example of building a topic for index levels.
+In this page, we'll create a loss-calculation function for our running example of building a topic for index levels.
 
-## How to Create and Deploy a Weight-Adjustment Function
+## How to Create and Deploy a Loss-Calculation Function
 
-To create a weight-adjustment function for your topic, follow the steps outlined in the tutorial below to create your first function on Blockless:
+To create a loss-calculation function for your topic, follow the steps outlined in the tutorial below to create your first function on Blockless:
 
 **[Blockless Quick Start Guide](https://blockless.network/docs/network/quick-start)**
 
@@ -26,7 +26,7 @@ The output of your function needs to follow the same output as the example funct
 
 ```json
 {
-	"type":"weights",
+	"type":"losses",
 	"weights": {
 		"upt16ar7k93c6razqcuvxdauzdlaz352sfjp2rpj30": "0.3176470588235294",
 		"upt16ar7k93c6razqcuvxdauzdlaz352sfjp2rpj31": "0.47647058823529417",
@@ -35,7 +35,7 @@ The output of your function needs to follow the same output as the example funct
 }
 ```
 
-Note that the keys of the `weights` property are cosmos addresses of workers, and the values are the new weight values to be set.
+Note that the keys of the `losses` property are cosmos addresses of workers, and the values are the new loss values to be set.
 
 After testing, you can deploy your function using:
 

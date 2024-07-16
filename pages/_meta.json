@@ -6,5 +6,9 @@
   "devs": {
     "title": "Developers",
     "type": "page"
+  },
+  "community": {
+    "title": "Community",
+    "type": "page"
   }
 }

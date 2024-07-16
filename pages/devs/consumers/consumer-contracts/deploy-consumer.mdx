@@ -1,0 +1,45 @@
+import { Callout } from 'nextra/components'
+
+# Deploying a Consumer to an EVM Target Chain
+
+Consumer contracts are required to bring Allora Network prices to a chain. Follow the instructions below to deploy the Consumer to a new EVM chain. 
+
+## 1. Set up the repo
+
+- Git clone and `cd` into the [Allora Consumer repository](https://github.com/allora-network/allora-consumer).
+```bash
+git clone https://github.com/allora-network/allora-consumer.git
+cd allora-consumer
+```
+
+- run `yarn`
+{/* 3. run `forge build` If forge is not already installed, follow [these instructions](https://book.getfoundry.sh/getting-started/installation) to install `foundryup` and `forge`. */}
+
+## 2. Set up the deploy script
+
+The deploy script can be found under `deploy/deploy.ts`
+
+Replace the `ADMIN` address with the desired admin for the new consumer. 
+
+## 3. Set up the .env file
+
+Create a `.env` file in the root of the project with the following structure:
+
+```Text .env
+deploymentName=<chain name string>
+chainId=<chain id unt>
+rpcUrl=<rpc url>
+privateKey=<private key hex without '0x'>
+etherscanApiKey=<etherscan api key string>
+```
+
+## 4. Run the deployment
+
+```bash
+yarn
+yarn deploy
+```
+
+<Callout>
+You should see output indicating that the `AlloraConsumer` is being deployed, and then verified on etherscan. Deployed addresses will be saved in `/deploy/deployments/<deploymentName>.json`. If a given contract is already deployed with that deployment name, it will be skipped. Delete the deployment record `/deploy/deployments/<deploymentName>.json` to deploy new contracts.
+</Callout>

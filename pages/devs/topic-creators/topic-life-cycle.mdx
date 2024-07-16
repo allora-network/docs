@@ -1,0 +1,85 @@
+# Topic Life Cycle
+
+The Topic Life Cycle in the Allora Network is a dynamic process that determines the stages a topic goes through from creation to conclusion. 
+These stages are influenced by various factors such as funding, popularity, and performance metrics. Understanding the life cycle of a topic is crucial 
+for engaging with the network, whether you are a topic creator, worker, reputer, or validator.
+
+## Key Terms and Concepts
+
+### Epoch Length
+
+The fixed time interval during which a topic's performance is evaluated.
+
+### Epoch Last Ended
+
+The timestamp indicating when the last epoch ended, important for tracking topic activity.
+
+### Ground Truth Lag
+
+The amount of time into the future a specific inference is calculating for. 
+
+E.g. BTC price prediction for 1 day every 10 min
+- 10 min - EpochLength
+- 1 day - groundTruthLag
+
+### Nonce
+
+The block height at which a given outbound request from network validators is made. Nonces ensure that responses are correctly paired with their requests to facilitate accurate reward distribution and loss calculation.
+
+Every topic will inevitably generate multiple worker and reputer requests, each needing to be matched with rewards for participants. The blockchain must differentiate between responses still pending rewards and those already rewarded, and reputers must identify which worker payloads to use for loss calculations. This requires uniquely identifying each outbound request.
+
+### Effective Revenue
+
+Effective Revenue is the measure of the impact that the total accrued revenue has on a topic's weight. It determines how much influence the revenue has on making a topic active and competitive. 
+
+- Initially, Effective Revenue equals the total amount of money a topic accrues before the first epoch.
+- Once a topic is active, funds from Effective Revenue are used, impacting the ecosystem bucket. 
+
+The Effective Revenue drips over time, reflecting the topic's diminishing competitiveness relative to other topics.
+
+### Ecoystem Bucket
+
+The Ecosystem Bucket is a mechanism that distributes a portion of the total funds at a rate (approximately 10%) that decreases exponentially over time. This bucket serves as a comparative baseline for topic competitiveness. The effective revenue of a topic needs to be balanced with the ecosystem bucket to ensure the topic's authority and competitiveness. 
+
+If Effective Revenue significantly exceeds the Ecosystem Bucket, it can indicate a discrepancy in the topic's competitiveness, even if the topic is popular. The Ecosystem Bucket helps standardize and compare the competitiveness of various topics.
+
+### Weight
+
+Weight is a measure of a topic's competitiveness and influence within the blockchain network. It is a function of the combined stake of reputers (including delegated stakes) and the topic's Effective Revenue. The weight of a topic determines its likelihood of becoming active and influences the distribution of rewards and resources within the network. 
+
+Higher weight signifies greater influence and competitiveness, driven by the total stake and the impact of accrued revenue. This ensures that topics with higher engagement and support have a proportionate impact on the network's operations and rewards system.
+
+## Topic States
+
+### Inactive
+
+A topic is inactive after it is created but before it becomes sufficiently funded. 
+
+### Active
+
+A topic becomes active once it is sufficiently funded. A topic is sufficiently funded once it has more than a threshold amount of weight, which is a function of the amount of:
+- [Reputer stake](/devs/reputers/set-and-adjust-stake) placed in the topic
+- Delegated stake
+- Effective revenue garnered by the topic 
+
+Different actors can permissionlessly [fund a topic](/devs/reference/allorad#send-funds-to-a-topic-to-pay-for-inferences) using the `allorad` CLI tool.
+
+### Churnable
+
+A topic becomes churnable once it is:
+
+- Active
+- One of the top topics by weight (descending) 
+- The topic's `EpochLength` has passed since its inception or last epoch
+
+Once a topic is churnable, the chain can emit worker (and eventually reputer) requests to topic workers and reputers, respectively.
+
+Reputer requests start after a topic's `groundTruthLag` amount of blocks have passed.
+
+### Rewardable
+
+A topic is rewardable once:
+
+- It has been churned
+- It has fulfilled worker and reputer requests
+- It is ready to have its rewards calculated

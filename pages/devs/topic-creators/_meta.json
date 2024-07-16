@@ -1,7 +1,6 @@
 {
+    "topic-life-cycle": "Topic Life Cycle",
     "how-to-create-topic": "Topic Creation",
     "create-deploy-inference-generation-function": "How to Create and Deploy an Inference Generation Function",
-    "create-deploy-weight-adjustment-function": "How to Create and Deploy a Weight-Adjustment Function",
-    "walkthroughs": "Walkthroughs",
-    "existing-topics": "Existing Topics"
+    "create-deploy-loss-calculation-function": "How to Create and Deploy a Loss Calculation Function"
 }

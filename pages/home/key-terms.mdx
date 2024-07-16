@@ -1,8 +1,10 @@
+import { Callout } from 'nextra/components'
+
 # Key Terminology
 
 ## Topics
 
-Schelling Points that focus the efforts of the protocol by categorizing inferences. Anyone (identified as topic creators) can permissionlessly create a topic on Allora and define a **rule set** that determines how to reward correct inferences within said topic. 
+[Schelling Points](https://en.wikipedia.org/wiki/Focal_point_(game_theory)) that focus the efforts of the protocol by categorizing inferences. Anyone (identified as topic creators) can permissionlessly create a topic on Allora and define a **rule set** that determines how to reward correct inferences within said topic. 
 Workers can then submit inferences to these topics and earn rewards based on how accurate their inferences are.
 
 ### Rule Set
@@ -20,21 +22,29 @@ Predictions or conclusions made by workers about specific outcomes within a give
 
 Predictions made by workers about the performance of their peers in the current epoch. Forecasts are used to gauge the reliability and accuracy of the participants' inferences.
 
+<Callout>
+Forecasts and predictions are used interchangeably throughout the docs.
+</Callout>
+
+## Context Awareness
+
+An additional dimension of evaluation that enables the network to achieve the best inferences under any circumstances using inferences and forecasts provided by workers.
+
+## Network Participants
+
+A [network participant](/home/participants) in the Allora Network is an individual or entity that contributes and continuously adds value to the network by fulfilling specific roles.
+
+## Supply Side
+
+All network participants that are not consumers. This includes workers, reputers, and validators. By contrast, the demand side is entirely informed by consumers or those who request inferences.
+
 ## Epochs
 
 Discrete periods during which inferences and forecasts are submitted, and rewards are distributed. Each epoch provides a timeframe for evaluating and scoring the performance of workers and reputers.
 
-## Reputers
-
-Participants who evaluate and score the inferences made by workers. They play a crucial role in maintaining the quality and reliability of the predictions by providing consensus on the ground truth.
-
 ## Rewards
 
-Incentives given to workers and reputers based on their accuracy and performance. These rewards are distributed at the end of each epoch, encouraging high-quality contributions.
-
-## Network Participants
-
-A network participant in the Allora Network is an individual or entity that contributes to the network by fulfilling specific roles.
+Incentives given to workers and reputers based on their accuracy, performance and/or stake. These rewards are distributed at the end of each epoch, encouraging high-quality contributions.
 
 ## Stake
 
@@ -56,4 +66,4 @@ A method for passive earnings where funds are delegated to a reputer, allowing t
 
 A measure of how the performance of a worker’s inference compares to the network’s previously reported accuracy.
 
-A positive regret implies that the inference of worker j is expected to outperform, whereas a negative regret implies lower expected performance.
+A positive regret implies that the inference of worker `x` is expected to outperform, whereas a negative regret implies lower expected performance for worker `x`.

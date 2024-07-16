@@ -1,0 +1,20 @@
+# Upshot Compute Node
+
+## Prerequisites
+
+At the moment, to download the latest version of [Allora Blockless Extension](./allora-b7s-extension), the Github CLI is used.  
+Ensure it is installed and running correctly on your machine.
+
+## Building Allora Compute Node Docker image
+
+To ease setup and testing stuff, you can build a Docker image based on the [Allora compute node Dockerfiles](https://github.com/allora-network/allora-inference-base/tree/main/docker).
+
+Clone the [Allora Compute node repository](https://github.com/allora-network/allora-inference-base) and, while at the repo root, run:
+
+```shell
+$ docker build --build-arg GH_TOKEN=<GITHUB_TOKEN> --build-arg BLS_EXTENSION_VER=${BLS_ALLORA_EXTENSION_VERSION}  -t allora-compute-node -f ./docker/Dockerfile .
+```
+
+where `YOUR_GH_TOKEN` is your Github token, and (optionally)`BLS_EXTENSION_VER` is the release version of the Allora blockless extension to use (it will use latest if not set).
+
+NOTE: The above part can be changed when the repository is public.

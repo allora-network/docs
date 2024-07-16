@@ -1,20 +1,6 @@
 import { Callout } from 'nextra/components'
 
-# Reputers
-
-## What do Reputers do?
-
-* Source ground truth as specified by the [topic metadata](../learn/architecture.mdx#topics)
-   * e.g. the actual price of ETH as of a moment in time
-* Calculate loss of workers inferences and forecast-implied inferences relative to that ground truth
-   * e.g. A topic's loss function is an [L1-norm](https://machinelearningmastery.com/vector-norms-machine-learning/) applied to each worker's inference and the revealed price of ETH in 10 days per CoinGecko API. Reputers apply this loss function to every inference received in a request and respond with a [`ValueBundle` of losses](../learn/architecture.mdx#loss-calculation)
-* Secure topics [with their stake](../learn/architecture.mdx#stake)
-   * the more a reputer stakes in a topic, the more they influence the consensus of losses
-   * reputers can be [delegated to](../learn/architecture.mdx#delegated-stake) as well, increasing the extent to which they [secure the topic](../learn/architecture.mdx#topic-security-vs-chain-security)
-* Receive rewards based on how close to consensus their reported losses are
-   * a stake-weighted average of each reported loss is taken among reputers per topic per epoch
-   * the closer a reputer's values are to the average, the more they are rewarded
-
+# Deploy a Reputer Node
 
 ## Setup a Reputer Node with `docker-compose`
 
@@ -33,7 +19,7 @@ If you're using Apple Silicon hardware, please make sure to use run docker-compo
 
 ### Components of the Example Reputer Node
 
-This example contains a service for sourcing truth -- called the "`truth` service" -- a Blockless worker node for responding to Blockless requests and calculating topic-specific los functions, and a Blockless head node for initiating requests.
+This example contains a service for sourcing truth -- called the "`truth` service" -- a Blockless worker node for responding to Blockless requests and calculating topic-specific loss functions, and a Blockless head node for initiating requests.
 
 In practice, you would only run a head node as a side car to a validator node. This way, chain validators can initiate requests to collect inferences and forecasts from workers, and ground-truth-informed loss calculations from reputers.
 

@@ -1,23 +1,42 @@
+import { Callout } from 'nextra/components'
+
 # Build and Deploy a Worker Node from Scratch
 
 > This guide helps you build your worker by yourself without the help of the allocmd CLI tool
 
-This document creates a setup where the worker node is supported by a side node providing inferences. They communicate through an endpoint so the worker will request inferences to the side node (the Inference Server). This makes an ultra-light worker node.
+This document outlines a setup where the worker node is supported by an inference server. Communication occurs through an endpoint, allowing the worker to request inferences from the server. This setup results in an ultra-light worker node.
 
 To build this setup, please follow these steps:
 
-### 0. Requisites
+### Prerequisites
 
 You should have a head node to connect the worker to.
 
-This can be either one public head node or a head node you can run locally. We will use this connectivity data of the head to connect to it from our worker.  
-To run your own head node locally, the instructions in [Allora Inference Base](https://github.com/allora-network/allora-inference-base) can be used to set it up.
+This can be either one public head node or a head node you can run locally. We will use this connectivity data of the head to connect to it from our worker. 
 
+<Callout type="info">
+To run your own head node locally, follow the instructions in [Allora Inference Base](https://github.com/allora-network/allora-inference-base).
+</Callout>
+
+<Callout>
 Should you want to connect to a node in the network, please [contact us](/community/contribute) for personalized access to connect to a head node.
+</Callout>
 
-### 1. Inference Server
+### Inference Server
 
-Ensure you have your API gateway ready or any API server that can accept API requests to call your model. The goal of this server is to accept API requests from the `main.py`, your custom Python script executed by the node function (further details in the Node Function section below). It then responds with the corresponding inference obtained from the model. This inference is subsequently relayed by the worker node to the head node, which in turn dispatches it to the chain validators for eventual scoring.
+#### Prepare the API Gateway
+
+Ensure you have an API gateway or server that can accept API requests to call your model.
+
+#### Server Responsibilities
+
+- Accept API requests from main.py, your custom Python script executed by the node function.
+- Respond with the corresponding inference obtained from the model.
+
+#### Inference Relay
+
+- Worker node relays the inference to the head node.
+- Head node dispatches the inference to the chain.
 
 If you have a model running but do not have the inference server, you can make a Dockerfile to bundle a simple Flask application that exposes an endpoint to access the model. Below is a sample structure of what your `app.py` and Dockerfile will look like. You can also find a working example [here](https://github.com/allora-network/basic-coin-prediction-node).
 
@@ -96,10 +115,9 @@ if __name__ == "__main__":
     except Exception as e:
         response = json.dumps({"error": {str(e)}})
         print(response)
-
 ```
 
-### 3. Identity Generation
+### Identity Generation
 
 Node identity is determined by its private key. Each node on the network is also known as a peer, which has an ID and a private key. You can generate node identity by running the following command:
 
@@ -107,7 +125,7 @@ Node identity is determined by its private key. Each node on the network is also
 docker run -it --entrypoint=bash -v ./:/data alloranetwork/allora-inference-base:latest -c "mkdir -p /data/keys && (cd /data/keys && allora-keys)"
 ```
 
-### 4. Worker Node Main Dockerfile
+### Worker Node Main Dockerfile
 
 Now that you have the node identity generated for your worker, and your node function pulling data from your Inference Server, you must bundle your worker node with Dockerfile to be tested as a whole. As stated earlier, your  Dockerfile will have to pull the `allora-inference-base` image from the [Allora Docker repository](https://hub.docker.com/u/alloranetwork) and combine it with your custom `main.py`. Below is an example of what your `Dockerfile_node`should look like:
 
@@ -191,7 +209,7 @@ You can otherwise run a head node following instructions on [Allora Inference Ba
 
 Now that you have built and tested your worker node, Your next goal will be to deploy it to production, where it runs forever. to do that, we use the Kubernetes cluster and Upshot Universal-helm chart. While you can deploy your node however you wish, you can also follow these steps if you are not opinionated on deployment.
 
-### 1. Build, Tag, and push your Dockerfile
+### Build, Tag, and push your Dockerfile
 
 The first step toward deployment is pushing your Docker image to your preferred repository. The Universal-helm chart will use the pushed image to deploy the worker node to your Kubernetes cluster.
 
@@ -206,7 +224,7 @@ docker tag image-name:tag username/repository:tag
 docker push username/repository:tag
 ```
 
-### 2. Add Universal-helm to Helm Repository
+### Add Universal-helm to Helm Repository
 
 On your Kubernetes cluster on your preferred cloud service, you will have to add the universal-helm repository to your cluster.
 
@@ -214,7 +232,7 @@ On your Kubernetes cluster on your preferred cloud service, you will have to add
 helm repo add upshot https://upshot-tech.github.io/helm-charts
 ```
 
-### 3. Create `values.yaml` File
+### Create `values.yaml` File
 
 Provide custom values in a `values.yaml` file.
 
@@ -338,7 +356,7 @@ global:
 
 > Note: Please replace the variables parameter in. `<>` respectively
 
-### 4. Install Helm Chart
+### Install Helm Chart
 
 ```shell
 helm install index-provider upshot/universal-helm -f values.yaml
