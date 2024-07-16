@@ -20,7 +20,7 @@ The amount of time into the future a specific inference is calculating for.
 
 E.g. BTC price prediction for 1 day every 10 min
 - 10 min - EpochLength
-- 1 day - groundTruthLag
+- 1 day - GroundTruthLag
 
 ### Nonce
 
@@ -81,7 +81,7 @@ A topic becomes churnable once it is:
 
 Once a topic is churnable, the chain can emit worker (and eventually reputer) requests to topic workers and reputers, respectively.
 
-Reputer requests start after a topic's `groundTruthLag` amount of blocks have passed.
+Reputer requests start after a topic's `GroundTruthLag` amount of blocks have passed.
 
 ### Rewardable
 
