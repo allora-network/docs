@@ -1,0 +1,69 @@
+# Mint Parameters
+
+> Parameters from the minting module on Allora Network
+
+**mint_denom**
+
+The mint denomination for the blockchain is `uallo`.
+
+**inflation_rate_change**
+
+Determines the maximum annual rate at which the inflation rate can change.
+
+Value: `"0.130000000000000000"`
+
+Standard value.  
+Balances the rate of change to adapt to economic conditions while preventing sudden shocks. It will be regularly evaluated and adjusted based on economic dynamics.
+
+**inflation_max**
+
+Inflation max sets the maximum allowable annual inflation rate.
+
+Value: `"0.200000000000000000"`
+
+Standard value.  
+It may be adjusted based on the balance between controlling token supply growth and incentivizing network participants.
+
+**inflation_min**
+
+Inflation min sets the minimum allowable annual inflation rate.
+
+Value: `"0.070000000000000000"`
+
+Standard value.  
+It provides adequate incentives while avoiding undue token supply inflation.
+
+**goal_bonded**
+
+Represents the target ratio of bonded (staked) tokens to the total token supply.
+
+Current value: `"0.670000000000000000"`
+
+Standard value.  
+It provides adequate incentives while avoiding undue token supply inflation.
+
+**max_supply**
+
+Maximum total supply of `uallo` 
+
+Current value: `"1000000000000000000000000000"`
+
+**halving_interval **
+
+The block interval for the halving of the block reward.
+
+Current value: `25246080`
+
+**current_block_provision**
+
+The initial value of provisions per block. This value is recalculated and updated with each block.
+
+Current value: `2831000000000000000000`
+
+**blocks_per_year** 
+
+Value: `6311520`  (a block every ~5 seconds)
+
+In Cronos, Treasurenet, Celestia, and many other Cosmos-based networks, the blocks per second are 5. This is the most common value for Cosmos-based blockchains.  
+In Bittensor this is 12 seconds. We are allowing a higher number of topics (suggested 2048) than there are max subnets (32), so it is expected to have a higher level of activity, thus higher number of transactions - which could benefit from faster blocks.  
+The standard value of a block every ~5 seconds is kept, for consistency with other blockchains and for allowing quicker block times and faster transactions than in Bittensor for the aforementioned reasons.

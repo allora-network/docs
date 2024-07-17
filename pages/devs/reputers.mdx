@@ -16,7 +16,7 @@ This ground truth is essential for evaluating the accuracy of inferences made by
 Reputers calculate the loss of worker inferences and forecast-implied inferences relative to the ground truth. 
 
 For instance, if a topic's [loss function](/devs/topic-creators/create-deploy-loss-calculation-function) is an L1-norm, reputers apply this norm to each worker's inference and the actual price of ETH in 10 days. 
-They then respond with a ValueBundle of losses, detailing the calculated losses for each inference.
+They then respond with a [`ValueBundle` of losses](https://github.com/allora-network/allora-chain/blob/1d56c50c8d0f43446d770cf387dbd43bb3613e8c/x/emissions/proto/emissions/v1/reputer.proto#L28), detailing the calculated losses for each inference.
 
 ### Secure Topics with Stake
 

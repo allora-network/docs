@@ -14,7 +14,7 @@ First, [install `allocmd`](/devs/get-started/installation/cli#installing-allocmd
 Next, initialize the CLI to bootstrap all the needed components to get your worker running. The following command will handle the initialization process. It will create all the files in the appropriate directories and generate identities for your node to be used for local development.
 
 ```shell
-allocmd generate worker --name <workerName> --topic <topicId> --env dev
+allocmd generate worker --name <workerName> --topic <topicId> --env dev --network allora-testnet-1
 cd <workerName>/worker
 ```
 
@@ -69,7 +69,7 @@ Your worker node is now ready to be deployed, the `main.py` has been modified, a
 > Note: make sure you run this command in the `<workerName>/worker` folder
 
 ```shell
-allocmd generate worker --env prod
+allocmd generate worker --env prod --network allora-testnet-1
 chmod -R +rx ./data/scripts
 ```
 

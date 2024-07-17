@@ -1,0 +1,57 @@
+# Consensus Parameters
+
+> Parameters that uniquely affect validators of the Allora Chain
+
+**block.max_bytes**
+
+Sets the maximum size of a block in bytes.
+
+Value: `22020096`
+
+Standard value.  
+This parameter limits the block size, preventing excessive network load. However, setting it too low may restrict the number of transactions in a block. The current value strikes a balance between controlling block size and allowing for sufficient transaction throughput.
+
+**block.max_gas**
+
+Sets the maximum amount of gas that can be used in a block.
+
+Value: `-1`
+
+Standard value.  
+The current setting allows for flexibility by indicating no limit on the maximum gas usage in a block. While this offers freedom for transactions, careful monitoring is needed to prevent potential abuse. This approach acknowledges the need for adaptability in a dynamic network environment.
+
+**evidence.max_age_num_blocks**
+
+Sets the maximum age (in blocks) of evidence that can be included in a block.
+
+Value: `100000`
+
+Standard value.  
+By limiting the age of evidence, this parameter maintains network security by preventing the inclusion of outdated evidence. The chosen value strikes a reasonable balance between retaining relevant evidence and ensuring integrity of the network.
+
+**evidence.max_age_duration**
+
+Sets the maximum age (in nanoseconds) of evidence that can be included in a block.
+
+Value: `172800000000000`
+
+Standard value.  
+This parameter complements `max_age_num_blocks` by providing an additional measure to limit the inclusion of outdated evidence. The current setting aligns with the need for a comprehensive yet controlled approach to evidence inclusion.
+
+**evidence.max_bytes**
+
+Sets the maximum size of evidence in bytes.
+
+Value: `1048576`
+
+Standard value.  
+Controlling the size of evidence prevents potential abuse and ensures efficient network operation. While too low a value may restrict the inclusion of legitimate evidence, the current setting finds a suitable compromise between limiting size and maintaining the effectiveness of the evidence mechanism.
+
+**validator.pub_key_types**
+
+Specifies the supported public key types for validators.
+
+Value: `["ed25519"]`
+
+Standard value.  
+This parameter enhances security by explicitly specifying the supported public key type for validators.

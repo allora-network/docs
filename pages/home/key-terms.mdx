@@ -28,7 +28,11 @@ Forecasts and predictions are used interchangeably throughout the docs.
 
 ## Context Awareness
 
-An additional dimension of evaluation that enables the network to achieve the best inferences under any circumstances using inferences and forecasts provided by workers.
+An additional dimension of evaluation that enables the network to achieve the best inferences under any circumstances using inferences and forecasts provided by workers. 
+
+By incorporating feedback from the test set (live, revealed ground truth plus the live, revealed performances of one's peers), both inference and forecast models of individual workers can be improved over time. This improves overall network performance. 
+
+By incentivizing forecasts, workers are incentivized to understand the contexts in which they and their peers perform well or poorly. For example, Allora may understand that a subset of workers perform better on Wednesdays, whereas another performs well on Thursdays, or some do well in bear markets and others in bull markets. Integrating such context-aware insights empowers Allora to admit better performance than any individual actor because it can selectively leverage insights from the appropriate actors in the appropriate contexts.
 
 ## Network Participants
 
@@ -62,6 +66,16 @@ A method for passive earnings where funds are delegated to a reputer, allowing t
 - A withdrawal delay prevents quick attacks
 - Delegating involves risk but offers rewards based on the reputer's success
 
+{/* We define the methods for adding and removing delegated stake in the [protobufs for the Allora Chain](). */}
+
+#### Withdrawal Delay
+
+Allora enforces a mandatory waiting period for withdrawals of stake and rewards to enhance security. When you request a withdrawal, you must:
+1. Initiate the withdrawal
+2. Wait for the specified delay
+3. Finalize the withdrawal with a second transaction 
+
+This two-step process helps protect against flash attacks while maintaining a smooth user experience.
 ## Regrets
 
 A measure of how the performance of a worker’s inference compares to the network’s previously reported accuracy.
