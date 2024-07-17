@@ -26,7 +26,7 @@ cd <workerName>/worker
 > chmod -R 777 ./<workerName>/worker/data/worker
 > ```
 
-Before running this command you will have to [pick the topic Id](/devs/topic-creators/existing-topics) you wish to generate inference for after which you can run this command with the topic Id. The command will auto-create some files, the most important of which is the `dev-docker-compose.yaml`file which is an already complete docker-compose that you can run immediately to see your worker and head nodes running on your local machine. You can edit the files as you wish. For instance, the `main.py` is meant for you to call your inference server, hence you will have to edit the sample code with actual URLs and logic as you prefer.
+Before running this command you will have to [pick the topic Id](/devs/get-started/existing-topics) you wish to generate inference for after which you can run this command with the topic Id. The command will auto-create some files, the most important of which is the `dev-docker-compose.yaml`file which is an already complete docker-compose that you can run immediately to see your worker and head nodes running on your local machine. You can edit the files as you wish. For instance, the `main.py` is meant for you to call your inference server, hence you will have to edit the sample code with actual URLs and logic as you prefer.
 
 After you have written and tested your logic in `main.py`, you can then run
 
@@ -61,7 +61,7 @@ curl --location 'http://localhost:6000/api/v1/functions/execute' --header 'Accep
 }' | jq
 ```
 
-The `<TOPIC_ID>` needs to be [an existing topic on the chain](/devs/topic-creators/existing-topics). The `<argument>` is what the topic is expecting to receive to perform the inference (as an indication to test, you can use the `DefaultArg`  value from the topic on-chain, e.g. for ETH prediction topic, it should be `"ETH"`).
+The `<TOPIC_ID>` needs to be [an existing topic on the chain](/devs/get-started/existing-topics). The `<argument>` is what the topic is expecting to receive to perform the inference (as an indication to test, you can use the `DefaultArg`  value from the topic on-chain, e.g. for ETH prediction topic, it should be `"ETH"`).
 
 ### 3. Initialize the worker for production
 

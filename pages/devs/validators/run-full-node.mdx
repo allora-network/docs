@@ -35,12 +35,14 @@ Navigate to the root directory of the cloned repository and start the node using
 ```shell
 cd allora-chain
 docker compose pull
-docker compose up -d
+docker compose up
 ```
 
-**Note**: Don't forget to pull the images first, to ensure that you're using the latest images. 
+> run `docker compose up -d` to run the container in detached mode, allowing it to run in the background.
 
-The `-d` flag runs the container in detached mode, allowing it to run in the background.
+<Callout type="info">
+**Info**: Don't forget to pull the images first, to ensure that you're using the latest images. 
+</Callout>
 
 <Callout type="warning">
 Make sure that any previous containers you launched are killed, before launching a new container that uses the same port.
@@ -51,6 +53,20 @@ docker container ls
 docker rm -f <container-name>
 ```
 </Callout> 
+
+#### Run Only a Node with Docker Compose
+In this case, you will use Allora's heads.
+##### Run
+
+```
+docker compose pull
+docker compose up node
+```
+To run only a head: `docker compose up head`
+
+<Callout type="info">
+**NOTE:** You also can comment the head service in the Dockerfile.
+</Callout>
 
 ### Monitoring Logs
 
@@ -130,11 +146,11 @@ git clone https://github.com/allora-network/allora-chain.git
 
 ### Step 2: Install `allorad`
 
-Before running the node, you must install the `allorad` binary. 
+Before running the node, you must [install the `allorad` binary](/devs/get-started/installation/cli#installing-allorad). 
 
-You can find the [release here](https://github.com/allora-network/allora-chain/releases) or install it following [the instructions](../learn/cli).
+{/* You can find the [release here](https://github.com/allora-network/allora-chain/releases) or install it following [the instructions](../learn/cli).
 
-**Note**: Depending on your `go` setup you may need to add `$GOPATH/bin` to your `$PATH`.
+**Note**: Depending on your `go` setup you may need to add `$GOPATH/bin` to your `$PATH`. */}
 
 ```shell
 export PATH=$PATH:$(go env GOPATH)/bin

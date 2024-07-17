@@ -17,11 +17,11 @@ The appchain also coordinates actions between protocol actors.
 
 ## Why and How might one interact with the Allora Appchain?
 
-Different actors interact with the Allora Appchain for different reasons. They do so via a standard client connection (such as [CosmJS](https://tutorials.cosmos.network/tutorials/7-cosmjs/1-cosmjs-intro.html)) or the [Appchain CLI](../learn/cli).
+Different actors interact with the Allora Appchain for different reasons. They do so via a standard client connection (such as [CosmJS](https://tutorials.cosmos.network/tutorials/7-cosmjs/1-cosmjs-intro.html)) or the [Appchain CLI](/devs/get-started/installation/cli).
 
-- Data scientists interact with the Appchain to [register their worker nodes](../learn/cli#register-network-actor) and to [withdraw rewards](../learn/cli#remove-stake) accrued for their inferences. These rewards are paid by both consumers and inflation based on their relative weight.
-- Developers interact with the Appchain to [create topics](../learn/cli#create-new-topic), fund topics, and perhaps also to [read recent inferences](../learn/cli#get-inference).
-- Validators run the Appchain and receive standard inflationary rewards for running Cosmos SDK appchains and a cut of the funds from consumers. They will also [register themselves](./stake-a-validator) on the Appchain so that they can be eligible for rewards.
+- Data scientists interact with the Appchain to [register their worker nodes](/devs/reference/allorad#register-network-actor) and to [withdraw rewards](/devs/reference/allorad#remove-stake-from-a-topic) accrued for their inferences. These rewards are paid by both consumers and inflation based on their relative weight.
+- Developers interact with the Appchain to [create topics](/devs/reference/allorad#create-new-topic), fund topics, and perhaps also to [read recent inferences](/devs/reference/allorad#get-the-latest-network-inferences-and-weights-for-a-topic).
+- Validators run the Appchain and receive standard inflationary rewards for running Cosmos SDK appchains and a cut of the funds from consumers. They will also [register themselves](/devs/validators/stake-a-validator) on the Appchain so that they can be eligible for rewards.
 
 ## Dependencies
 
