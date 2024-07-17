@@ -33,7 +33,7 @@ For simplicity, we will use Zero-shot forecasting, which refers to the ability o
 Our worker will provide inferences on the BTC 24h Prediction, which is Topic `4` on Allora Testnet.
 
 > Note:
-> To deploy on the Allora Network, you will need to [pick the topic ID](../devs/existing-topics) you wish to generate inference for, or [create a new topic](../devs/how-to-create-topic).
+> To deploy on the Allora Network, you will need to [pick the topic ID](/devs/get-started/existing-topics) you wish to generate inference for, or [create a new topic](/devs/topic-creators/how-to-create-topic).
 
 We will use [Coingecko](https://www.coingecko.com/en/api) to fetch the data. You will need to [create an API key](https://www.coingecko.com/en/api/pricing).
 
@@ -278,7 +278,7 @@ And we have a response!
 66600.6124078708
 ```
 
-Now that we know our inference server is working as expected, lets ensure it can interact with the [Blockless network](https://blockless.network/). This is how Allora nodes respond to [requests for inference from chain validators](../learn/architecture.mdx#inferences).
+Now that we know our inference server is working as expected, lets ensure it can interact with the [Blockless network](https://blockless.network/). This is how Allora nodes respond to requests for inference from chain validators.
 
 We can issue a Blockless request with this command, by specifying the correct `<topicId>`:
 
@@ -365,5 +365,5 @@ This basic example illustrates how to integrate a Hugging Face model in an Allor
 There are now several ways for you to improve this code:
 - Use your own data or another data provider, or add more features to improve the accuracy 
 - Use a different model size from Chronos to compare the results
-- Change the accepted token or the timeframe to predict on another [Allora topic](../devs/existing-topics)
+- Change the accepted token or the timeframe to predict on another [Allora topic](/devs/get-started/existing-topics)
 - Use another model from Hugging Face or your own model to deploy a worker node on the Allora Network!

@@ -2,12 +2,12 @@
 
 Registering a reputer node on the Allora Network requires downloading the `allorad` blockchain client, creating and backup up a blockchain account, funding that account, and then configuring your reputer node. Additionally, there is a registration fee that must be paid during the registration process.
 
-- Install the `allorad`client by following the instructions [here](../learn/cli)
+- Install the `allorad`client by following the instructions [here](/devs/get-started/installation/cli#installing-allorad)
 - Using the `allorad` application, create a new key. Take note of the mnemonic restore phrase. It will be needed for the configuration options to start the node.
 - ```Text bash
   allorad keys add myNewNode
   ```
-- Fund the Key on the network environment you plan to run the reputer, (i.e. testnet faucet, the reputer will be running on testnet). One can obtain funds on our testnet through our faucet as [explained here](../devs/how-to-use-faucet).
+- Fund the Key on the network environment you plan to run the reputer, (i.e. testnet faucet, the reputer will be running on testnet). One can obtain funds on our testnet through our faucet as [explained here](/devs/get-started/setup-wallet#add-faucet-funds).
 - The node will initialize and verify its registration on the chain, and then attempt a registration transaction using the provided configuration. As long as the account is funded, this registration process should be seamless, and the node should automatically update when needed through this path.
 
 ## Using Docker to Access `allora-node`
