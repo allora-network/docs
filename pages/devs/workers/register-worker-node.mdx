@@ -7,7 +7,7 @@ Registering a worker node on the Allora Network requires downloading the `allora
 - ```Text bash
   allorad keys add myNewNode
   ```
-- Fund the Key on the network environment you plan to run the worker, (i.e. testnet faucet, the worker will be running on testnet). One can obtain funds on our testnet through our faucet as [explained here](../devs/how-to-use-faucet).
+- Fund the Key on the network environment you plan to run the worker, (i.e. testnet faucet, the worker will be running on testnet). One can obtain funds on our testnet through our faucet as [explained here](/devs/get-started/setup-wallet#add-faucet-funds).
 - The node will initialize and verify its registration on the chain, and then attempt a registration transaction using the provided configuration. As long as the account is funded, this registration process should be seamless, and the node should automatically update when needed through this path.
 - When initializing the node, you need to use allora flags to be able to successfully register. The whole set of options can be seen by running `allora-node --help`. The most important ones are:
 - ```Text bash
