@@ -69,7 +69,7 @@ const config: DocsThemeConfig = {
   },
   sidebar: {
     autoCollapse: true,
-  }
+  },
   // ... other theme options
 }
 

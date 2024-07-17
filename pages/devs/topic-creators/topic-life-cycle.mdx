@@ -1,0 +1,100 @@
+# Topic Life Cycle
+
+The Topic Life Cycle in the Allora Network is a dynamic process that determines the stages a topic goes through from creation to conclusion. These stages are influenced by various factors such as funding, popularity, and performance metrics. Understanding the life cycle of a topic is crucial for engaging with the network.
+
+## Key Terms and Concepts
+
+### Epoch Length
+
+How often inferences are sampled and scored in the topic. Defined when [creating a topic](/devs/topic-creators/how-to-create-topic) as `EpochLength`.
+
+### Epoch Last Ended
+
+The timestamp indicating when the last epoch ended, important for tracking topic activity.
+
+### Ground Truth Lag
+
+The amount of time into the future a specific inference is calculating for. Defined when [creating a topic](/devs/topic-creators/how-to-create-topic) as `GroundTruthLag`.
+
+E.g. "Every 15 minutes, provide BTC prediction for 1 day in the future":
+- 10 min - EpochLength
+- 1 day - GroundTruthLag
+
+### Nonce
+
+The block height at which a given outbound request from network validators is made. Nonces ensure that responses are correctly paired with their requests to facilitate accurate reward distribution and loss calculation.
+
+Every topic will inevitably generate multiple worker and reputer requests, each needing to be matched with rewards for participants. The blockchain must differentiate between responses still pending rewards and those already rewarded, and reputers must identify which worker payloads to use for loss calculations. This requires uniquely identifying each outbound request.
+
+The same nonce value will be used to fulfill a complete work and reputation cycle:
+
+1. A request for inferences and forecasts using a particular nonce is issued first.
+2. Once the workers have submitted their work, the worker nonce is fulfilled and a reputer nonce is created using the same value.
+3. This reputer nonce will be processed when appropriate, triggering a reputation request.
+4. When the reputers respond by submitting their work, the reputer nonce is also fulfilled, ending its cycle.
+
+### Topic Competitiveness
+
+Competitiveness in the Allora Network refers to a topic's ability to attract and retain funding, stakes, and participation relative to other topics. A competitive topic has the following characteristics:
+
+- **High Effective Revenue**: A greater accumulation of revenue indicates strong interest.
+- **Significant Stake**: Large amounts of reputer and delegated stakes signify confidence in the topic's value.
+
+Both of these metrics are a function of [weight](/devs/topic-creators/topic-life-cycle#weight), which proxies overall participation and ultimately topic competitiveness.
+
+### Effective Revenue
+
+Effective Revenue is the measure of the impact that the total accrued revenue has on a topic's weight. It determines how much influence the revenue has on making a topic active and competitive.
+
+- Initially, Effective Revenue equals the total amount of money a topic accrues before the first epoch.
+- Once a topic becomes active, funds from Effective Revenue are used, impacting the ecosystem bucket.
+
+The Effective Revenue drips over time, reflecting the topic's diminishing competitiveness relative to other topics.
+
+### Ecosystem Bucket
+
+The Ecosystem Bucket is a mechanism that distributes a portion of the total funds at a rate (approximately 10%) that decreases exponentially over time. This bucket serves as a comparative baseline for topic competitiveness. The effective revenue of a topic needs to be balanced with the ecosystem bucket to ensure the topic's competitiveness.
+
+- The bucket holds the money and drips at a certain rate.
+- This rate is uncoupled from the effective revenue drip to avoid complex calculations to determine how much effective revenue the topic actually has remaining.
+- It provides an estimation but doesn’t have a bearing on the total amount of money dripped from the ecosystem, ensuring financial safety.
+
+### Weight
+
+Weight is a measure of a topic's competitiveness within the blockchain network. It is a function of the combined stake of reputers (including delegated stakes) and the topic's Effective Revenue. The weight of a topic determines its likelihood of becoming active and indirectly influences the distribution of rewards and resources within the network.
+
+- Higher weight signifies greater competitiveness.
+- Driven by the total stake and the impact of effective revenue.
+
+## Topic States
+
+### Inactive
+
+A topic is inactive after it is created but before it becomes sufficiently funded.
+
+### Active
+
+A topic becomes active once it is sufficiently funded. A topic is sufficiently funded once it has more than a threshold amount of weight, which is a function of the amount of:
+- [Reputer stake](/devs/reputers/set-and-adjust-stake) placed in the topic
+- Delegated stake
+- Effective revenue garnered by the topic
+
+Different actors can permissionlessly [fund a topic](/devs/reference/allorad#send-funds-to-a-topic-to-pay-for-inferences) using the `allorad` CLI tool.
+
+### Churnable
+
+A topic becomes churnable once it is:
+- Active
+- One of the top topics by weight (descending)
+- The topic's `EpochLength` has passed since its inception or last epoch
+
+Once a topic is churnable, the chain can emit worker (and eventually reputer) requests to topic workers and reputers, respectively.
+
+Reputer requests start after a topic's `GroundTruthLag` amount of blocks have passed. Once worker and reputer responses are fulfilled, the topic becomes _churned_.
+
+### Rewardable
+
+A topic is rewardable once:
+- It has been churned
+- It has fulfilled worker and reputer requests
+- It is ready to have its rewards calculated

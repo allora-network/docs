@@ -1,0 +1,41 @@
+# Validators
+
+Validators maintain the security and integrity of the Allora appchain.
+
+## What do Validators do?
+
+### Secure Chain with Stake
+
+Validators secure the Allora appchain by staking tokens in a delegated proof of stake system through CometBFT. The more a validator stakes, the greater their influence on the overall security and consensus of the blockchain. 
+
+Similarly, stakeholders can delegate their tokens to validators, further enhancing the security and reliability of the chain.
+
+#### Topic Security vs Chain Security
+
+- *Topic security* is a subset of *chain security*.
+- If the underlying state is corrupted, topic security is compromised.
+- One can have chain security without topic security if:
+    - Validators are generally honest (weighted by stake).
+    - Reputers of a specific topic are generally dishonest (weighted by stake).
+
+
+### Validate Transactions
+
+Validators validate transactions and blocks, ensuring that all transactions are legitimate and conform to the rules of the blockchain
+
+### Participate in Consensus
+
+Validators participate in the consensus mechanism of the appchain, running CometBFT. By participating in the consensus, validators collectively agree on the state of the blockchain.
+
+### Receive Rewards
+
+Validators [receive rewards]() based on the amount of stake they hold or have delegated to them.
+
+## Learn More
+
+Test run a validator of the Allora appchain by following the instructions [here](/devs/validators/run-full-node).
+
+CometBFT can be explored in the following two articles, among many other places:
+
+- [Staking and Delegation in Cosmos](https://medium.com/@notional-ventures/staking-and-delegation-in-cosmos-db660154bcf9)
+- [CometBFT: Security and Consensus in Cosmos](https://medium.com/@notional-ventures/cometbft-security-and-consensus-in-cosmos-part-1-a7be84f0bf25)

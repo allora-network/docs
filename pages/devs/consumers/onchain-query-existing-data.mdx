@@ -1,0 +1,33 @@
+# How to Query On-Chain Data of Existing Topics
+
+To query the latest inferences attributed to each worker for a specific topic:
+
+**Active Topics:**
+
+```
+allorad query emissions active-topics [pagination] --node <RPC_URL>
+```
+
+`[pagination]` is the json key-value pair of the limit of topics outputted
+
+**Example:** `'{"limit":10}'`
+
+**Latest Inferences for a Topic:**
+
+```
+allorad query emissions latest-network-inference [topic_id] --node <RPC_URL>
+```
+
+`[topic_id]` is the integer value of the topic
+
+**Example:** `1`
+
+Visit the [`allorad` reference section](/devs/reference/allorad#query-functions) for the complete list of available on-chain query commands.
+
+{/* **Latest Weights for a Topic:**
+
+```
+allorad query get-weight [topic_id] [reputer] [worker]
+```
+
+Learn more by checking our [Allora CLI docs](../learn/cli). */}

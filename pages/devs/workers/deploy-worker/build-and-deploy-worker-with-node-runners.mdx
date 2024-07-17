@@ -1,0 +1,62 @@
+# Build and Deploy a Worker Node With AWS Node Runners
+
+Welcome to the AWS Node Runners documentation! This page provides detailed instructions on how to leverage Node Runners on AWS, including benefits, setup instructions, and useful links.
+
+## Overview
+
+Node Runners on AWS enables you to deploy and manage blockchain nodes efficiently using AWS infrastructure. Whether you're deploying Ethereum nodes or other blockchain networks, Node Runners simplifies the process, offering scalability, reliability, and cost-effectiveness.
+
+For more detailed information and step-by-step guides, please refer to the [AWS Node Runners Documentation](https://aws-samples.github.io/aws-blockchain-node-runners/docs/Blueprints/Ethereum).
+
+### Allora Network's AWS Infrastructure
+
+This diagram illustrates the architecture of the integration between the Allora Network (built on a Cosmos AppChain) and an AWS-based infrastructure for handling inference requests. 
+
+![node-runners](/aws-node-runners.png)
+
+#### Key Components
+
+1. **Allora Network (Cosmos AppChain)**
+   - **Public Head Node**: Acts as the entry point for the Allora Network, handling requests and responses.
+
+2. **AWS Account Setup**
+   - **Region**: The geographical location within AWS where the resources are deployed.
+   - **Virtual Private Cloud (VPC)**: Provides an isolated network environment within the AWS region.
+     - **Public Subnet**: A subnet within the VPC that has access to the internet through the VPC Internet Gateway.
+     - **VPC Internet Gateway**: Allows communication between the instances in the VPC and the internet.
+
+3. **EC2 Instance (Allora Worker Node)**
+   - **Inference Base**: This component handles network communication, receiving requests from the Allora Network's Public Head Node and sending responses back.
+   - **Node Function**: Processes requests by interfacing with the private model server. It acts as an intermediary, ensuring the requests are correctly formatted and the responses are appropriately handled.
+   - **Model Server**: Hosts the proprietary model. It executes the main inference script (`Main.py`) to generate inferences based on the received requests.
+
+#### Process Flow
+
+1. **Request Flow**:
+   - The Allora Network's Public Head Node sends a request for inferences to the EC2 instance within the AWS environment.
+   - The request passes through the VPC Internet Gateway and reaches the Inference Base in the public subnet.
+   - The Inference Base forwards the request to the Node Function.
+   - The Node Function calls `Main.py` on the Model Server to generate the required inferences.
+
+2. **Response Flow**:
+   - The Model Server processes the request and returns the inferences to the Node Function.
+   - The Node Function sends the inferences back to the Inference Base.
+   - The Inference Base communicates the inferences back to the Allora Network's Public Head Node via the VPC Internet Gateway.
+
+## AWS Activate
+
+Before proceeding, please note that eligibility for AWS Activate credits and terms are governed by AWS. This documentation may become outdated, so ensure you refer to the [AWS Activate program page](https://aws.amazon.com/startups/credits#hero) for the latest eligibility requirements and instructions.
+
+## AWS Activate Stepwise Process
+
+To receive up to $5,000 in AWS Activate credits, follow these steps:
+
+1. **Fill out our [Typeform](https://vk4z45e3hne.typeform.com/to/TVwcjiL1)**: Provide your details to receive our Activate Provider Organizational ID.
+   - Name (required)
+   - Contact Information (optional): Email, Telegram, Discord handle, Linkedin
+   - Official Company Website (required)
+
+2. **AWS Activate High-Level Instructions**: After obtaining our Organizational ID,
+   - Visit [AWS Activate Credit Packages](https://aws.amazon.com/startups/credits#packages).
+   - Apply through the Activate Portfolio
+

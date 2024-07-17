@@ -1,0 +1,47 @@
+# How to Create and Deploy an Inference Generation Function
+
+> Worker nodes invoke this function to gather inferences during inference solicitation
+
+## What Is an Inference Generation Function?
+
+This function will serve as the gateway through which the inferences from worker nodes will be sent. This function typically has the role of triggering your model, and for that purpose, a [Blockless CGI Extension](https://blockless.network/docs/network/extensions#cgi-extensions) is used inside the function.
+
+## Allora Recommended Inference Function
+
+Allora provides a recommended inference function that will enable the `main.py` file in the worker. This is the recommended function to use when creating topics or requesting inferences from topics.
+
+Current data for the recommended inference function is: 
+
+- `function_id` : `bafybeigpiwl3o73zvvl6dxdqu7zqcub5mhg65jiky2xqb4rdhfmikswzqm`
+- `method`: `allora-inference-function.wasm`
+
+However, it is possible to create a custom function. Example of use cases that would need it would be a function that instead of triggering the execution of a `python` file, it would trigger a `bash` script, a `go` file, etc.
+
+## How to Create and Deploy an Inference Generation Function?
+
+To create an inference function for your topic, follow the steps outlined in the tutorial below to create your first function on Blockless:
+
+**[Blockless Quick Start Guide](https://blockless.network/docs/network/quick-start)**
+
+Once you have installed the **Blockless CLI** and created your initial sample function, you will need to modify it to trigger your model to generate the inferences and return them in the `Stdout`.
+
+You can use the example below:  
+**[Inference Generation Logic](https://github.com/allora-network/allora-inference-extension/blob/main/allora-inference-function/index.ts)**
+
+To test your function locally you can run the following command:
+
+`bls function invoke`
+
+Your function needs to follow the same output as in the following example:
+
+```json
+{
+	"value": "2543.3176470588235294"
+}
+```
+
+After testing, you can deploy your function using:
+
+`bls function deploy`
+
+After deploying your function, save the `function_id` and the `method` (the name of the WASM file) to use when [creating your topic](./how-to-create-topic).

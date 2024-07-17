@@ -1,0 +1,88 @@
+# How to Create a Topic
+
+> Inferences for the same domain are aggregated into the same topic
+
+## What is a Topic?
+
+[Topics](../learn/architecture#topics) are [Schelling points](https://en.wikipedia.org/wiki/Focal_point_(game_theory)) where disparate-but-alike data scientists and domain experts aggregate their predictions. For example, we might create a topic for predicting the future price of ETH. There, all experts with any talent in predicting the future price of ETH will submit their inferences. Topics vary by domain and parameterization, defining how these inferences are collected and valued.
+
+Developers can make topics for arbitrary categories of inferences so long as they complete these steps:
+
+## Prerequisites:
+
+1. A wallet with sufficient funds to at least cover gas. Use [the faucet](/devs/get-started/setup-wallet) to get funds. 
+2. A deployed Blockless function that triggers node inferences (obtain `function_id` and `method`).  
+   Learn more: [How to Create an Inference Generation Function](./create-deploy-inference-generation-function)
+3. A deployed Blockless function for the weight adjustment logic (obtain `function_id` and `method`).  
+   Learn more: [How to Create and Deploy a Weight Adjustment Function](./create-deploy-weight-adjustment-function)
+
+## Creating Your First Topic
+
+The transaction for creating a topic has the following structure:
+
+```go
+type MsgCreateNewTopic struct {
+  // Address of the wallet that will own the topic
+  Creator          string   `json:"creator,omitempty"`
+  // Information about the topic
+  Metadata         string   `json:"metadata,omitempty"`
+  // The logic that governs loss calculations (function id)
+  LossLogic        string   `json:"loss_logic,omitempty"`
+  // The method used for loss calculations (.wasm)
+  LossMethod       string   `json:"loss_method,omitempty"`
+  // The frequency (in seconds) of weight calculations
+  InferenceLogic   string   `json:"inference_logic,omitempty"`
+  // The method used for inference calculations (.wasm)
+  InferenceMethod  string   `json:"inference_method,omitempty"` 
+  // The frequency (in blocks) of inference calculations (Must be greater than 0)
+  EpochLength      int64    `json:"epoch_length,omitempty"`
+  // The time it takes for the ground truth to become available (Cannot be negative)
+  GroundTruthLag   int64    `json:"ground_truth_lag,omitempty"`
+  // Default argument the worker will receive when py script is called
+  DefaultArg       string   `json:"default_arg,omitempty"`
+  // Raising this parameter raises how much high-quality inferences are favored over lower-quality inferences (Must be between 2.5 and 4.5)
+  PNorm            github_com_allora_network_allora_chain_math.Dec `json:"p_norm"`
+  // Raising this parameter lowers how much workers historical performances influence their current reward distribution (Must be between 0 and 1)
+  AlphaRegret      github_com_allora_network_allora_chain_math.Dec  `json:"alpha_regret"`
+  // Indicates if the loss function's output can be negative. If false, the reputer submits logs of losses; if true, the reputer submits raw losses.
+  AllowNegative    bool     `json:"allow_negative,omitempty"`
+  // the numerical precision at which the network should distinguish differences in the logarithm of the loss
+  Epsilon          github_com_allora_network_allora_chain_math.Dec  `json:"epsilon"`
+}
+```
+
+Using the [`allorad` CLI](/devs/get-started/installation/cli#installing-allorad) to create a topic:
+
+```shell bash
+allorad tx emissions create-topic \
+  allo13tr5nx74zjdh7ya8kgyuu0hweppnnx8d4ux7pj \    # Creator address
+  "ETH prediction in 24h" \                                         # Metadata
+  "bafybeid7mmrv5qr4w5un6c64a6kt2y4vce2vylsmfvnjt7z2wodngknway" \  # LossLogic
+  "loss-calculation-eth.wasm" \                 # LossMethod
+  "bafybeigpiwl3o73zvvl6dxdqu7zqcub5mhg65jiky2xqb4rdhfmikswzqm" \  # InferenceLogic
+  "allora-inference-function.wasm" \              # InferenceMethod
+  3600 \                                          # EpochLength
+  0 \                                             # GroundTruthLag
+  "ETH"                                           # DefaultArg
+  3 \                                             # PNorm 
+  1 \                                             # AlphaRegret 
+  true \                                          # AllowNegative
+  0.001 \                                             # Epsilon
+  --node <RPC_URL>
+  --chain-id <CHAIN_ID>
+```
+
+Be sure to swap out [`RPC_URL`](/devs/get-started/setup-wallet#rpc-url-and-chain-id), `YOUR_ADDRESS`, [`CHAIN_ID`](/devs/get-started/setup-wallet#rpc-url-and-chain-id) and all other arguments as appropriate with the desired values.
+
+### Notes
+
+An explanation in more detail of some of these fields. 
+
+- `Metadata` is a descriptive field to let users know what this topic is about and/or any specific indication about how it is expected to work.
+- `LossLogic` and `LossMethod` define a WASM blockless function that receives inferences and previous losses from workers, and that generates a new set of losses. 
+  - If your topic expects workers to return a numerical value, then the `LossLogic`and `LossMethod` values provided in the example above most likely will work for you. Please [contact us](/community/contribute) for further details on your specific case.
+- `InferenceLogic`  defines a WASM blockless function to trigger the call to the `main.py` file in the worker. These values are expected to be reused from the example.
+- `DefaultArg` value will be passed as an argument to the python script, i.e. when the worker receives the request, it will attempt to run `python3 <location-of-main.py> <TopicId> <DefaultArg>`. This will be used in the scoring stage to request inferences from the chain.
+- `allowNegative` determines whether the loss function output can be negative.
+  - If **true**, the reputer submits raw losses.
+  - If **false**, the reputer submits logs of losses.
