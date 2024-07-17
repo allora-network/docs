@@ -13,7 +13,8 @@ curl --location 'https://heads.testnet-1.testnet.allora.network/api/v1/functions
 --header 'Content-Type: application/json' \
 --data '{
     "function_id": "bafybeigpiwl3o73zvvl6dxdqu7zqcub5mhg65jiky2xqb4rdhfmikswzqm",
-    "method": "allora-inference-function.wasm",
+    "method": "allora-inference-function.wasm
+    ",
     "parameters": null,
     "topic": "1",
     "config": {
@@ -63,16 +64,18 @@ Request:
 ```curl
 curl -X 'GET' 'https://api.upshot.xyz/v2/allora/consumer/arbitrum-42161?allora_topic_id=1&inference_value_type=uint256&extra_data=ETH' -H 'accept: application/json' -H 'x-api-key: UP-xxx' | jq
 ```
-
+{/* 
 <Callout type="info">
-Querying through this API is considered a safe request because it queries a signed request from the specified chain (e.g. `arbitrum-42161`). This chain signs the request for an Allora consumer contract, making the request safe even though it is off-chain.
-</Callout>
+Querying through this API is considered a safe request because it queries a signed request from the specified chain (e.g. `arbitrum-42161`). This chain signs the request for an Allora consumer contract, making the request "safe" even though it is off-chain.
+</Callout> */}
 
 Let's break down this request body:
 - https://api.upshot.xyz/v2/allora/adapter/: The generic API request URL
-- `arbitrum`: The chain to query the signed inference from
-- `42161`: The chain ID to query the signed inference from
-- `allora_topic_id=8`: The allora specific topic ID being queried
+- `arbitrum-42161`: The target chain and chain ID to query the signed inference from
+    - Currently 2 target chains available:
+        - `ethereum-11155111`
+        - `arbitrum-42161`
+- `allora_topic_id=1`: The allora specific topic ID being queried
 - `UP-xxx`: Replace this value with the specific API key you created on [Upshot](https://developer.upshot.xyz)
 - `extra_data=ETH`: The [`default_arg`](/devs/topic-creators/how-to-create-topic) associated with the topic ID.
 
