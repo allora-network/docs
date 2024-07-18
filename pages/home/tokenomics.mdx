@@ -1,3 +1,5 @@
+import { Callout } from 'nextra/components'
+
 # Allora Tokenomics
 
 The Allora token (ALLO) is minted by the Allora Network to facilitate the exchange of value by network participants.
@@ -8,8 +10,12 @@ The ALLO token incorporates a Pay-What-You-Want (PWYW) model to allow token hold
 
 Token holders have the autonomy to decide the amount of ALLO they wish to pay for a given inference, which encourages token holders to contribute to the network's ecosystem according to their perceived value of the service.
 
-Flexible price discovery across topics (less opinionated) - how the market reaches an agreed-upon price 
-running an LLM is a different (heterogeneous) resource provision compared to something like ethereum which is homogeneous (each opcode has a fixed price). 
+<Callout type="info">
+**Important Note**: If participants choose to pay **zero** fees for a particular topic, the weight of that topic tends to zero. As a result, participants within that topic **receive no rewards**, and the token emission will be redistributed over other topics. This mechanism ensures that topics with no fee payments do not sustain themselves, driving healthy competition and price discovery across the network.
+</Callout>
+
+Flexible price discovery across topics is a less opinionated method that allows the market to reach an agreed-upon price through natural negotiation and market dynamics. Running a Large Language Model (LLM) involves a different, heterogeneous resource provision compared to something like Ethereum, which is homogeneous since each opcode in Ethereum has a fixed price.
+
 ## Token Emissions
 
 ### Bitcoin-like Emission Schedule
