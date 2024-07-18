@@ -13,11 +13,6 @@ First, [install `allocmd`](/devs/get-started/installation/cli#installing-allocmd
 
 Next, initialize the CLI to bootstrap all the needed components to get your worker running. The following command will handle the initialization process. It will create all the files in the appropriate directories and generate identities for your node to be used for local development.
 
-```shell
-allocmd generate worker --name <workerName> --topic <topicId> --env dev --network allora-testnet-1
-cd <workerName>/worker
-```
-
 > Note: if you're facing `Permission denied` issues, please try to create the folders before running the `allocmd generate` command:
 > ```shell
 > mkdir -p <workerName>/worker/data/head
@@ -25,6 +20,11 @@ cd <workerName>/worker
 > chmod -R 777 ./<workerName>/worker/data/head
 > chmod -R 777 ./<workerName>/worker/data/worker
 > ```
+
+```shell
+allocmd generate worker --name <workerName> --topic <topicId> --env dev --network allora-testnet-1
+cd <workerName>/worker
+```
 
 Before running this command you will have to [pick the topic Id](/devs/get-started/existing-topics) you wish to generate inference for after which you can run this command with the topic Id. The command will auto-create some files, the most important of which is the `dev-docker-compose.yaml`file which is an already complete docker-compose that you can run immediately to see your worker and head nodes running on your local machine. You can edit the files as you wish. For instance, the `main.py` is meant for you to call your inference server, hence you will have to edit the sample code with actual URLs and logic as you prefer.
 
