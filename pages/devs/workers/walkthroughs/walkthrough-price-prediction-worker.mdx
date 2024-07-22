@@ -37,7 +37,7 @@ docker run -it --entrypoint=bash -v ./worker-data:/data alloranetwork/allora-inf
 
 After both worker and head nodes' identities are generated inside the `head-data/keys` and `worker-data/keys` directories, instruct the worker node to connect to the head node:
 
-- run `cat head-data/head/keys/identity` to extract the head node's peer_id specified in the `head-data/keys/identity`
+- run `cat head-data/keys/identity` to extract the head node's peer_id specified in the `head-data/keys/identity`
 - use the printed peer_id to replace the `head-id` placeholder value specified inside the `docker-compose.yml` file when running the worker service: `--boot-nodes=/ip4/172.22.0.100/tcp/9010/p2p/<head-id>`
 
 ### Run setup  
