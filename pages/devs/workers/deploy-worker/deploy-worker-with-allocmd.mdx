@@ -26,6 +26,10 @@ allocmd generate worker --name <workerName> --topic <topicId> --env dev --networ
 cd <workerName>/worker
 ```
 
+<Callout type="warning">
+    **Warning**: If you have generated a worker with the same `<workerName>` before, `allocmd` will hang and not be able to generate your worker files. Please change the `<workerName>` to a new name and try the command again!
+</Callout>
+
 Before running this command you will have to [pick the topic Id](/devs/get-started/existing-topics) you wish to generate inference for after which you can run this command with the topic Id. The command will auto-create some files, the most important of which is the `dev-docker-compose.yaml`file which is an already complete docker-compose that you can run immediately to see your worker and head nodes running on your local machine. You can edit the files as you wish. For instance, the `main.py` is meant for you to call your inference server, hence you will have to edit the sample code with actual URLs and logic as you prefer.
 
 After you have written and tested your logic in `main.py`, you can then run
