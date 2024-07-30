@@ -1,0 +1,168 @@
+# Model.py
+
+## Introduction
+
+The [`model.py` file](https://github.com/allora-network/basic-coin-prediction-node/blob/main/model.py) in `basic-coin-prediction-node` consists of several key components:
+
+- **Imports and Configuration:** Sets up necessary libraries and configuration variables.
+- **Paths Configuration:** Generates paths for storing data dynamically based on coin symbols.
+- **Downloading Data:** Downloads historical price data for the specified symbols, intervals, years, and months.
+- **Formatting Data:** Reads, formats, and saves the downloaded data as CSV files.
+- **Training the Model:** Trains a linear regression model on the formatted price data and saves the trained model.
+
+While the import and path configuration processes are straightforward, downloading and formatting the data, as well as training the model, require specific steps. 
+
+This documentation will guide you through creating models for different coins, making it easy to extend the script for general-purpose use.
+
+## Downloading the Data
+
+The [`download_data`](https://github.com/allora-network/basic-coin-prediction-node/blob/5d70e9feee7d1e7725c7602427b6856e7ffbe479/model.py#L16) function is designed to automate the process of downloading historical market data from Binance, a popular cryptocurrency exchange. 
+This function focuses on fetching data for a specified set of symbols (in this case, the trading pair `"ETHUSDT"`) across various time intervals and storing them in a defined directory. 
+
+### How to Use for Downloading Data of Any Coin
+
+#### Update the Symbols List
+
+Replace `["ETHUSDT"]` with the desired trading pair(s), e.g., `["BTCUSDT", "LTCUSDT"]`.
+
+#### Adjust Time Intervals
+
+Modify the intervals list if you need different time intervals. Binance supports various intervals like `["1m", "5m", "1h", "1d", "1w", "1M"]`.
+
+#### Extend Date Ranges
+
+Update the years and months lists to match the historical range you need.
+
+#### Define the Download Path 
+
+Ensure `binance_data_path` is set to the directory where you want the data to be saved.
+
+Here’s a quick **example** of how to adjust the script for downloading data for multiple trading pairs:
+
+```python
+def download_data():
+    cm_or_um = "um"
+    symbols = ["BTCUSDT", "LTCUSDT"]  # Updated symbols
+    intervals = ["1d"]
+    years = ["2020", "2021", "2022", "2023", "2024"]
+    months = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]
+    download_path = binance_data_path
+    download_binance_monthly_data(
+        cm_or_um, symbols, intervals, years, months, download_path
+    )
+    print(f"Downloaded monthly data to {download_path}.")
+    current_datetime = datetime.now()
+    current_year = current_datetime.year
+    current_month = current_datetime.month
+    download_binance_daily_data(
+        cm_or_um, symbols, intervals, current_year, current_month, download_path
+    )
+    print(f"Downloaded daily data to {download_path}.")
+```
+
+### Formatting the Data
+
+The [`format_data`](https://github.com/allora-network/basic-coin-prediction-node/blob/5d70e9feee7d1e7725c7602427b6856e7ffbe479/model.py#L36) function processes raw data files downloaded from Binance, transforming them into a consistent format for analysis. Here are the key steps:
+
+1. **File Handling:**
+   - Lists and sorts all files in the `binance_data_path` directory.
+   - Exits if no files are found.
+
+2. **Initialize DataFrame:**
+   - An empty DataFrame `price_df` is created to store the combined data.
+
+3. **Process Each File:**
+   - Filters for `.zip` files and reads the contained CSV file.
+   - Retains the first 11 columns and renames them to: `["start_time", "open", "high", "low", "close", "volume", "end_time", "volume_usd", "n_trades", "taker_volume", "taker_volume_usd"]`.
+   - Sets the DataFrame index to the `end_time` column, converted to a timestamp.
+
+4. **Concatenate Data:**
+   - Combines data from each file into the `price_df` DataFrame.
+
+5. **Sort and Save:**
+   - Sorts the final DataFrame by date and saves it to `training_price_data_path`.
+
+### Column Descriptions
+
+- **start_time**: The start of the trading period.
+- **open**: Opening price.
+- **high**: Highest price during the period.
+- **low**: Lowest price during the period.
+- **close**: Closing price.
+- **volume**: Trading volume.
+- **end_time**: End of the trading period.
+- **volume_usd**: Trading volume in USD.
+- **n_trades**: Number of trades.
+- **taker_volume**: Taker buy volume.
+- **taker_volume_usd**: Taker buy volume in USD.
+
+This function consolidates and formats the historical price data, making it ready for analysis or machine learning tasks.
+
+### Training the Model
+
+The [`train_model`](https://github.com/allora-network/basic-coin-prediction-node/blob/5d70e9feee7d1e7725c7602427b6856e7ffbe479/model.py#L75) function trains a **linear regression model** using historical price data and saves the trained model to a file. Here's a breakdown of the process:
+
+1. **Load the Data:**
+   - Reads the price data from a CSV file specified by `training_price_data_path`.
+
+2. **Prepare the DataFrame:**
+   - Converts the `date` column to a timestamp and stores it as a numerical value.
+   - Computes the average price using the `open`, `close`, `high`, and `low` columns.
+
+3. **Reshape Data for Regression:**
+   - Extracts the `date` column as the feature (`x`) and the computed average price as the target (`y`).
+   - Reshapes these arrays to the format expected by `scikit-learn`.
+
+4. **Split the Data:**
+   - Splits the data into a training set and a test set using an 80/20 split. However, the test set is not used further in this function.
+
+5. **Train the Model:**
+   - Initializes and trains a `LinearRegression` model using the training data.
+
+6. **Save the Model:**
+   - Creates the directory for the model file if it doesn't exist.
+   - Saves the trained model to a file specified by `model_file_path` using `pickle`.
+
+7. **Print Confirmation:**
+   - Prints a message indicating that the trained model has been saved.
+
+### Modifying the Function for Different Models
+
+To change the model used for training, replace the `LinearRegression` model with another machine learning algorithm. Here are a few examples:
+
+#### Using Decision Tree Regression
+
+```python
+from sklearn.tree import DecisionTreeRegressor
+
+def train_model():
+    # Load the eth price data
+    price_data = pd.read_csv(training_price_data_path)
+    df = pd.DataFrame()
+
+    # Convert 'date' to a numerical value (timestamp) we can use for regression
+    df["date"] = pd.to_datetime(price_data["date"])
+    df["date"] = df["date"].map(pd.Timestamp.timestamp)
+
+    df["price"] = price_data[["open", "close", "high", "low"]].mean(axis=1)
+
+    # Reshape the data to the shape expected by sklearn
+    x = df["date"].values.reshape(-1, 1)
+    y = df["price"].values.reshape(-1, 1)
+
+    # Split the data into training set and test set
+    x_train, _, y_train, _ = train_test_split(x, y, test_size=0.2, random_state=0)
+
+    # Train the model using Decision Tree Regression
+    model = DecisionTreeRegressor()
+    model.fit(x_train, y_train)
+
+    # create the model's parent directory if it doesn't exist
+    os.makedirs(os.path.dirname(model_file_path), exist_ok=True)
+
+    # Save the trained model to a file
+    with open(model_file_path, "wb") as f:
+        pickle.dump(model, f)
+
+    print(f"Trained model saved to {model_file_path}")
+```
