@@ -84,7 +84,7 @@ Threshold under which the inference requests will be deleted or prevented from b
 
 Default Value: 1 allo
 
-The purpose is to allow to prevent unnecessary processing of requests with minimal impact, keeping the state of the chain tidy, while at the same time be conservative with partiallly exhausted inference requests.
+The purpose is to allow to prevent unnecessary processing of requests with minimal impact, keeping the state of the chain tidy, while at the same time be conservative with partially exhausted inference requests.
 
 #### max_missing_inference_percent
 
@@ -96,7 +96,7 @@ Penalizing workers for missing inferences encourages reliability and accountabil
 
 #### required_minimum_stake
 
-Sets the minimum stake to be a worker or reputer. If a worker or reputer has less than this stake, then it is not eligible for rewards. This is set at worker and reputer registration.
+Sets the minimum stake to be considered as a reputer in good standing. If a reputer has less than this stake, than their contribution to reputation scoring will be ignored, and they will not receive any rewards from the system.
 
 Default Value: 100 allo
 
