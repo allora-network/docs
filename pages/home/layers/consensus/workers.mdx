@@ -9,7 +9,7 @@ Scores are used to calculate rewards.
 
 ## Inference Workers
 
-**One-out Inference**: evaluating the performance of an inference by removing one worker’s inference and seeing how much the loss increases.
+**One-out Inference**: evaluating the impact of an inference by removing one worker’s inference and seeing how much the loss increases.
 
 The performance score $$T_{ij}$$ for inference worker $$j$$ is calculated as the difference in the logarithm of losses with and without the worker’s inference. If removing a worker's contribution increases the loss, their performance score is positive, indicating a valuable contribution. 
 
@@ -27,7 +27,7 @@ When you remove one worker to see their impact (**one-out inference**), the over
 
 ### Why One-In Inferences Are Needed
 To better understand each forecast worker's unique contribution, you need to also see what happens when you specifically include their work (**one-in inference**).
-By adding a worker’s specific input to the group and measuring the change, you can see how much they really help.
+By adding a worker’s forecast-implied inference to a group without any forecast-implied inferences and measuring the change, you can see how much they really help on their own.
 
 $$
 T_{ik}^+ = \log \mathcal{L}_i^- - \log \mathcal{L}_{ki}^+

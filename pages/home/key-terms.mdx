@@ -20,10 +20,11 @@ Predictions or conclusions made by workers about specific outcomes within a give
 
 ## Forecasts
 
-Predictions made by workers about the performance of their peers in the current epoch. Forecasts are used to gauge the reliability and accuracy of the participants' inferences.
+Predictions made by workers about the performance of their peers in the current epoch, expressed as a set of forecasted losses in accordance with the topic's loss function. 
+Forecasts are used to gauge the reliability and accuracy of the participants' inferences within the specific context provided by the current circumstances.
 
 <Callout>
-Forecasts and predictions are used interchangeably throughout the docs.
+Forecasts and predictions are used interchangeably throughout the docs when referring to the output of forecasters.
 </Callout>
 
 ## Context Awareness
@@ -32,7 +33,7 @@ An additional dimension of evaluation that enables the network to achieve the be
 
 By incorporating feedback from the test set (live, revealed ground truth plus the live, revealed performances of one's peers), both inference and forecast models of individual workers can be improved over time. This improves overall network performance. 
 
-By incentivizing forecasts, workers are incentivized to understand the contexts in which they and their peers perform well or poorly. For example, Allora may understand that a subset of workers perform better on Wednesdays, whereas another performs well on Thursdays, or some do well in bear markets and others in bull markets. Integrating such context-aware insights empowers Allora to admit better performance than any individual actor because it can selectively leverage insights from the appropriate actors in the appropriate contexts.
+By incentivizing forecasts, workers are incentivized to understand the contexts in which they and their peers perform well or poorly. For example, forecasters may understand that a subset of workers perform better on Wednesdays, whereas another performs well on Thursdays, or some do well in bear markets and others in bull markets. Integrating such context-aware insights empowers Allora to admit better performance than any individual actor because it can selectively leverage insights from the appropriate actors in the appropriate contexts.
 
 ## Network Participants
 
@@ -53,11 +54,7 @@ Incentives given to workers and reputers based on their accuracy, performance an
 ## Stake
 
 A financial commitment made by reputers to show confidence in their ability to assess reputation by sourcing the truth and comparing it to workers' inferences. 
-This stake increases the importance and rewards of a topic. 
-
-- Reputers and workers must place a minimum stake to participate, ensuring network security and preventing attacks 
-- This registration stake allows participation but **does not** influence topic rewards
-- Participants use the Allora chain CLI to stake
+This stake increases the importance and rewards of a topic. Participants use the Allora chain CLI to stake.
 
 ### Delegated Stake
 
@@ -79,4 +76,4 @@ This two-step process helps protect against flash attacks while maintaining a sm
 
 A measure of how the performance of a worker’s inference compares to the network’s previously reported accuracy.
 
-A positive regret implies that the inference of worker `x` is expected to outperform, whereas a negative regret implies lower expected performance for worker `x`.
+A positive regret implies that the inference of worker `x` outperforms the network, whereas a negative regret implies the network outperforms worker `x`.

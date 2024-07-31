@@ -2,7 +2,7 @@ import { Callout } from 'nextra/components'
 
 # Calculating Topic Reward Distribution Across all Network Participants
 
-Now that we've explained the mechanisms behind distributing rewards for the actors of each network participant, let's dive in to how topic rewards are distributed across:
+Now that we've explained the mechanisms behind distributing rewards for the actors of each network participant, let's dive in to how topic rewards are distributed across the groups of::
 - inference workers
 - forecast workers 
 - reputers
@@ -29,7 +29,7 @@ $$
 Where:
 - $$ F_i $$ is the entropy for inference workers.
 - $$ \sum_j $$ means we add up the values for all inference workers $$ j $$.
-- $$ f_{ij} $$ is the fraction of rewards for the $$ j $$-th inference worker.
+- $$ f_{ij} $$ is the (smoothed) fraction of rewards for the $$ j $$-th inference worker.
 - $$ N_i^{\text{eff}} $$ is the effective number of inference workers (a fair count to prevent cheating).
 - $$ N_i $$ is the total number of inference workers.
 - $$ \beta $$ is a constant that helps adjust the calculation.
@@ -47,7 +47,7 @@ $$
 Where:
 - $$ G_i $$ and $$ H_i $$ are the entropies for forecast workers and reputers, respectively.
 - $$ \sum_k $$ and $$ \sum_m $$ mean we add up the values for all forecast workers $$ k $$ and all reputers $$ m $$.
-- $$ f_{ik} $$ and $$ f_{im} $$ are the fractions of rewards for the $$ k $$-th forecast worker and the $$ m $$-th reputer.
+- $$ f_{ik} $$ and $$ f_{im} $$ are the (smoothed) fractions of rewards for the $$ k $$-th forecast worker and the $$ m $$-th reputer.
 - $$ N_f^{\text{eff}} $$ and $$ N_r^{\text{eff}} $$ are the effective numbers of forecast workers and reputers.
 - $$ N_f $$ and $$ N_r $$ are the total numbers of forecast workers and reputers.
 
@@ -57,6 +57,10 @@ where we have defined modified reward fractions per class as:
 $$
 f_{ij} = \frac{\tilde{u}_{ij}}{\sum_j \tilde{u}_{ij}}, \quad f_{ik} = \frac{\tilde{v}_{ik}}{\sum_k \tilde{v}_{ik}}, \quad f_{im} = \frac{\tilde{w}_{im}}{\sum_m \tilde{w}_{im}}
 $$
+
+<Callout type="info">
+    Here, the tilde over the rewards indicates they are smoothed using an exponential moving average to remove noise and volatility from the decentralization measure.
+</Callout>
 
 ### Effective Number of Participants
 
@@ -85,35 +89,35 @@ In simpler terms:
 - $$ U_i $$ is the reward for inference workers.
 - $$ V_i $$ is the reward for forecast workers.
 - $$ W_i $$ is the reward for reputers.
-- $$ E_{i,t} $$ is the total reward for the task at time $$ t $$.
+- $$ E_{i,t} $$ is the total reward for the participants in topic $$ t $$.
 - $$ \chi $$ is a factor that adjusts how much reward goes to forecast workers.
-- $$ \gamma $$ is a balance factor to keep everything fair.
+- $$ \gamma $$ is a is a normalization factor to ensure the rewards add up to $$ E_{i,t} $$.
 - $$ F_i $$, $$ G_i $$, and $$ H_i $$ are the entropies for inference workers, forecast workers, and reputers.
 
-### How Good is the Forecast? Checking the Predictions
+### What Value is Added by Forecasters? Checking the Predictions
 
-We check how good the forecast is using a score called $$ T_i $$:
+We quantify the value added by the entire forecasting task using a score called $$ T_i $$:
 
 $$
 T_i = \log L_i^- - \log L_i
 $$
 
 Where:
-- $$ T_i $$ is the performance score for the forecast.
-- $$ L_i^- $$ is the network loss without the forecast task.
+- $$ T_i $$ is the performance score for the entire forecasting task.
+- $$ L_i^- $$ iis the network loss when including all forecast-implied inferences.
 - $$ L_i $$ is the network loss with the forecast task.
 
-We then use this score to decide how much the forecast workers should get. The more accurate their predictions, the higher their reward:
+We then use this score to decide how much the forecast workers should get. The higher their score relative to inference workers, the higher the total reward allocated to forecasters:
 
 $$
-\tau_i \equiv \frac{T_i - \min \left( 0, \sum_j T_{ij} \right)}{\sum_j T_{ij}}
+\tau_i \equiv \alpha \frac{T_i - \min(0, \max_j T_{ij})}{|\max_j T_{ij}|} + (1 - \alpha) \tau_{i-1}
 $$
 
 Where:
-- $$ \tau_i $$ is the adjusted score for the forecast task.
-- $$ T_{ij} $$ is the performance score for each forecast worker.
+- $$ \tau_i $$ is a ratio expressing the relative added value of the forecasting task relative to inference workers.
+- $$ T_{ij} $$ is the performance score for each inference worker.
 
-This score is then adjusted to fit within a specific range:
+This ratio is then mapped onto a fraction of the worker rewards that is allocated to forecasters:
 
 $$
 \chi = \begin{cases}
@@ -123,15 +127,14 @@ $$
 \end{cases}
 $$
 
-### The Balance Factor
+### The Normalization Factor
 
-We use a balance factor $$ \gamma $$ to make sure everything stays fair:
+We use a normalization factor $$ \gamma $$ to ensure the rewards add up to $$ E_{i,t} $$:
 
 $$
 \gamma = \frac{F_i + G_i}{(1 - \chi)F_i + \chi G_i}
 $$
 
 Where:
-- $$ \gamma $$ ensures that the rewards are balanced correctly.
-
+- $$ \gamma $$ ensures that the total reward allocated to workers ($$ U_{i} + V_{i} $$) remains constant after accounting for the added value of the forecasting task.
 By using these methods, we can ensure that rewards are spread out fairly and encourage everyone to contribute their best work.
