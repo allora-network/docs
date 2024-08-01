@@ -1,11 +1,12 @@
 # Inference Synthesis
 
-Inference synthesis in Allora is a process that combines individual inferences from various workers to produce an aggregate inference. This process takes place over several epochs and involves both inference and forecasting tasks.
+Inference synthesis in Allora is a process that combines individual inferences from various workers to produce an aggregate inference. This process takes place at each epoch and involves both inference and forecasting tasks.
 
 ## Normalization of Regrets
 
 Regrets are normalized to ensure weights are comparable and within a reasonable range.
-This prevents any single inference from disproportionately affecting the final result.
+
+This allows the use of a single mapping function to map regrets to weights, independently of the absolute scale of the losses and regrets.
 The regret is normalized using its standard deviation across all workers, adjusted by a small constant 𝜖:
 
 ![normalization](/normalization-of-regrets.png)
@@ -19,7 +20,8 @@ The normalized regrets 𝑅𝑖𝑗𝑘 are then used to calculate the weights f
 
 ![weights](/weights.png)
 
-These weights determine how much each initial inference 𝐼𝑖𝑗 will contribute to the final network inference.
+These weights determine how much each raw inference 𝐼𝑖𝑗 will contribute to the final network inference.
+
 
 ## Forecast-Implied Inferences
 
@@ -32,7 +34,7 @@ Here, 𝑤𝑖𝑗𝑘 are weights assigned to each inference based on the forec
 
 ## Final Network Inference
 
-The final inference for the network is a weighted combination of all individual inferences.
+The final inference for the network is a weighted combination of all individual inferences following a procedure similar to the generation of forecast-implied inferences discussed above, but using the actual regrets based on the losses provided by reputers instead of forecasted losses.
 This combined result is expected to be more accurate and reliable due to the weighting process.
 
 ![synthesis-final](/synthesis-final.png)
