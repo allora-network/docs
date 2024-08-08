@@ -12,22 +12,31 @@ Allora is a decentralized network that leverages the power of collective partici
 
 Here are the main repositories you'll need to get started with Allora:
 
-### Allora Inference Base
+### Allora Offchain Node
 
-The [Allora Inference Base Image](https://github.com/allora-network/allora-inference-base) allows model providers to participate in the Allora network. This repo is the base for worker nodes (for providing inferences) and head nodes (which coordinate requests and aggregate results).
+The [Allora Offchain Node](https://github.com/allora-network/allora-offchain-node) allows inference and data providers to participate in the Allora network. This repo is the base for both forecast and inference worker nodes, as well as reputers.
+
+#### Workers
+- [Deploy a Worker](/devs/workers/deploy-worker/build-and-deploy-worker-from-scratch)
+
+##### Walkthroughs
+
+- [Basic Coin Prediction Worker](/devs/workers/walkthroughs/walkthrough-price-prediction-worker)
+- [Hugging Face Worker](/devs/workers/walkthroughs/walkthrough-hugging-face-worker)
+
+#### Reputers
+
+- [Deploy a Reputer](/devs/reputers/reputers)
+
+##### Walkthroughs
+
+- [Coin Prediction Reputer](/devs/reputers/coin-prediction-reputer)
 
 ### Allora Chain
 
 The [Allora chain](https://github.com/allora-network/allora-chain) is a Cosmos Hub chain that forms the core of the Allora network. This repository contains the blockchain's codebase and is useful for validators.
 
 You can use the [Allorad CLI tool](/devs/get-started/installation/cli) to query the chain and make transactions.
-
-### Worker Repositories
-
-The Hugging Face and Price Prediction worker examples below show how to provide inferences for different topics on Allora.
-
-- [Hugging Face](https://github.com/allora-network/allora-huggingface-walkthrough)
-- [Price Prediction](https://github.com/allora-network/basic-coin-prediction-node)
 
 ### Allora Consumer Contracts
 

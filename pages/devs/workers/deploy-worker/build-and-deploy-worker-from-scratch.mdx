@@ -1,48 +1,113 @@
 import { Callout } from 'nextra/components'
 
-# Build and Deploy a Worker Node from Scratch
+# Build and Deploy a Worker Node
 
-> This guide helps you build your worker by yourself without the help of the allocmd CLI tool
-
-This document outlines a setup where the worker node is supported by an inference server. Communication occurs through an endpoint, allowing the worker to request inferences from the server. This setup results in an ultra-light worker node.
+This document outlines a setup where the worker node is supported by an inference server. Communication occurs through an endpoint, allowing the worker to request inferences from the server.
 
 To build this setup, please follow these steps:
 
-### Prerequisites
+## Prerequisites
 
-You should have a head node to connect the worker to.
+Ensure you have the following installed on your machine:
 
-This can be either one public head node or a head node you can run locally. We will use this connectivity data of the head to connect to it from our worker. 
+- Git
+- Go (version 1.16 or later)
+- Docker
 
-<Callout type="info">
-To run your own head node locally, follow the instructions in [Allora Inference Base](https://github.com/allora-network/allora-inference-base).
+## Clone the `allora-offchain-node` Repository
+
+Download the `allora-offchain-node` git repo:
+
+```bash
+git clone https://github.com/allora-network/allora-offchain-node
+cd allora-offchain-node
+```
+
+## Install Dependencies
+
+```bash
+go mod download
+```
+
+## Configure Your Environment
+
+1. Change `config.example.json` to `config.json`.
+2. Open `config.example.json` and **update** the necessary fields inside the `wallet` sub-object and `worker` config with your specific values:
+
+### `wallet` Sub-object
+
+1. `addressKeyName`: The name you gave your wallet key when [setting up your wallet](/devs/get-started/setup-wallet)
+2. `addressRestoreMnemonic`: The mnemonic that was outputted when setting up a new key
+4. `nodeRpc`: The [RPC URL](/devs/get-started/setup-wallet#rpc-url-and-chain-id) for the corresponding network the node will be deployed on
+
+<Callout type="warning">
+Please make sure your wallet is properly funded, or your node will not be able to pay the registration fee and connect to the network.
+
+To fund your wallet, enter your wallet address into [the Allora Testnet faucet](https://faucet.testnet-1.testnet.allora.network/) and press 'Request Funds'.
 </Callout>
 
-<Callout>
-Should you want to connect to a node in the network, please [contact us](/community/contribute) for personalized access to connect to a head node.
+### `worker` Config
+
+1. `topicId`: The specific topic ID you created the worker for. 
+2. `InferenceEndpoint`: The endpoint exposed by your worker node to provide inferences to the network.
+3. `Token`: The token for the specific topic you are providing inferences for. The token needs to be exposed in the inference server endpoint for retrieval.
+  - The `Token` variable is specific to the endpoint you expose in your `main.py` file. It is not related to any topic parameter.
+
+<Callout type="warning">
+The `worker` config is an array of sub-objects, each representing a different topic ID. This structure allows you to manage multiple topic IDs, each within its own sub-object.
+
+To deploy a worker that provides inferences for multiple topics, you can duplicate the existing sub-object and add it to the `worker` array. Update the `topicId`, `InferenceEndpoint` and `Token` fields with the appropriate values for each new topic:
+```json
+"worker": [
+      {
+        "topicId": 1,
+        "inferenceEntrypointName": "api-worker-reputer",
+        "loopSeconds": 5,
+        "parameters": {
+          "InferenceEndpoint": "http://localhost:8000/inference/{Token}",
+          "Token": "ETH"
+        }
+      },
+      // worker providing inferences for topic ID 2
+      {
+        "topicId": 2, 
+        "inferenceEntrypointName": "api-worker-reputer",
+        "loopSeconds": 5,
+        "parameters": {
+          "InferenceEndpoint": "http://localhost:8000/inference/{Token}", // the specific endpoint providing inferences
+          "Token": "ETH" // The token specified in the endpoint
+        }
+      }
+    ],
+```
 </Callout>
 
-### Inference Server
+## Create the Inference Server
 
-#### Prepare the API Gateway
+### Prepare the API Gateway
 
 Ensure you have an API gateway or server that can accept API requests to call your model.
 
-#### Server Responsibilities
+### Server Responsibilities
 
-- Accept API requests from main.py, your custom Python script executed by the node function.
+- Accept API requests from `main.py`, your custom Python script executed by the node function.
 - Respond with the corresponding inference obtained from the model.
 
-#### Inference Relay
+### Inference Relay
 
-- Worker node relays the inference to the head node.
-- Head node dispatches the inference to the chain.
+Below is a sample structure of what your `main.go`, `main.py` and Dockerfile will look like. You can also find a working example [here](https://github.com/allora-network/basic-coin-prediction-node).
 
-If you have a model running but do not have the inference server, you can make a Dockerfile to bundle a simple Flask application that exposes an endpoint to access the model. Below is a sample structure of what your `app.py` and Dockerfile will look like. You can also find a working example [here](https://github.com/allora-network/basic-coin-prediction-node).
+#### `main.go`
 
-##### `app.py`
+`allora-offchain-node` comes preconfigured with a `main.go` file inside the [`adapter/api-worker-reputer` folder](https://github.com/allora-network/allora-offchain-node/blob/dev/adapter/api-worker-reputer/main.go).
 
-You will create a Flask application that imports the model module and calls the `get_inference`  function (this could have any name) upon API request, with the required argument. Before proceeding, ensure that all necessary packages are listed in the `requirements.txt ` file.
+The `main.go` file fetches the responses outputted from the Inference Endpoint based on the `InferenceEndpoint` and `Token` provided in the section above.
+
+#### `main.py`
+
+`allora-offchain-node` comes preconfigured with a `main.py` file that uses Flask to expose the Inference Endpoint. 
+
+The Flask application calls the `get_inference`  function upon API request, with the required argument (`Token`). Before proceeding, ensure that all necessary packages are listed in the `requirements.txt` file.
 
 ```python
 from flask import Flask
@@ -51,161 +116,109 @@ from model import get_inference  # Importing the hypothetical model
 app = Flask(__name__)
 
 @app.route('inference/<argument>')
-def inference(argument):
-    inference_data = get_inference(argument)
-    return inference_data
+def get_inference(param):
+    random_float = str(random.uniform(0.0, 100.0))
+    return random_float
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
 ```
 
-##### `Dockerfile`
+<Callout type="warning">
+  The model in `allora-offchain-node` is barebones and outputs a random integer. Follow the model built in [`basic-coin-prediction-node`](https://github.com/allora-network/basic-coin-prediction-node) as an example for a full model that uses linear regression to provide an inference.
 
-Next, you will create a Dockerfile like below and run the `docker build -t inference-server .` and `docker run -p 8000:8000 inference-server`
+  A full breakdown of the components needed to build the model is available [here](/devs/workers/walkthroughs/walkthrough-price-prediction-worker).
+</Callout>
+
+
+
+#### `Dockerfile`
+
+A sample Dockerfile has been created in `allora-offchain-node` that can be used to deploy your model on port 8000.
 
 ```dockerfile
-FROM python:3.8-slim
+FROM python:3.9-slim
+
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-COPY . /app
+COPY requirements.txt .
 
-# Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
 
 EXPOSE 8000
 
-ENV NAME sample
-
-# Run gunicorn when the container launches and bind port 8000 from app.py
-CMD ["gunicorn", "-b", ":8000", "app:app"]
+CMD ["python", "main.py"]
 ```
 
-You can test your local inference server by performing a `GET` request on `http://localhost:8000/inference/<argument>` (e.g. for ETH prediction model, this argument value is `ETH` ).
+## Running the Node
 
-### 2. Node Function Python Script
+Now that the node is configured, let's deploy and register it to the network. To run the node, follow these steps:
 
-To communicate to the inference, you need to have the Python script to serve as the entry point from the worker node to your inference server. You will have to write your custom logic in the `main.py` consisting of the logic to call the inference server and other processing logic to get the data ready for the head node. You can find a simple `main.py` below:
+### Generate Keys and Export Variables
 
-```python python
-import requests
-import sys
-import json
+Execute the following command from the root directory:
 
-def process(argument):
-    url = f"http://localhost:8000/inference/{argument}"
-    inference_response = requests.get(url)
-
-    if inference_response.status_code == 200:
-        inference = inference_response.json()
-        # Your custom processing logic can be written here
-        # Data must be provided in a `{"value":"<actual-value>"}` json format.
-        response = json.dumps(inference['data']) 
-    else:
-        response = json.dumps({"error": "Errors providing inference"})
-
-    print(response)
-
-
-if __name__ == "__main__":
-    try:
-      	topic_id = sys.argv[1]
-        argument = sys.argv[2]
-        process(argument)
-    except Exception as e:
-        response = json.dumps({"error": {str(e)}})
-        print(response)
+```sh
+chmod +x start.local
+./start.local
 ```
 
-### Identity Generation
+This command will handle a couple tasks automatically:
 
-Node identity is determined by its private key. Each node on the network is also known as a peer, which has an ID and a private key. You can generate node identity by running the following command:
+1. **Key Creation**: Docker Compose will automatically create Allora keys for you.
 
-```shell
-docker run -it --entrypoint=bash -v ./:/data alloranetwork/allora-inference-base:latest -c "mkdir -p /data/keys && (cd /data/keys && allora-keys)"
+<Callout type="info">
+If you've already specified a predefined key and mnemonic, this command will recognize those and export the predefined values instead of overriding them.
+</Callout>
+
+2. **Export Variables**: The system will automatically export the necessary variables from the account created. These variables are used by the offchain node and are bundled with your provided `config.json`, then passed to the node as environment variables.
+
+<Callout>
+If you need to **make changes** to your `config.json` file after you ran the `init.config` command:
+
+1. Go to `./data/env_file`
+2. Set `ENV_LOADED` to `false`
+3. Rerun:
+```sh
+chmod +x init.config
+./init.config 
 ```
+</Callout>
 
-### Worker Node Main Dockerfile
+### Request from Faucet
 
-Now that you have the node identity generated for your worker, and your node function pulling data from your Inference Server, you must bundle your worker node with Dockerfile to be tested as a whole. As stated earlier, your  Dockerfile will have to pull the `allora-inference-base` image from the [Allora Docker repository](https://hub.docker.com/u/alloranetwork) and combine it with your custom `main.py`. Below is an example of what your `Dockerfile_node`should look like:
+1. Find your Allora address in `./data/env_file` if you haven't already specified a predefined key and mnemonic.
+2. Request some tokens from the [Allora Testnet Faucet](https://faucet.testnet-1.testnet.allora.network/) to register your worker in the next step successfully.
 
-```dockerfile
-# Pull base image
-FROM alloranetwork/allora-inference-base:latest
-
-# Copy requirements and install dependencies
-COPY requirements.txt /app/
-RUN pip3 install --requirement /app/requirements.txt
-
-# Copy the main application file
-COPY main.py /app/
-    
-CMD ["allora-node", "--role=worker", \
-     "--peer-db=/data/peerdb", \
-     "--function-db=/data/function-db", \
-     "--runtime-path=/app/runtime", \
-     "--runtime-cli=bls-runtime", \
-     "--workspace=/data/workspace", \
-     "--private-key=/data/keys/priv.bin", \
-     "--log-level=debug", \
-     "--port=9011", \
-     "--topic=allora-topic-1-worker", \
-     "--boot-nodes=/ip4/{head-ip}/tcp/{head-port}/p2p/{head-id}"]
-
+### Deploy the Node
 
 ```
-
-> Note:
->
-> 1. The `head-id/head-port` value in BOOT_NODES variable are the `peer id` and `p2p-port` of the  head node and they are  `12D3KooWRX78c84ko4ZNiDFE5i2d9QT4SPxBkpT6kjzxUotQ8sNR/9010` and `12D3KooWEvNL9wXM6dzusvRpA7qo98QdsUE52x4vHtv2sttc6Za7/9011`
-> 2. The `BOOT_NODE`variable can take more than one address separated by comma.  
->    It can be expressed in an ip form (`/ip4/127.0.0.1/tcp/9010/p2p/12D3KooWRX78c84ko4ZNiDFE5i2d9QT4SPxBkpT6kjzxUotQ8sNR`) or a dns form ( `/dns4/my-dns-name.xyz/tcp/9010/p2p/12D3KooWRX78c84ko4ZNiDFE5i2d9QT4SPxBkpT6kjzxUotQ8sNR`)
-
-With the existence of the Dockerfile in your root directory, you can now run 
-
-```shell
-# Build your Dockerfile
-docker build -f Dockerfile_node -t image-name .
-
-# run your newly built docker image
-docker run -d -v ./:/data --name container-name image-name
+docker compose up --build
 ```
 
-At this point, your worker node is setup. If all is OK, you'll see in the logs a line saying `peer connected`. 
+Both the offchain node and the source services will be started. They will communicate through endpoints attached to the internal DNS.
 
-It now should be able to pick up published requests from the head node (for your specified topic) and return responses. 
+If your node is working correctly, you should see it actively checking for the active worker nonce:
 
-You can test by running the following curl command to test, and see if your worker shows activity on the logs.
-
-```shell
-curl --location 'http://{head-ip}:head-rest-api-port/api/v1/functions/execute' --header 'Accept: application/json, text/plain, */*' --header 'Content-Type: application/json;charset=UTF-8' --data '{
-    "function_id": "bafybeigpiwl3o73zvvl6dxdqu7zqcub5mhg65jiky2xqb4rdhfmikswzqm",
-    "method": "allora-inference-function.wasm",
-    "parameters": null,
-    "topic": "1",
-    "config": {
-        "env_vars": [
-            {                              
-                "name": "BLS_REQUEST_PATH",
-                "value": "/api"
-            },
-            {                              
-                "name": "ALLORA_ARG_PARAMS",
-                "value": "ETH"
-            }
-        ],
-        "number_of_nodes": -1,
-        "timeout" : 2
-    }
-}' | jq
+```bash
+offchain_node    | {"level":"debug","topicId":1,"time":1723043600,"message":"Checking for latest open worker nonce on topic"}
 ```
 
-> It's important to note that although all Dockerfiles in this guide are designed to run independently, you have the option to run them together as services in a docker-compose file. In fact, it is advised to do so, as you can observe in the [basic-coin-prediction-node example](https://github.com/allora-network/basic-coin-prediction-node).
+A **successful** response from your Worker should display:
 
-Please [contact us](/community/contribute) for personalized access to connect to a head node.  
-You can otherwise run a head node following instructions on [Allora Inference Base README](https://github.com/allora-network/allora-inference-base).
+```bash
+{"level":"debug","msg":"Send Worker Data to chain","txHash":<tx-hash>,"time":<timestamp>,"message":"Success"}
+```
 
-## Deploying a Worker Node
+Congratulations! You've successfully deployed and registered your node on Allora.
+
+You can test your local inference server by performing a `GET` request on `http://localhost:8000/inference/<token>`.
+
+## Deploying a Worker Node to Production
 
 Now that you have built and tested your worker node, Your next goal will be to deploy it to production, where it runs forever. to do that, we use the Kubernetes cluster and Upshot Universal-helm chart. While you can deploy your node however you wish, you can also follow these steps if you are not opinionated on deployment.
 

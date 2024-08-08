@@ -1,26 +1,22 @@
-import { Callout } from 'nextra/components'
+# Deploy a Coin Prediction Reputer
 
-# Deploy a Reputer Node using Docker
+This is an example of a setup for running an Allora Network reputer node for providing ground truth and reputation, where the Allora Network node defers the requests to another container which is responsible for providing the ground truth, which is run in a separate container. It also provides a means of updating the internal database of the ground truth provider.
 
-Deploying a reputer in the Allora network involves configuring the `config.example.json` file to ensure your reputer can interact with the network and provide accurate truth data.
+## Components
 
-To build this setup, please follow these steps:
+- **Reputer**: The node that responds to reputer requests from the Allora Network.
+- **Truth**: A container that performs reputation tasks, maintains the state of the model, and responds to reputation requests via a simple Flask application. It fetches data from CoinGecko.
+- **Updater**: A cron-like container designed to periodically trigger the Truth node's data updates.
 
-## Prerequisites
+A full working example for a reputer node for ETH price prediction topics is provided in the [`docker-compose.yml` file](https://github.com/allora-network/coin-prediction-reputer/blob/main/docker-compose.yml) of our example repo. Simply run:
 
-Ensure you have the following installed on your machine:
+## Setup a Reputer Node with `docker-compose`
 
-- Git
-- Go (version 1.16 or later)
-- Docker
-
-## Clone the `allora-offchain-node` Repository
-
-Download the `allora-offchain-node` git repo:
+### Download the Repository
 
 ```bash
-git clone https://github.com/allora-network/allora-offchain-node
-cd allora-offchain-node
+git clone https://github.com/allora-network/coin-prediction-reputer.git
+cd coin-prediction-reputer
 ```
 
 ## Configure Your Environment
@@ -86,74 +82,6 @@ To deploy a reputer that provides inferences for multiple topics, you can duplic
 ```
 </Callout>
 
-## Create the Truth Server
-
-### Prepare the API Gateway
-
-Ensure you have an API gateway or server that can accept API requests to call your model.
-
-### Server Responsibilities
-
-- Accept API requests from `main.py`, your custom Python script executed by the node function.
-- Respond with the corresponding inference obtained from the model.
-
-### Truth Relay
-
-Below is a sample structure of what your `main.go`, `main.py` and Dockerfile will look like. You can also find a working example [here](https://github.com/allora-network/basic-coin-prediction-node).
-
-#### `main.go`
-
-`allora-offchain-node` comes preconfigured with a `main.go` file inside the [`adapter/api-worker-reputer` folder](https://github.com/allora-network/allora-offchain-node/blob/dev/adapter/api-worker-reputer/main.go).
-
-The `main.go` file fetches the responses outputted from the Source of Truth Endpoint based on the `SourceOfTruthEndpoint` and `Token` provided in the section above.
-
-#### `main.py`
-
-`allora-offchain-node` comes preconfigured with a `main.py` file that uses Flask to expose the Source of Truth Endpoint. 
-
-The Flask application calls the `get_truth` function upon API request, with the required arguments (`Token`, `blockHeight`). Before proceeding, ensure that all necessary packages are listed in the `requirements.txt` file.
-
-```python
-from flask import Flask
-from model import get_inference  # Importing the hypothetical model
-
-app = Flask(__name__)
-
-@app.route('/truth/<token>/<blockheight>', methods=['GET'])
-def get_truth(token, blockheight):
-    random_float = str(random.uniform(0.0, 100.0))
-    return random_float
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0')
-```
-
-<Callout type="warning">
-  The source of truth in `allora-offchain-node` is barebones and outputs a random integer. Follow the source of truth built in [`coin-prediction-reputer`](/devs/reputers/coin-prediction-reputer) as an example for a reputer that uses CoinGecko to fetch price data.
-</Callout>
-
-#### `Dockerfile`
-
-A sample Dockerfile has been created in `allora-offchain-node` that can be used to deploy your model on port 8000.
-
-```dockerfile
-FROM python:3.9-slim
-
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-
-COPY requirements.txt .
-
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-
-EXPOSE 8000
-
-CMD ["python", "main.py"]
-```
-
 ## Running the Node
 
 Now that the node is configured, let's deploy and register it to the network. To run the node, follow these steps:
@@ -189,6 +117,7 @@ chmod +x init.config
 ```
 </Callout>
 
+
 ### Request from Faucet
 
 1. Find your Allora address in `./data/env_file` if you haven't already specified a predefined key and mnemonic.
@@ -210,6 +139,33 @@ A **successful** response from your Reputer should display:
 
 Congratulations! You've successfully deployed and registered your node on Allora.
 
-## Learn More
+### Keep it updated
 
-Learn more by directly checking out the code and README for [the example ETH price reputer](https://github.com/allora-network/coin-prediction-reputer).
+You can keep the state updated by hitting the url: 
+
+```
+http://localhost:8000/update/<token-name>/<token-from>/<token-to>
+```
+where:
+- `token-name`: the name of the token on internal database, e.g. ETHUSD
+- `token-from`: the name of the token on Coingecko naming, e.g. ethereum
+- `token-to`: the name of the token on Coingecko naming, e.g. usd
+
+It is expected that this endpoint is hit periodically, as this is crucial for maintaining the accuracy of the provided ground truth.
+
+## Testing the Truth Service
+
+Here we'll setup a reputer with only the "truth service", which fetches the ground truth.
+
+To only test the truth service, you can simply follow these steps:
+
+- Run `docker compose up --build truth` and wait for the initial data load.
+- Requests can now be sent, e.g. ETH price ground truths can be fetched with: 
+  ```
+    $ curl http://localhost:8000/gt/ETHUSD/1719565747
+    {"value":"3431.440268842158"}
+  ```
+  or you can trigger an update to the current ETH price:
+  ```
+    $ curl http://localhost:8000/update/ETHUSD/ethereum/usd
+  ```

@@ -39,7 +39,6 @@ Let's break down this request body:
 - This request queries the index topic (topic `1`), on Allora Testnet, as specified by the head URL (https://heads.testnet-1.testnet.allora.network/api/v1/functions/execute).
 - We specify the `function_id` and `method` fields to indicate that we want to solicit inferences in a particular way (this concerns the internals of the worker nodes). These values can be recovered by following [this step-by-step guide](/devs/workers/deploy-worker/build-and-deploy-worker-from-scratch).
 - We pass in the input `ETH` to specify we want prices for Ethereum in particular, which is defined by the [`default_arg` of the topic](/devs/topic-creators/how-to-create-topic#creating-your-first-topic).
-- `number_of_nodes: -1` indicates that we don't care how many nodes respond, so long as they respond to [roll call](https://blockless.network/docs/protocol/networking/execution#acquiring-the-execution-binary-pre-cache) within `timeout: 2` seconds of the request broadcast.
 
 <Callout type="warning">
 Inferences returned by the method above are considered [Unsafe Requests](/devs/consumers#unsafe-requests).

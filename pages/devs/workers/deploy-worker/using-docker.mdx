@@ -1,17 +1,26 @@
 import { Callout } from 'nextra/components'
 
-# Walkthrough: Build and Deploy Price Prediction Worker Node
+# Build and Deploy a Worker Node using Docker
 
-> How to build a node that predicts the future price of Ether
+This document outlines a setup where the worker node is supported by an inference server. Communication occurs through an endpoint, allowing the worker to request inferences from the server.
 
-## Prerequisites 
+To build this setup, please follow these steps:
 
-1. Make sure you have checked the documentation on how to [build and deploy a worker node using Docker](/devs/workers/deploy-worker/using-docker).
-2. Clone the [basic-coin-prediction-node](https://github.com/allora-network/basic-coin-prediction-node) repository. It will serve as the base sample for your quick setup.
+## Prerequisites
+
+Ensure you have the following installed on your machine:
+
+- Git
+- Go (version 1.16 or later)
+- Docker
+
+## Clone the `allora-offchain-node` Repository
+
+Download the `allora-offchain-node` git repo:
 
 ```bash
-git clone https://github.com/allora-network/basic-coin-prediction-node
-cd basic-coin-prediction-node
+git clone https://github.com/allora-network/allora-offchain-node
+cd allora-offchain-node
 ```
 
 ## Configure Your Environment
@@ -70,11 +79,85 @@ To deploy a worker that provides inferences for multiple topics, you can duplica
 ```
 </Callout>
 
-## Building a Custom Model
+## Create the Inference Server
 
-`basic-coin-prediction-node` comes preconfigured with a model that uses linear regression to predict the price of Ethereum, and contribute an inference to topic 1 on Allora. Learn more about how this model is built from the ground up and how you can customize your model to give a unique inference to the network in the [next section](/devs/workers/walkthroughs/walkthrough-price-prediction-worker/modelpy).
+### Prepare the API Gateway
 
-## Deploying your Custom Prediction Node network
+Ensure you have an API gateway or server that can accept API requests to call your model. 
+
+<Callout>
+The model in `allora-offchain-node` is barebones and outputs a random integer. Follow the model built in [`basic-coin-prediction-node`](https://github.com/allora-network/basic-coin-prediction-node) as an example for a full model that uses linear regression to provide an inference.
+
+A full breakdown of the components needed to build the model is available [here](/devs/workers/walkthroughs/walkthrough-price-prediction-worker).
+</Callout>
+
+### Server Responsibilities
+
+- Accept API requests from `main.py`, your custom Python script executed by the node function.
+- Respond with the corresponding inference obtained from the model.
+
+### Inference Relay
+
+Below is a sample structure of what your `main.go`, `main.py` and Dockerfile will look like.
+
+#### `main.go`
+
+`allora-offchain-node` comes preconfigured with a `main.go` file inside the [`adapter/api-worker-reputer` folder](https://github.com/allora-network/allora-offchain-node/blob/dev/adapter/api-worker-reputer/main.go).
+
+The `main.go` file fetches the responses outputted from the Inference Endpoint based on the `InferenceEndpoint` and `Token` provided in the section above.
+
+#### `main.py`
+
+`allora-offchain-node` comes preconfigured with a `main.py` file that uses Flask to expose the Inference Endpoint. 
+
+The Flask application calls the `get_inference`  function upon API request, with the required argument (`Token`). Before proceeding, ensure that all necessary packages are listed in the `requirements.txt` file.
+
+```python
+from flask import Flask
+from model import get_inference  # Importing the hypothetical model
+
+app = Flask(__name__)
+
+@app.route('inference/<argument>')
+def get_inference(param):
+    random_float = str(random.uniform(0.0, 100.0))
+    return random_float
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0')
+```
+
+<Callout type="warning">
+  The model in `allora-offchain-node` is barebones and outputs a random integer. Follow the model built in [`basic-coin-prediction-node`](https://github.com/allora-network/basic-coin-prediction-node) as an example for a full model that uses linear regression to provide an inference.
+
+  A full breakdown of the components needed to build the model is available [here](/devs/workers/walkthroughs/walkthrough-price-prediction-worker).
+</Callout>
+
+
+
+#### `Dockerfile`
+
+A sample Dockerfile has been created in `allora-offchain-node` that can be used to deploy your model on port 8000.
+
+```dockerfile
+FROM python:3.9-slim
+
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+EXPOSE 8000
+
+CMD ["python", "main.py"]
+```
+
+## Running the Node
 
 Now that the node is configured, let's deploy and register it to the network. To run the node, follow these steps:
 
@@ -83,8 +166,8 @@ Now that the node is configured, let's deploy and register it to the network. To
 Execute the following command from the root directory:
 
 ```sh
-chmod +x init.docker
-./init.docker 
+chmod +x init.config
+./init.config 
 ```
 
 This command will handle a couple tasks automatically:
@@ -143,12 +226,3 @@ You can test your local inference server by performing a `GET` request on `http:
 ```bash
 curl http://localhost:8000/inference/<token>
 ```
-
-## Deploying your Custom Prediction Node to Production
-
-To get your node deployed to a remote production environment, you can deploy however you prefer or follow our Kubernetes [deployment guide](./build-and-deploy-worker-from-scratch#deploying-a-worker-node) where you:
-
-1. Add the universal-helm chart to the helm repo.
-2. Update the `values.yaml` file to suit your case.
-3. Install the universal helm chart, and it will automatically deploy the node to production with the provided values.
-4. Monitor the node in your Kubernetes cluster.
