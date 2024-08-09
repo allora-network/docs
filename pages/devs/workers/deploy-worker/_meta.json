@@ -1,5 +1,5 @@
 {
-  "deploy-worker-with-allocmd": "Deploy a Worker with allocmd",
-  "build-and-deploy-worker-from-scratch": "Build and Deploy Worker from Scratch",
-  "build-and-deploy-worker-with-node-runners": "Build and Deploy Worker with AWS Node Runners"
+  "using-docker": "Using Docker",
+  "build-and-deploy-worker-from-scratch": "From Scratch",
+  "build-and-deploy-worker-with-node-runners": "Using AWS Node Runners"
 }

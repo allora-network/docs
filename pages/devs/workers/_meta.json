@@ -1,6 +1,5 @@
 {
   "requirements": "System Requirements",
   "deploy-worker": "Build/Deploy a Worker",
-  "register-worker-node": "Register a Worker Node", 
   "walkthroughs": "Walkthroughs"
 }
