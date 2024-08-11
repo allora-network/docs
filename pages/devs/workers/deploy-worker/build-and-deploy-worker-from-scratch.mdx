@@ -12,7 +12,6 @@ Ensure you have the following installed on your machine:
 
 - Git
 - Go (version 1.16 or later)
-- Docker
 
 ## Clone the `allora-offchain-node` Repository
 
@@ -130,30 +129,6 @@ if __name__ == '__main__':
   A full breakdown of the components needed to build the model is available [here](/devs/workers/walkthroughs/walkthrough-price-prediction-worker).
 </Callout>
 
-
-
-#### `Dockerfile`
-
-A sample Dockerfile has been created in `allora-offchain-node` that can be used to deploy your model on port 8000.
-
-```dockerfile
-FROM python:3.9-slim
-
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-
-COPY requirements.txt .
-
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-
-EXPOSE 8000
-
-CMD ["python", "main.py"]
-```
-
 ## Running the Node
 
 Now that the node is configured, let's deploy and register it to the network. To run the node, follow these steps:
@@ -197,7 +172,8 @@ chmod +x init.config
 ### Deploy the Node
 
 ```
-docker compose up --build
+chmod +x start.local
+./start.local
 ```
 
 Both the offchain node and the source services will be started. They will communicate through endpoints attached to the internal DNS.
