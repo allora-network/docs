@@ -11,8 +11,7 @@ Before you start, ensure you have the following:
 
 - A Docker environment with `docker compose` installed.
 - Basic knowledge of machine learning and the [Hugging Face](https://huggingface.co/) ecosystem.
-- Familiarity with Allora Network documentation on [allocmd](/devs/get-started/installation/cli#installing-allocmd) and [building and deploying a worker node from scratch](/devs/workers/deploy-worker/build-and-deploy-worker-from-scratch).
-
+- Familiarity with Allora Network documentation on [building and deploying a worker node using Docker](/devs/workers/deploy-worker/using-docker).
 
 ## Overview
 
@@ -37,47 +36,62 @@ Our worker will provide inferences on the BTC 24h Prediction, which is Topic `4`
 
 We will use [Coingecko](https://www.coingecko.com/en/api) to fetch the data. You will need to [create an API key](https://www.coingecko.com/en/api/pricing).
 
+## Clone the repo
 
-## Installing allocmd
-
-First, install `allocmd` as [explained in the documentation](/devs/get-started/installation/cli#installing-allocmd).
-
-## Initializing the worker for development
-
-Initialize the worker with your preferred name and topic ID in a development environment:
+2. Clone the [basic-coin-prediction-node](https://github.com/allora-network/basic-coin-prediction-node) repository. It will serve as the base sample for your quick setup.
 
 ```bash
-allocmd generate worker --name <workerName> --topic 3 --env dev
-cd <workerName>/worker
+git clone https://github.com/allora-network/basic-coin-prediction-node
+cd basic-coin-prediction-node
 ```
 
-```
-tree .
-.
-├── Dockerfile
-├── config.yaml
-├── data
-│   ├── head
-│   │   └── key
-│   │       ├── identity
-│   │       ├── priv.bin
-│   │       ├── priv.txt
-│   │       ├── pub.bin
-│   │       └── pubkey.txt
-│   └── worker
-│       └── key
-│           ├── identity
-│           ├── priv.bin
-│           ├── priv.txt
-│           ├── pub.bin
-│           └── pubkey.txt
-├── dev-docker-compose.yaml
-├── main.py
-└── requirements.txt
+## Configure Your Environment
 
-6 directories, 15 files
-```
+1. Copy `config.example.json` and name the copy `config.json`.
+2. Open `config.json` and **update** the necessary fields inside the `wallet` sub-object and `worker` config with your specific values:
 
+### `wallet` Sub-object
+
+1. `nodeRpc`: The [RPC URL](/devs/get-started/setup-wallet#rpc-url-and-chain-id) for the corresponding network the node will be deployed on
+2. `addressKeyName`: The name you gave your wallet key when [setting up your wallet](/devs/get-started/setup-wallet)
+3. `addressRestoreMnemonic`: The mnemonic that was outputted when setting up a new key
+
+
+### `worker` Config
+
+1. `topicId`: The specific topic ID you created the worker for. 
+2. `InferenceEndpoint`: The endpoint exposed by your worker node to provide inferences to the network.
+3. `Token`: The token for the specific topic you are providing inferences for. The token needs to be exposed in the inference server endpoint for retrieval.
+  - The `Token` variable is specific to the endpoint you expose in your `main.py` file. It is not related to any topic parameter.
+
+<Callout type="warning">
+The `worker` config is an array of sub-objects, each representing a different topic ID. This structure allows you to manage multiple topic IDs, each within its own sub-object.
+
+To deploy a worker that provides inferences for multiple topics, you can duplicate the existing sub-object and add it to the `worker` array. Update the `topicId`, `InferenceEndpoint` and `Token` fields with the appropriate values for each new topic:
+```json
+"worker": [
+      {
+        "topicId": 1,
+        "inferenceEntrypointName": "api-worker-reputer",
+        "loopSeconds": 5,
+        "parameters": {
+          "InferenceEndpoint": "http://localhost:8000/inference/{Token}",
+          "Token": "ETH"
+        }
+      },
+      // worker providing inferences for topic ID 2
+      {
+        "topicId": 2, 
+        "inferenceEntrypointName": "api-worker-reputer",
+        "loopSeconds": 5,
+        "parameters": {
+          "InferenceEndpoint": "http://localhost:8000/inference/{Token}", // the specific endpoint providing inferences
+          "Token": "ETH" // The token specified in the endpoint
+        }
+      }
+    ],
+```
+</Callout>
 
 ## Creating the inference server
 
@@ -200,170 +214,64 @@ if __name__ == "__main__":
     print(value)
 ```
 
-## Updating the Docker configuration
+## Deploying your Custom Prediction Node network
 
-Modify the generated `Dockerfile` for the head and worker nodes:
+Now that the node is configured, let's deploy and register it to the network. To run the node, follow these steps:
 
-```dockerfile
-FROM alloranetwork/allora-inference-base:latest
+### Export Variables
 
-RUN pip install requests
+Execute the following command from the root directory:
 
-COPY main.py /app/
+```sh
+chmod +x init.config
+./init.config 
 ```
 
-And create the `Dockerfile_inference` for the inference server:
+This command will automatically export the necessary variables from the account created. These variables are used by the offchain node and are bundled with your provided `config.json`, then passed to the node as environment variables.
 
-```dockerfile
-FROM amd64/python:3.9-buster
+<Callout>
+If you need to **make changes** to your `config.json` file after you ran the `init.config` command, rerun:
 
-WORKDIR /app
-
-COPY . /app
-
-# Install any needed packages specified in requirements.txt
-RUN pip install --upgrade pip \
-    && pip install -r requirements.txt
-
-EXPOSE 8000
-
-ENV NAME sample
-
-# Run gunicorn when the container launches and bind port 8000 from app.py
-CMD ["gunicorn", "-b", ":8000", "app:app"]
+```sh
+chmod +x init.config
+./init.config 
 ```
 
-Finally, add the inference service in the `dev-docker-compose.yaml` before the `worker` and the `head` services:
+before proceeding.
 
-```dockerfile
-[...]
-services:
-  inference:
-    container_name: inference-hf
-    build:
-      context: .
-      dockerfile: Dockerfile_inference
-    command: python -u /app/app.py
-    ports:
-      - "8000:8000"
-    networks:
-      b7s-local:
-        aliases:
-          - inference
-        ipv4_address: 172.19.0.4
-[...]
+</Callout>
+
+### Request from Faucet
+
+Copy your Allora address and request some tokens from the [Allora Testnet Faucet](https://faucet.testnet-1.testnet.allora.network/) to register your worker in the next step successfully.
+
+### Deploy the Node
+
+```
+docker compose up --build
 ```
 
-## Testing our worker node
+Both the offchain node and the source services will be started. They will communicate through endpoints attached to the internal DNS.
 
-Now that everything is set up correctly, we can build our containers with the following command:
+If your node is working correctly, you should see it actively checking for the active worker nonce:
 
 ```bash
-docker compose -f dev-docker-compose.yaml up --build
+offchain_node    | {"level":"debug","topicId":1,"time":1723043600,"message":"Checking for latest open worker nonce on topic"}
 ```
 
-After a few minutes, you will see your Flask application running in the logs:
-```bash
-inference-hf  |  * Serving Flask app 'app'
-```
-
-To test our inference server first by directly querying it. To do that, we can issue the following HTTP request:
+A **successful** response from your Worker should display:
 
 ```bash
-curl http://localhost:8000/inference/BTC
+{"level":"debug","msg":"Send Worker Data to chain","txHash":<tx-hash>,"time":<timestamp>,"message":"Success"}
 ```
 
-And we have a response!
-```bash
-66600.6124078708
-```
+Congratulations! You've successfully deployed and registered your node on Allora.
 
-Now that we know our inference server is working as expected, lets ensure it can interact with the [Blockless network](https://blockless.network/). This is how Allora nodes respond to requests for inference from chain validators.
+### Testing
 
-We can issue a Blockless request with this command, by specifying the correct `<topicId>`:
+You can test your local inference server by performing a `GET` request on `http://localhost:8000/inference/<token>`.
 
 ```bash
-curl --location 'http://localhost:6000/api/v1/functions/execute' \
---header 'Content-Type: application/json' \
---data '{
-    "function_id": "bafybeigpiwl3o73zvvl6dxdqu7zqcub5mhg65jiky2xqb4rdhfmikswzqm",
-    "method": "allora-inference-function.wasm",
-    "parameters": null,
-    "topic": "3",
-    "config": {
-        "env_vars": [
-            {
-                "name": "BLS_REQUEST_PATH",
-                "value": "/api"
-            },
-            {
-                "name": "ALLORA_ARG_PARAMS",
-                "value": "BTC"
-            }
-        ],
-        "number_of_nodes": -1,
-        "timeout": 2
-    }
-}' | jq
+curl http://localhost:8000/inference/<token>
 ```
 
-And here is the response:
-
-```json
-{
-  "code": "200",
-  "request_id": "779d2b33-52ad-4d3e-8981-24b65045dd0b",
-  "results": [
-    {
-      "result": {
-        "stdout": "{\"infererValue\": \"66600.6124078708\"}\n\n",
-        "stderr": "",
-        "exit_code": 0
-      },
-      "peers": [
-        "12D3KooWSeEuvfhDKPsjpJYhV5ZnCufdHbh5eSVqSZbToQ3aFaju"
-      ],
-      "frequency": 100
-    }
-  ],
-  "cluster": {
-    "peers": [
-      "12D3KooWSeEuvfhDKPsjpJYhV5ZnCufdHbh5eSVqSZbToQ3aFaju"
-    ]
-  }
-}
-```
-
-Congratulations! Your worker node running the Hugging Face model is now up and running locally on your machine. We've also verified that it can participate in Allora by responding to Blockless requests.
-
-
-## Initializing the worker for production
-
-Your worker node is now ready to be deployed!
-The following command will handle the generation of the `prod-docker-compose.yaml` file which contains all the keys and parameters needed for your worker to function perfectly in production:
-
-```bash
-allocmd generate worker --env prod
-chmod -R +rx ./data/scripts
-```
-
-By running this command, `prod-docker-compose.yaml` will be generated with appropriate keys and parameters. 
-> You will need to modify this file to add your inference service, as you did for `dev-docker-compose.yaml`.
-
-You can now run the `prod-docker-compose.yaml` file with: 
-```bash
-docker compose -f prod-docker-compose.yaml up
-```
-or deploy the whole codebase in your preferred cloud instance. 
-
-At this stage, your worker should be responding to inference request from the Allora Chain - Congratulations!
-
-
-## Next steps
-
-This basic example illustrates how to integrate a Hugging Face model in an Allora worker node. 
-There are now several ways for you to improve this code:
-- Use your own data or another data provider, or add more features to improve the accuracy 
-- Use a different model size from Chronos to compare the results
-- Change the accepted token or the timeframe to predict on another [Allora topic](/devs/get-started/existing-topics)
-- Use another model from Hugging Face or your own model to deploy a worker node on the Allora Network!

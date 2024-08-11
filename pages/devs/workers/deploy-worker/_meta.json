@@ -1,5 +1,4 @@
 {
   "using-docker": "Using Docker",
-  "build-and-deploy-worker-from-scratch": "From Scratch",
   "build-and-deploy-worker-with-node-runners": "Using AWS Node Runners"
 }

@@ -22,17 +22,14 @@ cd basic-coin-prediction-node
 ### `wallet` Sub-object
 
 1. `nodeRpc`: The [RPC URL](/devs/get-started/setup-wallet#rpc-url-and-chain-id) for the corresponding network the node will be deployed on
-
-#### Optional
-
 2. `addressKeyName`: The name you gave your wallet key when [setting up your wallet](/devs/get-started/setup-wallet)
 3. `addressRestoreMnemonic`: The mnemonic that was outputted when setting up a new key
 
-<Callout type="info">
+{/* <Callout type="info">
 `addressKeyName` and `addressRestoreMnemonic` are optional parameters. If you did not previously generate keys, keys will be generated for you when [running the node](/devs/workers/deploy-worker/using-docker#generate-keys-and-export-variables).
 
 If you have existing keys that you wish to use, you will need to provide these variables.
-</Callout>
+</Callout> */}
 
 ### `worker` Config
 
@@ -78,7 +75,7 @@ To deploy a worker that provides inferences for multiple topics, you can duplica
 
 Now that the node is configured, let's deploy and register it to the network. To run the node, follow these steps:
 
-### Generate Keys and Export Variables
+### Export Variables
 
 Execute the following command from the root directory:
 
@@ -87,32 +84,23 @@ chmod +x init.config
 ./init.config 
 ```
 
-This command will handle a couple tasks automatically:
-
-1. **Key Creation**: Docker Compose will automatically create Allora keys for you.
-
-<Callout type="info">
-If you've already specified a predefined key and mnemonic, this command will recognize those and export the predefined values instead of overriding them.
-</Callout>
-
-2. **Export Variables**: The system will automatically export the necessary variables from the account created. These variables are used by the offchain node and are bundled with your provided `config.json`, then passed to the node as environment variables.
+This command will automatically export the necessary variables from the account created. These variables are used by the offchain node and are bundled with your provided `config.json`, then passed to the node as environment variables.
 
 <Callout>
-If you need to **make changes** to your `config.json` file after you ran the `init.config` command:
+If you need to **make changes** to your `config.json` file after you ran the `init.config` command, rerun:
 
-1. Go to `./worker-data/env_file`
-2. Set `ENV_LOADED` to `false`
-3. Rerun:
 ```sh
 chmod +x init.config
 ./init.config 
 ```
+
+before proceeding.
+
 </Callout>
 
 ### Request from Faucet
 
-1. Find your Allora address in `./worker-data/env_file` if you haven't already specified a predefined key and mnemonic.
-2. Request some tokens from the [Allora Testnet Faucet](https://faucet.testnet-1.testnet.allora.network/) to register your worker in the next step successfully.
+Copy your Allora address and request some tokens from the [Allora Testnet Faucet](https://faucet.testnet-1.testnet.allora.network/) to register your worker in the next step successfully.
 
 ### Deploy the Node
 
@@ -144,11 +132,3 @@ You can test your local inference server by performing a `GET` request on `http:
 curl http://localhost:8000/inference/<token>
 ```
 
-## Deploying your Custom Prediction Node to Production
-
-To get your node deployed to a remote production environment, you can deploy however you prefer or follow our Kubernetes [deployment guide](./build-and-deploy-worker-from-scratch#deploying-a-worker-node) where you:
-
-1. Add the universal-helm chart to the helm repo.
-2. Update the `values.yaml` file to suit your case.
-3. Install the universal helm chart, and it will automatically deploy the node to production with the provided values.
-4. Monitor the node in your Kubernetes cluster.
