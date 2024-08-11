@@ -16,7 +16,7 @@ cd basic-coin-prediction-node
 
 ## Configure Your Environment
 
-1. Change `config.example.json` to `config.json`.
+1. Copy `config.example.json` and name the copy `config.json`.
 2. Open `config.json` and **update** the necessary fields inside the `wallet` sub-object and `worker` config with your specific values:
 
 ### `wallet` Sub-object
@@ -100,7 +100,7 @@ If you've already specified a predefined key and mnemonic, this command will rec
 <Callout>
 If you need to **make changes** to your `config.json` file after you ran the `init.config` command:
 
-1. Go to `./data/env_file`
+1. Go to `./worker-data/env_file`
 2. Set `ENV_LOADED` to `false`
 3. Rerun:
 ```sh
@@ -111,7 +111,7 @@ chmod +x init.config
 
 ### Request from Faucet
 
-1. Find your Allora address in `./data/env_file` if you haven't already specified a predefined key and mnemonic.
+1. Find your Allora address in `./worker-data/env_file` if you haven't already specified a predefined key and mnemonic.
 2. Request some tokens from the [Allora Testnet Faucet](https://faucet.testnet-1.testnet.allora.network/) to register your worker in the next step successfully.
 
 ### Deploy the Node

@@ -23,7 +23,7 @@ cd coin-prediction-reputer
 
 ## Configure Your Environment
 
-1. Change `config.example.json` to `config.json`.
+1. Copy `config.example.json` and name the copy `config.json`.
 2. Open `config.json` and **update** the necessary fields inside the `wallet` sub-object and `worker` config with your specific values:
 
 ### `wallet` Sub-object
@@ -48,6 +48,7 @@ If you have existing keys that you wish to use, you will need to provide these v
 3. `Token`: The token for the specific topic you are verifying truth data for. This token should be included in the source of truth endpoint for retrieval.
    - The `Token` variable is specific to the endpoint you expose in your `main.py` file. It is **not** related to any blockchain parameter and is only locally specific.
 4. `minStake`: The minimum stake required to participate as a reputer. This stake will be deducted from the reputer's wallet balance.
+5. `loopSeconds`: The amount of seconds to wait between attempts to get the next reputer [nonce](devs/topic-creators/topic-life-cycle#nonce)
 
 <Callout>
 When placing your minimum stake, the system will verify the amount of funds you have already staked in the topic. If your staked amount is insufficient, it will automatically pull the necessary funds from your wallet to meet the required minimum.
@@ -110,7 +111,7 @@ If you've already specified a predefined key and mnemonic, this command will rec
 <Callout>
 If you need to **make changes** to your `config.json` file after you ran the `init.config` command:
 
-1. Go to `./data/env_file`
+1. Go to `./worker-data/env_file`
 2. Set `ENV_LOADED` to `false`
 3. Rerun:
 ```sh
@@ -122,7 +123,7 @@ chmod +x init.config
 
 ### Request from Faucet
 
-1. Find your Allora address in `./data/env_file` if you haven't already specified a predefined key and mnemonic.
+1. Find your Allora address in `./worker-data/env_file` if you haven't already specified a predefined key and mnemonic.
 2. Request some tokens from the [Allora Testnet Faucet](https://faucet.testnet-1.testnet.allora.network/) to register your worker in the next step successfully.
 
 ### Deploy the Node

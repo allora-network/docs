@@ -31,7 +31,7 @@ go mod download
 
 ## Configure Your Environment
 
-1. Change `config.example.json` to `config.json`.
+1. Copy `config.example.json` and name the copy `config.json`.
 2. Open `config.example.json` and **update** the necessary fields inside the `wallet` sub-object and `worker` config with your specific values:
 
 ### `wallet` Sub-object
@@ -90,7 +90,7 @@ Ensure you have an API gateway or server that can accept API requests to call yo
 
 ### Server Responsibilities
 
-- Accept API requests from `main.py`, your custom Python script executed by the node function.
+- Accept API requests from `main.go`.
 - Respond with the corresponding inference obtained from the model.
 
 ### Inference Relay
@@ -105,9 +105,9 @@ The `main.go` file fetches the responses outputted from the Inference Endpoint b
 
 #### `main.py`
 
-`allora-offchain-node` comes preconfigured with a `main.py` file that uses Flask to expose the Inference Endpoint. 
+`allora-offchain-node` comes preconfigured with a Flask application that uses a `main.py` file to expose the Inference Endpoint. 
 
-The Flask application calls the `get_inference`  function upon API request, with the required argument (`Token`). Before proceeding, ensure that all necessary packages are listed in the `requirements.txt` file.
+The Flask application serves the request from `main.go`, which is routed to the `get_inference`  function using the required argument (`Token`). Before proceeding, ensure that all necessary packages are listed in the `requirements.txt` file.
 
 ```python
 from flask import Flask
@@ -180,7 +180,7 @@ If you've already specified a predefined key and mnemonic, this command will rec
 <Callout>
 If you need to **make changes** to your `config.json` file after you ran the `init.config` command:
 
-1. Go to `./data/env_file`
+1. Go to `./worker-data/env_file`
 2. Set `ENV_LOADED` to `false`
 3. Rerun:
 ```sh
@@ -191,7 +191,7 @@ chmod +x init.config
 
 ### Request from Faucet
 
-1. Find your Allora address in `./data/env_file` if you haven't already specified a predefined key and mnemonic.
+1. Find your Allora address in `./worker-data/env_file` if you haven't already specified a predefined key and mnemonic.
 2. Request some tokens from the [Allora Testnet Faucet](https://faucet.testnet-1.testnet.allora.network/) to register your worker in the next step successfully.
 
 ### Deploy the Node

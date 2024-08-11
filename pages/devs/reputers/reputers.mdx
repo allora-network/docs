@@ -25,7 +25,7 @@ cd allora-offchain-node
 
 ## Configure Your Environment
 
-1. Change `config.example.json` to `config.json`.
+1. Copy `config.example.json` and name the copy `config.json`.
 2. Open `config.json` and **update** the necessary fields inside the `wallet` sub-object and `worker` config with your specific values:
 
 ### `wallet` Sub-object
@@ -86,6 +86,10 @@ To deploy a reputer that provides inferences for multiple topics, you can duplic
 ```
 </Callout>
 
+### Worker Config
+
+The `config.example.json` file that was copied and edited in the previous steps also contains a JSON object for configuring and deploying a [worker](/devs/workers/using-docker). To ignore the worker and only deploy a reputer, delete the reputer sub-object from the `config.json` file.
+
 ## Create the Truth Server
 
 ### Prepare the API Gateway
@@ -109,7 +113,7 @@ The `main.go` file fetches the responses outputted from the Source of Truth Endp
 
 #### `main.py`
 
-`allora-offchain-node` comes preconfigured with a `main.py` file that uses Flask to expose the Source of Truth Endpoint. 
+`allora-offchain-node` comes preconfigured with a Flask application that uses a `main.py` file to expose the Source of Truth Endpoint. 
 
 The Flask application calls the `get_truth` function upon API request, with the required arguments (`Token`, `blockHeight`). Before proceeding, ensure that all necessary packages are listed in the `requirements.txt` file.
 
