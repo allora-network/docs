@@ -33,7 +33,7 @@ Follow these instructions to bring the most recent inference data on-chain for a
 ## Step by Step Guide:
 
 1. Create an Upshot API key by [creating an account](https://developer.upshot.xyz/signup).
-2. Call the Consumer Inference API using the `topicId` found in the [deployed topics list](/devs/getting-started/existing-topics) and the correct chainId. For example, if you use sepolia, you would provide `ethereum-11155111`.
+2. Call the Consumer Inference API using the `topicId` found in the [deployed topics list](/devs/get-started/existing-topics) and the correct chainId. For example, if you use sepolia, you would provide `ethereum-11155111`.
 
 ```shell
 curl -X 'GET' --url 'https://api.upshot.xyz/v2/allora/consumer/<chainId>?allora_topic_id=<topicId>' -H 'accept: application/json' -H 'x-api-key: <apiKey>'

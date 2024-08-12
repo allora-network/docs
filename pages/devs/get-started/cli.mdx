@@ -2,15 +2,10 @@ import { Callout } from 'nextra/components'
 
 # Allora CLI Spec
 
-Allora provides two CLI tools that allow network participants to perform different functions on the Allora Network:
+Allora provides a CLI tools that allows network participants to perform different functions on the Allora Network:
 
-1. `allorad` -  Used to read and write data to the chain, e.g. to create a wallet, create new topics or add/delegate stake to a reputer
-
+- `allorad` -  Used to read and write data to the chain, e.g. to create a wallet, create new topics or add/delegate stake to a reputer
   - Refer to the [Allorad Reference](/devs/reference/allorad) section for a full list of `allorad` commands with their explanations
-
-2. `allocmd` - Handles worker nodes' seamless creation and deployment. This tool eliminates the need to write the worker node from scratch, as the CLI tool bootstraps all the necessary components to get worker nodes operational.
-
-Let's dive into how to install each CLI tool using a few different methods.
 
 ## Installing `allorad`
 
@@ -79,36 +74,3 @@ Flags:
 
 Use "allorad [command] --help" for more information about a command.
 ```
-
-For an explanatin of every command that can be used with `allorad`, see the reference section.
-
-## Installing `allocmd`
-
-### Prerequisites
-
-You will need to install `pip` or `pipx` to download and use `allocmd` successfully.
-
-- For `pip` installation, follow the instructions here: https://pip.pypa.io/en/stable/installation/
-- For `pipx` installation, follow the instructions here: https://pipx.pypa.io/stable/installation/
-
-### Installation
-
-```bash
-pip install allocmd --upgrade
-```
-
-Using `pipx`:
-
-```bash
-pipx install allocmd
-```
-
-At the time of writing, the latest `allocmd` version is `2.0.10`:
-```shell
-allocmd --version
-allocmd version 2.0.10
-```
-
-<Callout>
-You can run `allocmd --help` to get general help or `allocmd [command] --help` to get help relating to a particular command.
-</Callout>
