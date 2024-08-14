@@ -56,7 +56,6 @@ cd basic-coin-prediction-node
 2. `addressKeyName`: The name you gave your wallet key when [setting up your wallet](/devs/get-started/setup-wallet)
 3. `addressRestoreMnemonic`: The mnemonic that was outputted when setting up a new key
 
-
 ### `worker` Config
 
 1. `topicId`: The specific topic ID you created the worker for. 
@@ -113,13 +112,27 @@ app = Flask(__name__)
 # define the Hugging Face model we will use
 model_name = "amazon/chronos-t5-tiny"
 
+def get_coingecko_url(token):
+    base_url = "https://api.coingecko.com/api/v3/coins/"
+    token_map = {
+        'ETH': 'ethereum',
+        'SOL': 'solana',
+        'BTC': 'bitcoin',
+        'BNB': 'binancecoin',
+        'ARB': 'arbitrum'
+    }
+    
+    token = token.upper()
+    if token in token_map:
+        url = f"{base_url}{token_map[token]}/market_chart?vs_currency=usd&days=30&interval=daily"
+        return url
+    else:
+        raise ValueError("Unsupported token")
+
 # define our endpoint
 @app.route("/inference/<string:token>")
 def get_inference(token):
     """Generate inference for given token."""
-    if not token or token != "BTC":
-        error_msg = "Token is required" if not token else "Token not supported"
-        return Response(json.dumps({"error": error_msg}), status=400, mimetype='application/json')
     try:
         # use a pipeline as a high-level helper
         pipeline = ChronosPipeline.from_pretrained(
@@ -130,13 +143,15 @@ def get_inference(token):
     except Exception as e:
         return Response(json.dumps({"pipeline error": str(e)}), status=500, mimetype='application/json')
 
-    # get the data from Coingecko
-    # here we'll use last 30 days of BTC/USD
-    url = "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=30&interval=daily"
+    try:
+        # get the data from Coingecko
+        url = get_coingecko_url(token)
+    except ValueError as e:
+        return Response(json.dumps({"error": str(e)}), status=400, mimetype='application/json')
 
     headers = {
         "accept": "application/json",
-        "x-cg-demo-api-key": "CG-API_KEY" # replace with your API key
+        "x-cg-demo-api-key": "<Your Coingecko API key>" # replace with your API key
     }
 
     response = requests.get(url, headers=headers)
@@ -144,7 +159,7 @@ def get_inference(token):
         data = response.json()
         df = pd.DataFrame(data["prices"])
         df.columns = ["date", "price"]
-        df["date"] = pd.to_datetime(df["date"], unit = "ms")
+        df["date"] = pd.to_datetime(df["date"], unit='ms')
         df = df[:-1] # removing today's price
         print(df.tail(5))
     else:
@@ -178,40 +193,6 @@ gunicorn[gthread]
 transformers[torch]
 pandas
 git+https://github.com/amazon-science/chronos-forecasting.git
-```
-
-## Modifying main.py to call the inference server
-
-Update `main.py` to integrate your worker node with the inference server:
-
-```python
-import requests
-import sys
-import json
-
-def process(argument):
-    headers = {'Content-Type': 'application/json'}
-    url = f"http://inference:8000/inference/{argument}"
-    response = requests.get(url, headers=headers)
-    return response.text
-
-if __name__ == "__main__":
-    # Your code logic with the parsed argument goes here
-    try:
-        if len(sys.argv) < 5:
-            value = json.dumps({"error": f"Not enough arguments provided: {len(sys.argv)}, expected 4 arguments: topic_id, blockHeight, blockHeightEval, default_arg"})
-        else:
-            topic_id = sys.argv[1]
-            blockHeight = sys.argv[2]
-            blockHeightEval = sys.argv[3]
-            default_arg = sys.argv[4]
-            
-            response_inference = process(argument=default_arg)
-            response_dict = {"infererValue": response_inference}
-            value = json.dumps(response_dict)
-    except Exception as e:
-        value = json.dumps({"error": {str(e)}})
-    print(value)
 ```
 
 ## Deployment
