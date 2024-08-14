@@ -1,3 +1,5 @@
+import { Callout } from 'nextra/components'
+
 # Model.py
 
 ## Introduction
@@ -128,12 +130,24 @@ The [`train_model`](https://github.com/allora-network/basic-coin-prediction-node
 
 ### Modifying the Function for Different Models
 
-To change the model used for training, replace the `LinearRegression` model with another machine learning algorithm. Here are a few examples:
+<Callout>
+#### Understanding the Target Variable in Regression Models
 
-#### Using Decision Tree Regression
+The **target variable (y)** in regression models is a critical component that determines the type of analysis and predictions that can be performed. In this context, the target variable represents continuous data—in this case, the average of financial metrics such as the open, close, high, and low prices over time. The y-axis points on the regression graph correspond to these continuous values, which can take on any numerical value within a defined range.
+</Callout>
+
+To change the model used for training, replace the `LinearRegression` model with another machine learning algorithm. Here is an example:
+
+#### Using Polynomial Regression
 
 ```python
-from sklearn.tree import DecisionTreeRegressor
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+from sklearn.pipeline import make_pipeline
+import os
+import pickle
+import pandas as pd
+from sklearn.model_selection import train_test_split
 
 def train_model():
     # Load the eth price data
@@ -144,6 +158,7 @@ def train_model():
     df["date"] = pd.to_datetime(price_data["date"])
     df["date"] = df["date"].map(pd.Timestamp.timestamp)
 
+    # Calculate the mean price as the target variable
     df["price"] = price_data[["open", "close", "high", "low"]].mean(axis=1)
 
     # Reshape the data to the shape expected by sklearn
@@ -153,16 +168,16 @@ def train_model():
     # Split the data into training set and test set
     x_train, _, y_train, _ = train_test_split(x, y, test_size=0.2, random_state=0)
 
-    # Train the model using Decision Tree Regression
-    model = DecisionTreeRegressor()
+    # Create a pipeline that first transforms the input data to polynomial features and then fits a linear model
+    model = make_pipeline(PolynomialFeatures(degree=2), LinearRegression())
     model.fit(x_train, y_train)
 
-    # create the model's parent directory if it doesn't exist
+    # Create the model's parent directory if it doesn't exist
     os.makedirs(os.path.dirname(model_file_path), exist_ok=True)
 
     # Save the trained model to a file
     with open(model_file_path, "wb") as f:
         pickle.dump(model, f)
 
-    print(f"Trained model saved to {model_file_path}")
+    print(f"Trained polynomial regression model saved to {model_file_path}")
 ```
