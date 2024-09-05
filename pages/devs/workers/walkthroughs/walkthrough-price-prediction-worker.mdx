@@ -16,10 +16,64 @@ cd basic-coin-prediction-node
 
 ## Configure Your Environment
 
+### `.env` File Configuration
+
+When setting up your environment, please follow the guidelines below for configuring your `.env` file:
+
+- **`TOKEN`**: Specifies the cryptocurrency token to use. Must be one of the following:
+  - `'ETH'` (Ethereum)
+  - `'SOL'` (Solana)
+  - `'BTC'` (Bitcoin)
+  - `'BNB'` (Binance Coin)
+  - `'ARB'` (Arbitrum)
+  
+  > **Note**: If you are using Binance as the data provider, any token can be used. However, if you are using Coingecko, you should add its `coin_id` in the [token map](https://github.com/allora-network/basic-coin-prediction-node/blob/70cf49d0a2317769d883ae882c146efbb915f5c0/updater.py#L107). Find more information [here](https://docs.coingecko.com/reference/simple-price) and the list [here](https://docs.google.com/spreadsheets/d/1wTTuxXt8n9q7C4NDXqQpI3wpKu1_5bGVmP9Xz0XGSyU/edit?gid=0#gid=0).
+
+- **`TRAINING_DAYS`**: Represents the number of days of historical data to use for training. Must be an integer greater than or equal to 1.
+
+- **`TIMEFRAME`**: Defines the timeframe of the data used in the format like `10min` (minutes), `1h` (hours), `1d` (days), etc.
+  
+  - For Coingecko, the data granularity (candle's body) is automatic. To avoid downsampling when using Coingecko:
+    - Use a **`TIMEFRAME`** of `>= 30min` if **`TRAINING_DAYS`** is `<= 2`.
+    - Use a **`TIMEFRAME`** of `>= 4h` if **`TRAINING_DAYS`** is `<= 30`.
+    - Use a **`TIMEFRAME`** of `>= 4d` if **`TRAINING_DAYS`** is `>= 31`.
+
+- **`MODEL`**: Specifies the machine learning model to use. Must be one of the following:
+  - `'LinearRegression'`
+  - `'SVR'` (Support Vector Regression)
+  - `'KernelRidge'`
+  - `'BayesianRidge'`
+  
+  > You can easily add support for other models by adding them to the configuration [here](https://github.com/allora-network/basic-coin-prediction-node/blob/main/model.py#L133).
+
+- **`REGION`**: Defines the region for the Binance API. Must be `'EU'` or `'US'`.
+
+- **`DATA_PROVIDER`**: Specifies the data provider to use. Must be either `'Binance'` or `'Coingecko'`.
+  
+  - Feel free to add support for other data providers to personalize your model!
+
+- **`CG_API_KEY`**: Your Coingecko API key, required if you've set **`DATA_PROVIDER`** to `'coingecko'`.
+
+#### Sample Configuration (.env file)
+
+Below is an example configuration for your `.env` file:
+
+```bash
+TOKEN=ETH
+TRAINING_DAYS=30
+TIMEFRAME=4h
+MODEL=SVR
+REGION=US
+DATA_PROVIDER=binance
+CG_API_KEY=
+```
+
+### `config.json` Configuration
+
 1. Copy `config.example.json` and name the copy `config.json`.
 2. Open `config.json` and **update** the necessary fields inside the `wallet` sub-object and `worker` config with your specific values:
 
-### `wallet` Sub-object
+#### `wallet` Sub-object
 
 1. `nodeRpc`: The [RPC URL](/devs/get-started/setup-wallet#rpc-url-and-chain-id) for the corresponding network the node will be deployed on
 2. `addressKeyName`: The name you gave your wallet key when [setting up your wallet](/devs/get-started/setup-wallet)
@@ -31,7 +85,7 @@ cd basic-coin-prediction-node
 If you have existing keys that you wish to use, you will need to provide these variables.
 </Callout> */}
 
-### `worker` Config
+#### `worker` Config
 
 1. `topicId`: The specific topic ID you created the worker for. 
 2. `InferenceEndpoint`: The endpoint exposed by your worker node to provide inferences to the network.
@@ -69,7 +123,7 @@ To deploy a worker that provides inferences for multiple topics, you can duplica
 
 ## Building a Custom Model
 
-`basic-coin-prediction-node` comes preconfigured with a model that uses linear regression to predict the price of Ethereum, and contribute an inference to topic 1 on Allora. Learn more about how this model is built from the ground up and how you can customize your model to give a unique inference to the network in the [next section](/devs/workers/walkthroughs/walkthrough-price-prediction-worker/modelpy).
+`basic-coin-prediction-node` comes preconfigured with a model that uses regression to predict the price of Ethereum, and contribute an inference to topic 1 on Allora. Learn more about how this model is built from the ground up and how you can customize your model to give a unique inference to the network in the [next section](/devs/workers/walkthroughs/walkthrough-price-prediction-worker/modelpy).
 
 ## Deployment
 
