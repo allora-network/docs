@@ -51,10 +51,7 @@ Using the [`allorad` CLI](/devs/get-started/cli#installing-allorad) to create a 
 allorad tx emissions create-topic \
   allo13tr5nx74zjdh7ya8kgyuu0hweppnnx8d4ux7pj \    # Creator address
   "ETH prediction in 24h" \                                         # Metadata
-  "bafybeid7mmrv5qr4w5un6c64a6kt2y4vce2vylsmfvnjt7z2wodngknway" \  # LossLogic
-  "loss-calculation-eth.wasm" \                 # LossMethod
-  "bafybeigpiwl3o73zvvl6dxdqu7zqcub5mhg65jiky2xqb4rdhfmikswzqm" \  # InferenceLogic
-  "allora-inference-function.wasm" \              # InferenceMethod
+  "mse" \                                         # LossMethod
   3600 \                                          # EpochLength
   0 \                                             # GroundTruthLag
   3 \                                             # PNorm 
