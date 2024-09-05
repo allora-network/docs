@@ -28,8 +28,6 @@ type MsgCreateNewTopic struct {
   EpochLength      int64    `json:"epoch_length,omitempty"`
   // The time it takes for the ground truth to become available (Cannot be negative)
   GroundTruthLag   int64    `json:"ground_truth_lag,omitempty"`
-  // Default argument the worker will receive when py script is called
-  DefaultArg       string   `json:"default_arg,omitempty"`
   // Raising this parameter raises how much high-quality inferences are favored over lower-quality inferences (Must be between 2.5 and 4.5)
   PNorm            github_com_allora_network_allora_chain_math.Dec `json:"p_norm"`
   // Raising this parameter lowers how much workers historical performances influence their current reward distribution (Must be between 0 and 1)
@@ -38,6 +36,12 @@ type MsgCreateNewTopic struct {
   AllowNegative    bool     `json:"allow_negative,omitempty"`
   // the numerical precision at which the network should distinguish differences in the logarithm of the loss
   Epsilon          github_com_allora_network_allora_chain_math.Dec  `json:"epsilon"`
+  // the time window within a given epoch that worker nodes can submit an inference
+  WorkerSubmissionWindow int64 `json:"worker_submission_window"`
+  MeritSortitionAlpha github_com_allora_network_allora_chain_math.Dec  `json:"merit_sortition_alpha"`
+  ActiveInfererQuantile github_com_allora_network_allora_chain_math.Dec `json:"active_inferer_quantile"`
+  ActiveForecasterQuantile github_com_allora_network_allora_chain_math.Dec `json:"active_forecaster_quantile"`
+  ActiveReputerQuantile github_com_allora_network_allora_chain_math.Dec `json:"active_reputer_quantile"`
 }
 ```
 
@@ -53,11 +57,15 @@ allorad tx emissions create-topic \
   "allora-inference-function.wasm" \              # InferenceMethod
   3600 \                                          # EpochLength
   0 \                                             # GroundTruthLag
-  "ETH"                                           # DefaultArg
   3 \                                             # PNorm 
   1 \                                             # AlphaRegret 
   true \                                          # AllowNegative
-  0.001 \                                             # Epsilon
+  0.001 \                                         # Epsilon
+  3 \                                             # WorkerSubmissionWindow
+  0.2 \                                           # MeritSortitionAlpha
+  0.1 \                                           # ActiveInfererQuantile
+  0.1 \                                           # ActiveForecasterQuantile
+  0.1 \                                           # ActiveReputerQuantile
   --node <RPC_URL>
   --chain-id <CHAIN_ID>
 ```
@@ -69,7 +77,6 @@ Be sure to swap out [`RPC_URL`](/devs/get-started/setup-wallet#rpc-url-and-chain
 An explanation in more detail of some of these fields. 
 
 - `Metadata` is a descriptive field to let users know what this topic is about and/or any specific indication about how it is expected to work.
-- `DefaultArg` value will be passed as an argument to the python script, i.e. when the worker receives the request, it will attempt to run `python3 <location-of-main.py> <TopicId> <DefaultArg>`. This will be used in the scoring stage to request inferences from the chain.
 - `allowNegative` determines whether the loss function output can be negative.
   - If **true**, the reputer submits raw losses.
   - If **false**, the reputer submits logs of losses.
