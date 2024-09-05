@@ -22,12 +22,14 @@ type MsgCreateNewTopic struct {
   Creator          string   `json:"creator,omitempty"`
   // Information about the topic
   Metadata         string   `json:"metadata,omitempty"`
-  // The method used for loss calculations (.wasm)
+  // The method used for loss calculations 
   LossMethod       string   `json:"loss_method,omitempty"`
   // The frequency (in blocks) of inference calculations (Must be greater than 0)
   EpochLength      int64    `json:"epoch_length,omitempty"`
   // The time it takes for the ground truth to become available (Cannot be negative)
   GroundTruthLag   int64    `json:"ground_truth_lag,omitempty"`
+  // the time window within a given epoch that worker nodes can submit an inference
+  WorkerSubmissionWindow int64 `json:"worker_submission_window"`
   // Raising this parameter raises how much high-quality inferences are favored over lower-quality inferences (Must be between 2.5 and 4.5)
   PNorm            github_com_allora_network_allora_chain_math.Dec `json:"p_norm"`
   // Raising this parameter lowers how much workers historical performances influence their current reward distribution (Must be between 0 and 1)
@@ -36,8 +38,6 @@ type MsgCreateNewTopic struct {
   AllowNegative    bool     `json:"allow_negative,omitempty"`
   // the numerical precision at which the network should distinguish differences in the logarithm of the loss
   Epsilon          github_com_allora_network_allora_chain_math.Dec  `json:"epsilon"`
-  // the time window within a given epoch that worker nodes can submit an inference
-  WorkerSubmissionWindow int64 `json:"worker_submission_window"`
   MeritSortitionAlpha github_com_allora_network_allora_chain_math.Dec  `json:"merit_sortition_alpha"`
   ActiveInfererQuantile github_com_allora_network_allora_chain_math.Dec `json:"active_inferer_quantile"`
   ActiveForecasterQuantile github_com_allora_network_allora_chain_math.Dec `json:"active_forecaster_quantile"`
@@ -54,15 +54,15 @@ allorad tx emissions create-topic \
   "mse" \                                         # LossMethod
   3600 \                                          # EpochLength
   0 \                                             # GroundTruthLag
+  3 \                                             # WorkerSubmissionWindow
   3 \                                             # PNorm 
   1 \                                             # AlphaRegret 
   true \                                          # AllowNegative
   0.001 \                                         # Epsilon
-  3 \                                             # WorkerSubmissionWindow
-  0.2 \                                           # MeritSortitionAlpha
-  0.1 \                                           # ActiveInfererQuantile
-  0.1 \                                           # ActiveForecasterQuantile
-  0.1 \                                           # ActiveReputerQuantile
+  0.1 \                                           # MeritSortitionAlpha
+  0.25 \                                           # ActiveInfererQuantile
+  0.25 \                                           # ActiveForecasterQuantile
+  0.25 \                                           # ActiveReputerQuantile
   --node <RPC_URL>
   --chain-id <CHAIN_ID>
 ```
