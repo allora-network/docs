@@ -4,7 +4,7 @@
 
 The Allora network relies on multiple different pieces of software to do different tasks.
 For example the `allora-chain` repository handles the blockchain software that runs the chain, while
-the `allora-inference-base` repository performs off-chain tasks. Each piece of software may need to
+the `offchain-node` repository performs off-chain tasks. Each piece of software may need to
 be upgraded separately.
 
 ## Allora-Chain Upgrades
@@ -54,12 +54,6 @@ For those running the chain software, you will have to have to perform an upgrad
 2. At some point the blockchain developers will provide you with a binary to put in that  `/allorad/data/folder/cosmovisor` folder to upgrade to. This may be optional if the `UpgradeInfo` is set correctly by the developers, but if you're the paranoid type you can always download the binary yourself ahead of the upgrade and put it in the right folder by hand.
 3. When the developers put up the upgrade proposal to governance, be helpful and vote to make it pass. You can do this via the CLI with `allorad tx gov vote $proposal_id yes --from $validator` or an example of doing this programmatically can be found in the integration test [voteOnProposal](https://github.com/allora-network/allora-chain/blob/main/test/integration/upgrade_test.go) function.
 4. At the block height of the upgrade, the old software will panic - cosmovisor will catch the panic and restart the process using the new binary for the upgrade instead. Monitor your logs appropriately to see the restart.
-
-## Allora-Inference-Base Upgrades
-
-New software releases are published on the Allora Inference Base 
-[Github](https://github.com/allora-network/allora-inference-base/releases) page. 
-Download and install the new version of the software to upgrade.
 
 ## Further References
 

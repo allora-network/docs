@@ -26,7 +26,7 @@ This diagram illustrates the architecture of the integration between the Allora 
      - **VPC Internet Gateway**: Allows communication between the instances in the VPC and the internet.
 
 3. **EC2 Instance (Allora Worker Node)**
-   - **Inference Base**: This component handles network communication, receiving requests from the Allora Network's Public Head Node and sending responses back.
+   - **Offchain Node**: This component handles network communication, receiving requests from the Allora Network and sending responses back.
    - **Node Function**: Processes requests by interfacing with the private model server. It acts as an intermediary, ensuring the requests are correctly formatted and the responses are appropriately handled.
    - **Model Server**: Hosts the proprietary model. It executes the main inference script (`Main.py`) to generate inferences based on the received requests.
 
@@ -34,18 +34,18 @@ This diagram illustrates the architecture of the integration between the Allora 
 
 1. **Request Flow**:
    - The Allora Network's Public Head Node sends a request for inferences to the EC2 instance within the AWS environment.
-   - The request passes through the VPC Internet Gateway and reaches the Inference Base in the public subnet.
-   - The Inference Base forwards the request to the Node Function.
+   - The request passes through the VPC Internet Gateway and reaches the Offchain node in the public subnet.
+   - The Offchain node forwards the request to the Node Function.
    - The Node Function calls `Main.py` on the Model Server to generate the required inferences.
 
 2. **Response Flow**:
    - The Model Server processes the request and returns the inferences to the Node Function.
-   - The Node Function sends the inferences back to the Inference Base.
-   - The Inference Base communicates the inferences back to the Allora Network's Public Head Node via the VPC Internet Gateway.
+   - The Node Function sends the inferences back to the Offchain node.
+   - The Offchain node communicates the inferences back to the Allora Network via the VPC Internet Gateway.
 
 ## AWS Activate
 
-Before proceeding, please note that eligibility for AWS Activate credits and terms are governed by AWS. This documentation may become outdated, so ensure you refer to the [AWS Activate program page](https://aws.amazon.com/startups/credits#hero) for the latest eligibility requirements and instructions.
+Before proceeding, please note that eligibility for AWS Activate credits and terams are governed by AWS. This documentation may become outdated, so ensure you refer to the [AWS Activate program page](https://aws.amazon.com/startups/credits#hero) for the latest eligibility requirements and instructions.
 
 ## AWS Activate Stepwise Process
 
