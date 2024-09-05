@@ -31,10 +31,10 @@ When setting up your environment, please follow the guidelines below for configu
 
 - **`TRAINING_DAYS`**: Represents the number of days of historical data to use for training. Must be an integer greater than or equal to 1.
 
-- **`TIMEFRAME`**: Defines the timeframe of the data used in the format like `10m` (minutes), `1h` (hours), `1d` (days), etc.
+- **`TIMEFRAME`**: Defines the timeframe of the data used in the format like `10min` (minutes), `1h` (hours), `1d` (days), etc.
   
   - For Coingecko, the data granularity (candle's body) is automatic. To avoid downsampling when using Coingecko:
-    - Use a **`TIMEFRAME`** of `>= 30m` if **`TRAINING_DAYS`** is `<= 2`.
+    - Use a **`TIMEFRAME`** of `>= 30min` if **`TRAINING_DAYS`** is `<= 2`.
     - Use a **`TIMEFRAME`** of `>= 4h` if **`TRAINING_DAYS`** is `<= 30`.
     - Use a **`TIMEFRAME`** of `>= 4d` if **`TRAINING_DAYS`** is `>= 31`.
 
@@ -61,7 +61,7 @@ Below is an example configuration for your `.env` file:
 ```bash
 TOKEN=ETH
 TRAINING_DAYS=30
-TIMEFRAME=30m
+TIMEFRAME=4h
 MODEL=SVR
 REGION=US
 DATA_PROVIDER=binance
