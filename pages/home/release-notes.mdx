@@ -1,0 +1,64 @@
+# Allora Network Release Notes
+
+## v0.5.0
+
+**Release Date**: September 2024
+
+The Allora Network v0.5.0 is now live! This version introduces several major updates designed to enhance user experience, improve network performance, and bolster system stability. Below are the key features, improvements, and bug fixes included in this release.
+
+### Key Features and Improvements
+
+#### Fixes from v0.4.0 Upgrade Migration
+- Resolved issues related to the incomplete migration of topic fields from the v0.4.0 upgrade. This fix ensures smoother transitions between versions and enhances data integrity during future upgrades.
+
+#### New RPC Endpoint for Emission Rate Control
+- A new RPC endpoint has been introduced to give administrators the ability to recalculate inflation rates and manage target emission rates more frequently than the standard monthly recalculation. This provides greater flexibility and control over token emissions.
+
+#### Refined Topic Management
+- **Rewardable Topics as Active Topics**: v0.5.0 merges the categories of rewardable and active topics, with rewardable topics now serving as the primary active ones. This simplifies topic management and includes renaming of core functions to improve clarity and system efficiency.
+
+#### Event Monitoring for Research and Insights
+- New event triggers have been added to enable a research monitoring suite. These event triggers will assist researchers and developers in tracking network behaviors and studying system performance with deeper insights.
+
+### Bug Fixes
+
+#### Handling NaN (Not a Number) Issues
+- Fixed issues related to NaN values appearing in various calculations:
+  - NaN values in maps during migrations have been cleared.
+  - Protection against NaN in the Exponential Moving Average (EMA) calculations has been added, ensuring accurate scoring and reward computations.
+
+#### Improved Migration Testing
+- Enhanced migration tests have been introduced to catch issues surrounding Initial Regrets, improving the reliability of future upgrades by addressing potential edge cases.
+
+#### Reputation System Improvements
+- Adjustments have been made to how block heights and score calculations are handled within the reputation system. This prevents redundant score submissions and ensures a fair reward distribution across the network.
+
+### Security Enhancements
+
+#### Max Length Limits on Topic Creation
+- Maximum string length limits have been enforced for new topics to prevent overflow issues and mitigate the risk of malicious input, contributing to a more secure system environment.
+
+#### Idempotent Payload Submission
+- Simplified submission conditions for inference payloads. Duplicate submissions are now handled in an idempotent manner, preventing them from affecting the system’s behavior or causing erroneous calculations.
+
+## v0.3.0
+
+**Release Date**: August 2024
+
+The Allora Network v0.3.0 introduced a significant update focused on enhancing participant selection through a merit-based system. This update addresses the need to balance limited on-chain compute resources while ensuring fair opportunities for new participants. Below are the key features, changes, and improvements implemented in this release.
+
+### Key Changes Implemented
+
+#### The Need for Merit-Based Sortition
+- To manage the constraints of on-chain compute while avoiding a “rich get richer” scenario, Allora Network introduced **merit-based sortition**. This process selects high-quality participants each epoch based on their past performance, measured by a running average of their scores. At the same time, lower-performing participants are cycled out, allowing new talent to demonstrate its value.
+
+#### Active and Passive Sets Management
+- **Active Set**: A group of high-performing participants whose data is used to calculate network inferences and receive rewards. The chain determines who qualifies for the active set by calculating a running average of each participant’s scores.
+- **Passive Set**: Participants who are not in the active set move into the passive set. While their data isn’t used for final rewards, their inferences are still tracked and considered for future inclusion in the active set, giving them a chance to re-enter based on improved performance.
+
+#### Score Calculation Using Exponential Moving Averages (EMAs)
+- **EMA-Based Score Calculation**: Scores for each participant are calculated using an Exponential Moving Average (EMA). This method smooths out individual performance over time, preventing large score fluctuations from one epoch to the next, and ensuring a more stable evaluation process.
+
+### Merit-Based Participant Selection
+
+The merit-based sortition system helps maintain the quality of network inferences while giving fresh talent the opportunity to participate and prove their value. This mechanism is designed to strike a balance between performance-based selection and inclusivity for new participants.
