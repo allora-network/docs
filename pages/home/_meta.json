@@ -5,8 +5,9 @@
     "participants": "Participants",
     "layers": "Layers of the Network",
     "tokenomics": "Tokenomics",
+    "release-notes": "Release Notes",
     "whitepaper": {
-    "title": "Whitepaper",
-    "href": "https://whitepaper.assets.allora.network/whitepaper.pdf"
-  }
+      "title": "Whitepaper",
+      "href": "https://whitepaper.assets.allora.network/whitepaper.pdf"
+    }
 }
