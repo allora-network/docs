@@ -2,5 +2,5 @@
   "requirements": "System Requirements",
   "deploy-worker": "Build/Deploy a Worker",
   "walkthroughs": "Walkthroughs",
-  "query-ema-score": "Query EMA Score"
+  "query-ema-score": "Query EMA Score of a Worker"
 }
