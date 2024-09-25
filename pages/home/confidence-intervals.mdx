@@ -1,0 +1,32 @@
+# Confidence Intervals
+
+Confidence intervals (CIs) help users understand how much variation there is among the predictions made by different workers. Rather than just giving one prediction number, the network also provides a **range**—a window that tells you how close or far apart the workers' predictions are. This helps gauge the **certainty** of the prediction.
+
+## How Confidence Intervals are Generated
+
+Confidence intervals are not simply derived from the raw predictions of workers. The Allora network takes a weighted approach, accounting for the reliability of individual workers to ensure that less accurate predictions do not unduly influence the final result. Here's how the process works:
+
+1. **Percentiles as Key Indicators**:  
+   The network uses specific percentiles to outline confidence intervals, mimicking the 1σ and 2σ limits found in a normal distribution. These include:
+   - **2.28% and 97.72%**: Representing the extreme ends of the spectrum, these percentiles capture nearly all predictions including outliers.
+   - **15.87% and 84.13%**: These percentiles represent a more central range, focusing on the core set of inferences with the highest levels of confidence.
+
+>While worker inferences may not follow a perfect Gaussian (bell curve) distribution, these percentiles provide a structured way to describe the uncertainty inherent in collective predictions.
+
+2. **Weighted Worker Predictions**:  
+   Not all worker inferences are treated equally. Workers with a proven track record of accuracy are assigned higher **weights**, which amplify their influence on the final confidence interval. Conversely, less reliable workers are given lower weights to ensure that their predictions don’t artificially broaden the confidence interval.
+
+3. **Building the Distribution**:  
+   Once the inferences are submitted, they are sorted from lowest to highest, and each worker’s weight is accumulated to create a **cumulative distribution function** (CDF), which allows the network to map how predictions are distributed across the worker base.
+
+4. **Determining the Confidence Interval**:  
+   Using the CDF, the network calculates the prediction values that correspond to the chosen percentiles (e.g., 2.28%, 15.87%, etc.). To increase precision, the network employs **interpolation**—a method of estimating values that fall between two known data points in the sorted list. This ensures that the confidence intervals reflect the actual spread of inferences rather than approximate ranges.
+
+## What Does This Mean for You?
+
+When you see a confidence interval in Allora, it gives you a sense of how **confident** the network is about the prediction. 
+
+- A **narrow** confidence interval means the workers mostly agree on the result.
+- A **wider** confidence interval suggests that the workers’ predictions vary more, indicating more uncertainty in the result.
+
+By factoring in these confidence intervals, users can make more informed decisions about the consensus surrounding inferences provided for a given topic.

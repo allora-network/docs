@@ -41,6 +41,44 @@ The Allora Network v0.5.0 is now live! This version introduces several major upd
 #### Idempotent Payload Submission
 - Simplified submission conditions for inference payloads. Duplicate submissions are now handled in an idempotent manner, preventing them from affecting the system’s behavior or causing erroneous calculations.
 
+## v0.4.0
+
+**Release Date**: September 2024
+
+This version focuses on implementing key fixes from the June 2024 Sherlock.xyz audit, enhancing active topic management, and refining the scoring system. Below are the critical updates, new features, and fixes included in this release.
+
+### Key Features and Improvements
+
+#### Scalable Management of Active Topics
+- **Active Topic Queries**: Introduced scalable solutions for managing active topics with new queries such as `GetActiveTopicsAtBlock` and `GetNextChurningBlockByTopicId`. These additions enhance the network's ability to efficiently retrieve topic statuses at specific blocks and predict future churn events for each topic.
+
+#### Exponential Moving Average for Scores
+- **Smoother Scoring**: Transitioned to using an **Exponential Moving Average (EMA)** for score calculations, replacing the previous instantaneous score values from each epoch. This change smooths out score fluctuations and ensures a more representative scoring system over time.
+
+### Removed
+
+#### Deprecated Unpartitioned Active Topic Queries
+- As part of the new scalable topic management system, the outdated `GetActiveTopics` query and paginated versions were removed. This helps streamline how active topics are stored and queried in the system.
+
+### Bug Fixes
+
+#### Reward Conversion to cosmosInt
+- Implemented a check to prevent **zero-rewards** after conversion to `cosmosInt`, ensuring rewards are correctly handled and distributed.
+
+#### InsertPayload Error Handling
+- Improved error handling in the `InsertPayload` function, along with enhanced testing for error scenarios. This strengthens payload processing and prevents errors from affecting the overall system.
+
+#### Reputer Window Limit Fix
+- Fixed the **Reputer window upper limit** to ensure that reputation calculations do not exceed the intended thresholds.
+
+#### Worker Nonce Window Timing
+- Resolved an issue where the **worker nonce window** was prematurely closing as soon as it opened, preventing proper timing of nonce submissions.
+
+### Security Enhancements
+
+#### Signature Verification for Payloads
+- Added checks to ensure that signatures on **Worker or Reputer Payloads** match the corresponding `Inferer`, `Forecaster`, or `Reputer` inside the bundle. This prevents unauthorized manipulation of payloads and strengthens overall network security.
+
 ## v0.3.0
 
 **Release Date**: August 2024

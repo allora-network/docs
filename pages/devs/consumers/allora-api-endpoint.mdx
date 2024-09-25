@@ -1,0 +1,135 @@
+# Allora API: How to Query Data of Existing Topics
+
+The **Allora API** provides an interface to query real-time on-chain data of the latest inferences made by workers. Here's an explanation of how it works using the example endpoint:
+
+**Generic**: `https://allora-api.testnet.allora.network/emissions/{version_number}/latest_network_inferences/{topic_id}`
+
+**Example**: `https://allora-api.testnet.allora.network/emissions/v4/latest_network_inferences/1`
+
+Where:
+- "v4" represents the latest network version number
+- "1" represents the topic ID
+
+Sample Response:
+
+```json
+{
+  "network_inferences": {
+    "topic_id": "1",
+    "reputer_request_nonce": null,
+    "reputer": "",
+    "extra_data": null,
+    "combined_value": "2605.533879185080648394998043723508",
+    "inferer_values": [
+      {
+        "worker": "allo102ksu3kx57w0mrhkg37kvymmk2lgxqcan6u7yn",
+        "value": "2611.01109296"
+      },
+      {
+        "worker": "allo10q6hm2yae8slpvvgmxqrcasa30gu5qfysp4wkz",
+        "value": "2661.505295679922"
+      }
+    ],
+    "forecaster_values": [
+        {
+            "worker": "allo1za8r9v0st4ntfyeka23qs5wvd7mvsnzhztupk0",
+            "value": "2610.160000000000000000000000000000"
+        }
+    ],
+    "naive_value": "2605.533879185080648394998043723508",
+    "one_out_inferer_values": [
+      {
+        "worker": "allo102ksu3kx57w0mrhkg37kvymmk2lgxqcan6u7yn",
+        "value": "2570.859434973857748387096774193548"
+      },
+      {
+        "worker": "allo10q6hm2yae8slpvvgmxqrcasa30gu5qfysp4wkz",
+        "value": "2569.230589724828006451612903225806"
+      }
+    ],
+    "one_out_forecaster_values": [],
+    "one_in_forecaster_values": [],
+    "one_out_inferer_forecaster_values": []
+  },
+  "inferer_weights": [
+    {
+      "worker": "allo102ksu3kx57w0mrhkg37kvymmk2lgxqcan6u7yn",
+      "weight": "0.0002191899319465528034563075461505151"
+    },
+    {
+      "worker": "allo10q6hm2yae8slpvvgmxqrcasa30gu5qfysp4wkz",
+      "weight": "0.0002191899319465528034563075461505151"
+    }
+  ],
+  "forecaster_weights": [
+    {
+      "worker": "allo1za8r9v0st4ntfyeka23qs5wvd7mvsnzhztupk0",
+      "weight": "0.1444137067859501612197657742201029"
+    }
+  ],
+  "forecast_implied_inferences": [
+    {
+      "worker": "allo1za8r9v0st4ntfyeka23qs5wvd7mvsnzhztupk0",
+      "value": "2610.160000000000000000000000000000"
+    }
+  ],
+  "inference_block_height": "1349577",
+  "loss_block_height": "0",
+  "confidence_interval_raw_percentiles": [
+    "2.28",
+    "15.87",
+    "50",
+    "84.13",
+    "97.72"
+  ],
+  "confidence_interval_values": [
+    "2492.1675618299669694181830608795809",
+    "2543.9249467952655499150756965734158",
+    "2611.033130351115229549044053766836",
+    "2662.29523395638446190095015123294396",
+    "2682.827040221238"
+  ]
+}
+```
+
+## Breaking Down the Response
+
+Below is an explanation of important sub-objects displayed in the JSON output:
+
+### `topic_id`
+In this case, "1" represents the topic being queried. [Topics](/devs/topic-creators/how-to-create-topic) define the context and rules for a particular inference.
+
+### `naive_value`
+The **naive value** omits all forecast-implied inferences from the weighted average by setting their weights to zero. The naive network inference is used to quantify the contribution of the
+forecasting task to the network accuracy, which in turn sets the reward distribution between the inference and forecasting tasks.
+
+### `combined_value`
+The **combined value** is an optimized inference that represents a collective intelligence approach, taking both naive submissions and forecast data into account.
+
+### `inferer_values`
+Workers in the network submit their inferences, each represented by an `allo` address. For example:
+
+```json
+{
+    "worker": "allo102ksu3kx57w0mrhkg37kvymmk2lgxqcan6u7yn",
+    "value": "2611.01109296"
+}
+```
+
+Each worker submits a value based on their own models. These individual submissions contribute to both the naive and combined values. The combined value gives higher weighting to more reliable workers, based on performance or other criteria.
+
+### `one_out_inferer_values`
+These values simulate removing a single worker from the pool to see how the overall inference changes. This is a technique used to evaluate the impact of individual inferences on the combined result. 
+
+### `forecast_implied_inferences`
+The [Forecast-Implied Inference](/home/layers/forecast-synthesis/synthesis#forecast-implied-inferences) uses forecasted losses and worker inferences to produce a predicted value where each prediction is weighted based on how accurately the forecasters predicted losses in previous time steps, or epochs.
+
+### `inference_block_height`
+The specific chain block that the inference data was generated
+
+### `confidence_interval_raw_percentiles`
+Fixed percentiles that are used to generate [confidence intervals](/home/confidence-intervals)
+
+### `confidence_interval_values`
+Confidence intervals](/home/confidence-intervals) show the predicted range of outcomes based on worker inferences.
+

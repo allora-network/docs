@@ -1,0 +1,36 @@
+import { Callout } from 'nextra/components'
+
+# How to Query Worker EMA Scores
+
+## What is an EMA Score?
+
+The EMA score (Exponential Moving Average) reflects a worker's performance over time for a given topic, balancing recent and past achievements, and helps determine whether a participant stays in the **active set** (eligible for rewards) or remains 
+in the **passive set**. Active participants have their EMA score updated based on their current performance, which influences their ongoing 
+eligibility for rewards. In contrast, inactive participants, who do not contribute during a given epoch, receive an adjusted score using a 
+"dummy" value, which determines whether they can re-enter the active set in future epochs and qualify for rewards. This process ensures 
+fairness while allowing inactive participants the chance to rejoin the active set based on their historical performance.
+
+## Query EMA Score for a Specific Worker
+
+To query the EMA score for a specific worker (identified by the worker's allo address), run:
+
+```bash
+allorad q emissions inferer-score-ema [topic_id] [worker_address] --node https://allora-rpc.testnet.allora.network/
+```
+
+- Replace `[topic_id]` and `[worker_address]` with your specific details.
+
+## Query the Lowest Worker in the Active Set's EMA Score 
+
+To query the lowest EMA score for a worker in the Active Set, run:
+
+```bash
+allorad q emissions current-lowest-inferer-score [topic_id]
+```
+
+- Replace `[topic_id]` with your specific details.
+
+<Callout>
+To determine if your worker is in the active set and eligible for rewards, query your worker's EMA score and the lowest worker in the active set's EMA score and compare them. 
+If your worker's EMA score for a specific topic is higher than the EMA score of the lowest worker in the active set, your worker is in the active set for that topic.
+</Callout>
