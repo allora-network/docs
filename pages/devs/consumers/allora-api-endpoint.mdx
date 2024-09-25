@@ -1,3 +1,5 @@
+import { Callout } from 'nextra/components'
+
 # Allora API: How to Query Data of Existing Topics
 
 The **Allora API** provides an interface to query real-time on-chain data of the latest inferences made by workers. Here's an explanation of how it works using the example endpoint:
@@ -91,6 +93,10 @@ Sample Response:
   ]
 }
 ```
+
+<Callout type="warning">
+Please be aware that there may be some expected volatility in predictions due to the nascency of the network and the more forgiving testnet configurations currently in place. We are actively working on implementing an outlier protection mechanism, which will be applied at the consumer layer and tailored to individual use cases in the near future.
+</Callout>
 
 ## Breaking Down the Response
 
