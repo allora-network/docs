@@ -9,10 +9,8 @@ The tool comprises of multiple components responsible for model development, eva
 | **Component**           | **Purpose**                                                                 | **Key Functions**                                                                                                 |
 |-------------------------|-----------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------|
 | **Data Indexing**        | Retrieves necessary data from the blockchain using the Postgres indexer.    | Utilizes the `extract` folder for querying data from Postgres and making it accessible to the forecaster.         |
-| **Modeling**            | Core functionality for model selection and training.                        | Supports different machine learning algorithms like linear regression, decision trees, and XGBoost.               |
+| **Modeling**            | Core functionality for model selection and training.                        | Supports different machine learning algorithms like LightGBM and XGBoost.               |
 | **Prediction Engine**    | Runs selected models on historical data to generate future predictions.     | Ingests time-series data and outputs forecast values based on the chosen model.                                   |
 | **Model Plots**         | Visualizes model performance and forecast accuracy.                         | Generates plots such as Prediction vs Actual, Residuals, and Forecast Horizon for intuitive evaluation.           |
-| **Performance Metrics**  | Measures the accuracy and effectiveness of model predictions.               | Key metrics include MAE (Mean Absolute Error), RMSE (Root Mean Squared Error), and R-squared values.              |
+| **Performance Metrics**  | Measures the accuracy and effectiveness of model predictions.               | Key metrics include MAE (Mean Absolute Error), RMSE (Root Mean Squared Error), R2 Score, Mean Absolute Percentage Error, Median Absolute Percentage Error |             |
 | **Scoring Mechanism**    | Assigns scores based on model performance compared to other participants.   | Determines which forecasts contribute to the Allora Network’s final consensus based on accuracy and uniqueness.    |
-| **Active Set & Consensus** | Incorporates user forecasts into the network's consensus mechanism.      | Aggregates predictions from active participants and weighs them based on performance metrics.                     |
-
