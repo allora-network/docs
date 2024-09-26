@@ -1,0 +1,17 @@
+# Build and Deploy a Forecaster
+
+The Allora Forecaster is designed to run a model that predicts how accurate inferers are at arbitrary tasks.
+Any forecaster can be augmented using proprietary data sources, which likely overlap with the data used by inference models.
+A [boilerplate forecaster](https://github.com/allora-network/allora-forecaster) has been provided that has demonstrated ability for arbitrary topics.
+
+## Forecaster Components Overview
+
+
+| **Component**           | **Purpose**                                                                 | **Key Functions**                                                                                                 |
+|-------------------------|-----------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------|
+| **Data Indexing**        | Retrieves necessary data from the blockchain using the Postgres indexer.    | Utilizes the `extract` folder for querying data from Postgres and making it accessible to the forecaster.         |
+| **Modeling**            | Core functionality for model selection and training.                        | Supports different machine learning algorithms like LightGBM and XGBoost.               |
+| **Prediction Engine**    | Runs selected models on historical data to generate future predictions.     | Ingests time-series data and outputs forecast values based on the chosen model.                                   |
+| **Model Plots**         | Visualizes model performance and forecast accuracy.                         | Generates plots such as Prediction vs Actual, Residuals, and Forecast Horizon for intuitive evaluation.           |
+| **Performance Metrics**  | Measures the accuracy and effectiveness of model predictions.               | Key metrics include MAE (Mean Absolute Error), RMSE (Root Mean Squared Error), R2 Score, Mean Absolute Percentage Error, Median Absolute Percentage Error |             |
+| **Scoring Mechanism**    | Assigns scores based on model performance compared to other participants.   | Determines which forecasts contribute to the Allora Network’s final consensus based on accuracy and uniqueness.    |
