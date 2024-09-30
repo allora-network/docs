@@ -9,7 +9,9 @@ Regrets are normalized to ensure weights are comparable and within a reasonable 
 This allows the use of a single mapping function to map regrets to weights, independently of the absolute scale of the losses and regrets.
 The regret is normalized using its standard deviation across all workers, adjusted by a small constant 𝜖:
 
-![normalization](/normalization-of-regrets.png)
+$$
+\hat{R}_{ijk} = \frac{R_{ijk}}{\sigma_j(R_{ijk}) + \epsilon}
+$$
 
 - Here, 𝜎𝑗σ is the standard deviation of 𝑅𝑖𝑗𝑘 for a particular inference across all workers.
 - The small constant 𝜖 ensures numerical stability and avoids division by zero.
@@ -18,7 +20,9 @@ The regret is normalized using its standard deviation across all workers, adjust
 
 The normalized regrets 𝑅𝑖𝑗𝑘 are then used to calculate the weights for each inference:
 
-![weights](/weights.png)
+$$
+w_{ijk} = \phi'_{p,c}(\hat{R}_{ijk})
+$$
 
 These weights determine how much each raw inference 𝐼𝑖𝑗 will contribute to the final network inference.
 
@@ -28,7 +32,9 @@ These weights determine how much each raw inference 𝐼𝑖𝑗 will contribute
 The Topic Coordinator takes the forecasted losses and normalized weights and produces forecast-implied inferences. A forecast-implied inference is a predicted value of a target variable that combines different 
 forecasters' predictions and workers' inferences, where each prediction is weighted based on how accurately the forecasters predicted losses in previous time steps, or _epochs_. 
 
-![forecast-implied](/forecast-implied.png)
+$$
+I_{ik} = \frac{\sum_j w_{ijk} I_{ij}}{\sum_j w_{ijk}}
+$$
 
 Here, 𝑤𝑖𝑗𝑘 are weights assigned to each inference based on the forecasted regret.
 
