@@ -2,5 +2,6 @@
     "setup-wallet": "Setup Wallet",
     "cli": "Installation",
     "basic-usage": "Basic Usage",
-    "existing-topics": "Existing Topics"
+    "existing-topics": "Existing Topics",
+    "query-network-data": "How to Query Network Data"
 }
