@@ -15,7 +15,7 @@ These functions read from the appchain only and do not write. Add the **Command*
 allorad q emissions [Command] --node <RPC_URL>
 ```
 
-### Check if Reputer is Registered in a Topic
+## Check if Reputer is Registered in a Topic
 
 - **RPC Method:** `IsReputerRegisteredInTopicId`
 - **Command:** `is-reputer-registered [topic_id] [address]`
@@ -24,14 +24,14 @@ allorad q emissions [Command] --node <RPC_URL>
     - `topic_id`: The identifier of the topic where you want to check the reputer’s registration status.
     - `address`: The address of the reputer you want to check.
 
-#### Use Case:
+### Use Case:
 **Why use it?**  
 - This command is essential for verifying whether a reputer is properly registered in a specific topic before submitting reputation-related data or participating in topic-related activities.
 
 **Example Scenario:**  
 - Before a reputer attempts to evaluate workers or participate in consensus, you can confirm if they are registered to the relevant topic, ensuring their eligibility for participation.
 
-### Check Reputer Stake in a Topic
+## Check Reputer Stake in a Topic
 
 - **RPC Method:** `GetReputerStakeInTopic`
 - **Command:** `stake-in-topic-reputer [address] [topic_id]`
@@ -40,7 +40,7 @@ allorad q emissions [Command] --node <RPC_URL>
     - `address`: The address of the reputer whose stake is being queried.
     - `topic_id`: The identifier of the topic.
 
-#### Use Case:
+### Use Case:
 **Why use it?**  
 - This command is essential for understanding the total stake a reputer holds in a specific topic, including delegated stake, which is important for determining their influence.
 
@@ -49,7 +49,7 @@ allorad q emissions [Command] --node <RPC_URL>
 
 ---
 
-### Get Total Delegate Stake in a Reputer for a Topic
+## Get Total Delegate Stake in a Reputer for a Topic
 
 - **RPC Method:** `GetDelegateStakeInTopicInReputer`
 - **Command:** `stake-total-delegated-in-topic-reputer [reputer_address] [topic_id]`
@@ -58,7 +58,7 @@ allorad q emissions [Command] --node <RPC_URL>
     - `reputer_address`: The address of the reputer.
     - `topic_id`: The identifier of the topic.
 
-#### Use Case:
+### Use Case:
 **Why use it?**  
 - This command provides insight into how much stake has been delegated to a reputer for a given topic, which can impact their role in network consensus.
 
@@ -67,7 +67,7 @@ allorad q emissions [Command] --node <RPC_URL>
 
 ---
 
-### Get Stake Delegated to a Reputer
+## Get Stake Delegated to a Reputer
 
 - **RPC Method:** `GetDelegateStakePlacement`
 - **Command:** `delegate-stake-placement [topic_id] [delegator] [target]`
@@ -77,7 +77,7 @@ allorad q emissions [Command] --node <RPC_URL>
     - `delegator`: The address of the delegator.
     - `target`: The address of the target reputer.
 
-#### Use Case:
+### Use Case:
 **Why use it?**  
 - Use this command to track how much stake a delegator has assigned to a particular reputer in a specific topic.
 
@@ -86,7 +86,7 @@ allorad q emissions [Command] --node <RPC_URL>
 
 ---
 
-### Remove Delegated Stake from a Reputer
+## Get Removed Delegated Stake from a Reputer
 
 - **RPC Method:** `GetDelegateStakeRemoval`
 - **Command:** `delegate-stake-removal [block_height] [topic_id] [delegator] [reputer]`
@@ -106,7 +106,7 @@ allorad q emissions [Command] --node <RPC_URL>
 
 ---
 
-### Get Total Stake Delegated to a Reputer
+## Get Total Stake Delegated to a Reputer
 
 - **RPC Method:** `GetDelegateStakeUponReputer`
 - **Command:** `delegate-stake-on-reputer [topic_id] [target]`
@@ -115,7 +115,7 @@ allorad q emissions [Command] --node <RPC_URL>
     - `topic_id`: The identifier of the topic.
     - `target`: The address of the target reputer.
 
-#### Use Case:
+### Use Case:
 **Why use it?**  
 - This command provides insight into the total delegated stake a reputer has accumulated in a given topic, which impacts their standing in the network.
 
@@ -124,7 +124,7 @@ allorad q emissions [Command] --node <RPC_URL>
 
 ---
 
-### Get Reputer's Latest Score in a Topic
+## Get Reputer's Latest Score in a Topic
 
 - **RPC Method:** `GetReputerScoreEma`
 - **Command:** `reputer-score-ema [topic_id] [reputer]`
@@ -133,7 +133,7 @@ allorad q emissions [Command] --node <RPC_URL>
     - `topic_id`: The identifier of the topic.
     - `reputer`: The address of the reputer.
 
-#### Use Case:
+### Use Case:
 **Why use it?**  
 - This command allows you to track the latest performance score of a reputer, giving insight into their effectiveness within the network.
 
@@ -142,7 +142,7 @@ allorad q emissions [Command] --node <RPC_URL>
 
 ---
 
-### Get Reputer's Stake Removal Information
+## Get Reputer's Stake Removal Information
 
 - **RPC Method:** `GetStakeRemovalForReputerAndTopicId`
 - **Command:** `stake-removal [reputer] [topic_id]`
@@ -151,7 +151,7 @@ allorad q emissions [Command] --node <RPC_URL>
     - `reputer`: The address of the reputer.
     - `topic_id`: The identifier of the topic.
 
-#### Use Case:
+### Use Case:
 **Why use it?**  
 - Use this command to check the details of any pending stake removal for a reputer in a topic.
 
@@ -160,7 +160,7 @@ allorad q emissions [Command] --node <RPC_URL>
 
 ---
 
-### Get Total Stake Delegated to a Reputer
+## Get Total Stake Delegated to a Reputer
 
 - **RPC Method:** `GetStakeReputerAuthority`
 - **Command:** `reputer-authority [topic_id] [reputer]`
@@ -169,7 +169,7 @@ allorad q emissions [Command] --node <RPC_URL>
     - `topic_id`: The identifier of the topic.
     - `reputer`: The address of the reputer.
 
-#### Use Case:
+### Use Case:
 **Why use it?**  
 - This command provides a complete view of a reputer's stake in a topic, combining both self-stake and delegated stake, which influences their standing in the network.
 
@@ -178,7 +178,7 @@ allorad q emissions [Command] --node <RPC_URL>
 
 ---
 
-### Get Listening Coefficient for a Reputer
+## Get Listening Coefficient for a Reputer
 
 - **RPC Method:** `GetListeningCoefficient`
 - **Command:** `listening-coefficient [topic_id] [reputer]`
@@ -187,7 +187,7 @@ allorad q emissions [Command] --node <RPC_URL>
     - `topic_id`: The identifier of the topic.
     - `reputer`: The address of the reputer whose listening coefficient is being queried.
 
-#### Use Case:
+### Use Case:
 **Why use it?**  
 - This command is useful to determine how actively a reputer is interacting with a topic. The listening coefficient reflects how engaged the reputer is in the network's consensus and decision-making process.
 
@@ -196,7 +196,7 @@ allorad q emissions [Command] --node <RPC_URL>
 
 ---
 
-### Get Multiple Reputers' Stakes in a Topic
+## Get Multiple Reputers' Stakes in a Topic
 
 - **RPC Method:** `GetMultiReputerStakeInTopic`
 - **Command:** `multi-reputer-stake [addresses] [topic_id]`
@@ -205,7 +205,7 @@ allorad q emissions [Command] --node <RPC_URL>
     - `addresses`: A list of reputer addresses whose stakes you want to retrieve.
     - `topic_id`: The identifier of the topic.
 
-#### Use Case:
+### Use Case:
 **Why use it?**  
 - This command allows you to query the stakes of multiple reputers in a specific topic in a single request, making it useful for bulk operations or analysis.
 

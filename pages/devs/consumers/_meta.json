@@ -1,6 +1,5 @@
 {
     "allora-api-endpoint": "Allora API Endpoint",
-    "onchain-query-existing-data": "How to Query Topic Data On-Chain",
     "consumer-contracts": "Consumer Contracts",
     "existing-consumers": "Existing Consumers",
     "walkthrough-use-topic-inference": "Walkthrough: Using a Topic Inference on-chain"

@@ -20,7 +20,7 @@ These functions read from the appchain only and do not write. Add the **Command*
 allorad tx emissions [Command] --node <RPC_URL>
 ```
 
-### Add Stake to Self 
+## Add Stake to Self 
 
 - **RPC Method:** `AddStake`
 - **Command:** `add-stake [sender] [topic_id] [amount]`
@@ -30,7 +30,7 @@ allorad tx emissions [Command] --node <RPC_URL>
     - `topic_id`: The identifier of the topic.
     - `amount`: The amount of stake to be added.
 
-#### Use Case:
+### Use Case:
 **Why use it?**  
 - This command is used when a reputer or worker wants to increase their stake in a specific topic, increasing their influence or authority.
 
@@ -39,7 +39,7 @@ allorad tx emissions [Command] --node <RPC_URL>
 
 ---
 
-### Remove Stake from Self
+## Remove Stake from Self
 
 - **RPC Method:** `RemoveStake`
 - **Command:** `remove-stake [sender] [topic_id] [amount]`
@@ -49,7 +49,7 @@ allorad tx emissions [Command] --node <RPC_URL>
     - `topic_id`: The identifier of the topic.
     - `amount`: The amount of stake to be removed.
 
-#### Use Case:
+### Use Case:
 **Why use it?**  
 - This command is used by reputers to reduce their stake in a topic, either for liquidity purposes or when their role in the topic has changed.
 
@@ -58,7 +58,7 @@ allorad tx emissions [Command] --node <RPC_URL>
 
 ---
 
-### Cancel Pending Stake Removal (Reputer)
+## Cancel Pending Stake Removal (Reputer)
 
 - **RPC Method:** `CancelRemoveStake`
 - **Command:** `cancel-remove-stake [sender] [topic_id]`
@@ -67,7 +67,7 @@ allorad tx emissions [Command] --node <RPC_URL>
     - `sender`: The address of the sender canceling the stake removal (reputer).
     - `topic_id`: The identifier of the topic.
 
-#### Use Case:
+### Use Case:
 **Why use it?**  
 - This command allows reputers to cancel a stake removal request if they change their mind and wish to keep their stake in the topic.
 
@@ -76,7 +76,7 @@ allorad tx emissions [Command] --node <RPC_URL>
 
 ---
 
-### Delegate Stake to a Reputer
+## Delegate Stake to a Reputer
 
 - **RPC Method:** `DelegateStake`
 - **Command:** `delegate-stake [sender] [topic_id] [reputer] [amount]`
@@ -87,7 +87,7 @@ allorad tx emissions [Command] --node <RPC_URL>
     - `reputer`: The address of the reputer receiving the delegated stake.
     - `amount`: The amount of stake to be delegated.
 
-#### Use Case:
+### Use Case:
 **Why use it?**  
 - This command is used by delegators to delegate their stake to a reputer, giving the reputer more authority and influence within a specific topic.
 
@@ -96,7 +96,7 @@ allorad tx emissions [Command] --node <RPC_URL>
 
 ---
 
-### Remove Delegated Stake from a Reputer
+## Remove Delegated Stake from a Reputer
 
 - **RPC Method:** `RemoveDelegateStake`
 - **Command:** `remove-delegate-stake [sender] [topic_id] [reputer] [amount]`
@@ -107,7 +107,7 @@ allorad tx emissions [Command] --node <RPC_URL>
     - `reputer`: The address of the reputer whose delegated stake is being removed.
     - `amount`: The amount of stake to be removed.
 
-#### Use Case:
+### Use Case:
 **Why use it?**  
 - This command is used when a delegator wants to withdraw or reduce the stake they have delegated to a reputer in a topic.
 
@@ -116,7 +116,7 @@ allorad tx emissions [Command] --node <RPC_URL>
 
 ---
 
-### Cancel Pending Delegated Stake Removal
+## Cancel Pending Delegated Stake Removal
 
 - **RPC Method:** `CancelRemoveDelegateStake`
 - **Command:** `cancel-remove-delegate-stake [sender] [topic_id] [reputer]`
@@ -126,7 +126,7 @@ allorad tx emissions [Command] --node <RPC_URL>
     - `topic_id`: The identifier of the topic.
     - `reputer`: The address of the reputer whose delegated stake removal is being canceled.
 
-#### Use Case:
+### Use Case:
 **Why use it?**  
 - This command allows delegators to cancel a delegated stake removal request if they change their mind and want to keep their stake with the reputer.
 
@@ -135,7 +135,7 @@ allorad tx emissions [Command] --node <RPC_URL>
 
 ---
 
-### Claim Rewards for Delegated Stake
+## Claim Rewards for Delegated Stake
 
 - **RPC Method:** `RewardDelegateStake`
 - **Command:** `reward-delegate-stake [sender] [topic_id] [reputer]`
@@ -145,7 +145,7 @@ allorad tx emissions [Command] --node <RPC_URL>
     - `topic_id`: The identifier of the topic.
     - `reputer`: The address of the reputer to whom the stake was delegated.
 
-#### Use Case:
+### Use Case:
 **Why use it?**  
 - This command is used by delegators to claim their rewards based on the performance of the reputer they delegated stake to.
 
