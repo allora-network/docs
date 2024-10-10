@@ -8,36 +8,71 @@ Welcome to the Allora developer's guide! This page will help you get up to speed
 
 Allora is a decentralized network that leverages the power of collective participation in tasks such as data inference, forecasting, and verification. [Contribute](/community/contribute) to any of the repositories below to help enhance and grow the Allora ecosystem.
 
-## Key Repositories
-
-Here are the main repositories you'll need to get started with Allora:
-
-### Allora Offchain Node
-
-The [Allora Offchain Node](https://github.com/allora-network/allora-offchain-node) allows inference and data providers to participate in the Allora network. This repo is the base for both forecast and inference worker nodes, as well as reputers.
-
-#### Workers
-- [Deploy a Worker](/devs/workers/deploy-worker/using-docker)
-
-##### Walkthroughs
-
-- [Basic Coin Prediction Worker](/devs/workers/walkthroughs/walkthrough-price-prediction-worker)
-- [Hugging Face Worker](/devs/workers/walkthroughs/walkthrough-hugging-face-worker)
-
-#### Reputers
-
-- [Deploy a Reputer](/devs/reputers/reputers)
-
-##### Walkthroughs
-
-- [Coin Prediction Reputer](/devs/reputers/coin-prediction-reputer)
-
-### Allora Chain
+## Allora Chain
 
 The [Allora chain](https://github.com/allora-network/allora-chain) is a Cosmos Hub chain that forms the core of the Allora network. This repository contains the blockchain's codebase and is useful for validators.
 
-You can use the [Allorad CLI tool](/devs/get-started/cli#installing-allorad) to query the chain and make transactions.
+You can use the [`allorad` CLI tool](/devs/get-started/cli#installing-allorad) to query the chain and make transactions.
 
-### Allora Consumer Contracts
+<Callout>
+Some subsections in the Table of Contents below require downloading and installing [`allorad`](/devs/get-started/cli#installing-allorad).
 
-The [Allora Consumer](https://github.com/allora-network/allora-consumer) Repository shows how to get inferences on-chain via smart contract function execution.
+As a general rule, it is suggested to download and install `allorad` for any developer looking to interact with the network.
+</Callout>
+
+## [Setup Wallet](/devs/get-started/setup-wallet.mdx)
+Instructions for setting up your wallet to interact with the Allora network.
+
+### Subsections:
+- [Basic Usage](/devs/get-started/basic-usage.mdx)
+- [Existing Topics](/devs/get-started/existing-topics.mdx)
+- [How to Query Network Data using `allorad`](/devs/get-started/query-network-data.mdx)
+  
+---
+
+## [Workers](/devs/workers/workers.mdx)
+Explore how workers function in Allora, including setup and data querying.
+
+### Subsections:
+- [System Requirements](/devs/workers/nop-requirements.mdx)
+- [Build/Deploy an Inference Worker](/devs/workers/deploy-worker.mdx)
+- [Walkthroughs](/devs/workers/walkthroughs/index.mdx)
+- [Build and Deploy a Forecaster](/devs/workers/deploy-forecaster.mdx)
+- [How To Query Worker Data using `allorad`](/devs/workers/query-worker-data.mdx)
+- [Query EMA Score of a Worker using `allorad`](/devs/workers/query-ema-score.mdx)
+
+---
+
+## [Reputers](/devs/reputers/reputers.mdx)
+Understand how reputers contribute to reputation management and query operations.
+
+### Subsections:
+- [Coin Prediction Reputer](/devs/reputers/coin-prediction-reputer.mdx)
+- [Query EMA Score for a Reputer using `allorad`](/devs/reputers/query-ema-score.mdx)
+- [Query Reputer Data using `allorad`](/devs/reputers/query-reputer-data.mdx)
+- [Set and Adjust Stake](/devs/reputers/set-and-adjust-stake.mdx)
+
+---
+
+## [Validators](/devs/validators/validators.mdx)
+Details on how to set up and run a validator in the Allora network.
+
+### Subsections:
+- [System Requirements](/devs/validators/nop-requirements.mdx)
+- [Deploy Allora Chain](/devs/validators/deploy-chain.mdx)
+- [Run a Full Node](/devs/validators/run-full-node.mdx)
+- [Stake a Validator](/devs/validators/stake-a-validator.mdx)
+- [Validator Operations](/devs/validators/validator-operations.mdx)
+- [Software Upgrades](/devs/validators/software-upgrades.mdx)
+
+---
+
+## [Consumers](/devs/consumers/consumers.mdx)
+Resources for interacting with Allora as a consumer, including querying data and contracts.
+
+### Subsections:
+- [Allora API Endpoint](/devs/consumers/allora-api-endpoint.mdx)
+- [Consumer Contracts](/devs/consumers/consumer-contracts/deploy-consumer.mdx)
+  - [Deploy Consumer Contracts](/devs/consumers/consumer-contracts/dev-consumers.mdx)
+- [Existing Consumers](/devs/consumers/existing-consumers.mdx)
+- [Walkthrough: Using a Topic Inference on-chain](/devs/consumers/walkthrough-use-topic-inference.mdx)

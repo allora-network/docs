@@ -1,0 +1,41 @@
+import { Callout } from 'nextra/components'
+
+# How to Query Reputer EMA Scores
+
+## What is an EMA Score?
+
+The EMA score (Exponential Moving Average) reflects a reputer's performance over time for a given topic, balancing recent and past achievements, and helps determine whether a participant stays in the **active set** (eligible for [rewards](/home/layers/consensus/reputers)) or remains 
+in the **passive set**. 
+
+Read about our v0.3.0 release on [Merit-Based Sortitioning](/home/release-notes#v030) for a deeper dive on what makes up the active and passive set.
+
+Active participants have their EMA score updated based on their current performance, which influences their ongoing 
+eligibility for [rewards](/home/layers/consensus/reputers). In contrast, inactive participants, who do not contribute during a given [epoch](/home/key-terms#epochs), receive an adjusted score using a 
+"dummy" value, which determines whether they can re-enter the active set in future epochs and qualify for rewards. 
+
+This process ensures fairness while allowing inactive participants the chance to rejoin the active set based on their historical performance.
+
+## Query EMA Score for a Specific Reputer
+
+To query the EMA score for a specific reputer (identified by the reputer's allo address), run:
+
+```bash
+allorad q emissions reputer-score-ema [topic_id] [reputer_address] --node https://allora-rpc.testnet.allora.network/
+```
+
+- Replace `[topic_id]` and `[reputer_address]` with your specific details.
+
+## Query the Lowest Reputer in the Active Set's EMA Score 
+
+To query the lowest EMA score for a reputer in the Active Set, run:
+
+```bash
+allorad q emissions current-lowest-reputer-score [topic_id] --node https://allora-rpc.testnet.allora.network/
+```
+
+- Replace `[topic_id]` with your specific details.
+
+<Callout>
+To determine if your reputer is in the active set and eligible for rewards, query your reputer's EMA score and the lowest reputer in the active set's EMA score and compare them. 
+If your reputer's EMA score for a specific topic is higher than the EMA score of the lowest reputer in the active set, your reputer is in the active set for that topic.
+</Callout>
