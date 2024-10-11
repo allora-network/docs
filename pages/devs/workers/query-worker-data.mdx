@@ -1,0 +1,129 @@
+# How to Query Worker Data using `allorad`
+
+Below is a list of commands to understand how to pull information about workers via [`allorad`](/devs/get-started/cli#installing-allorad):
+
+## Prerequisites
+
+- [`allorad` CLI](/devs/get-started/cli)
+- A basic understanding of the Allora Network
+
+## Query Functions
+
+These functions read from the appchain only and do not write. Add the **Command** value into your query to retrieve the expected data.
+
+```bash
+allorad q emissions [Command] --node <RPC_URL>
+```
+
+## Check if Worker is Registered in a Topic
+
+- **RPC Method:** `IsWorkerRegisteredInTopicId`
+- **Command:** `is-worker-registered [topic_id] [address]`
+- **Description:** Checks whether a worker is registered in a specific topic. It returns `true` if the worker is registered in the given topic, and `false` otherwise.
+- **Positional Arguments:**
+    - `topic_id`: The identifier of the topic where you want to check the worker’s registration status.
+    - `address`: The address of the worker you want to check.
+
+### Use Case:
+**Why use it?**  
+- This command is essential if you want to verify whether a worker is properly registered in a specific topic before submitting inferences or participating in a topic's operations.
+
+**Example Scenario:**  
+- Before deploying a worker to submit inferences on a particular topic, you can confirm that the worker is registered to that topic to ensure proper functionality and avoid errors.
+
+---
+
+## Get Worker Inferences Scores at Block
+
+- **RPC Method:** `GetWorkerInferenceScoresAtBlock`
+- **Command:** `inference-scores [topic_id] [block_height]`
+- **Description:** Return scores for a worker at a block height.
+    - Scores determine how [worker rewards](/home/layers/consensus/workers) are paid out.
+
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `block_height` Block height to query.
+
+### Use Case
+**Why use it?**  
+- You may want to verify if a worker has received a high score at a specific block, particularly if you're troubleshooting worker rewards or performance discrepancies.
+   
+**Example Scenario:**  
+- If you believe your worker's reward for a particular topic is inaccurate, use this command to view how it was scored at a specific block.
+
+---
+
+## Get Latest Worker Inference By Topic ID
+
+- **RPC Method:** `GetWorkerLatestInferenceByTopicId`
+- **Command:** `worker-latest-inference [topic_id] [worker_address]`
+- **Description:** Gets the latest inference for a given worker and topic.
+
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned
+  - `worker_address` Given worker to query on
+
+### Use Case
+**Why use it?**
+- This command is useful if you want to check whether a worker is actively submitting inferences for a topic and how recent those inferences are.
+
+**Example Scenario:**
+- A worker has missed rewards, and you want to verify if their latest inference was successfully submitted on time for a given topic.
+
+---
+
+## Get Worker Node Info
+
+- **RPC Method:** `GetWorkerNodeInfo`
+- **Command:** `worker-info [address]`
+- **Description:** Get node info for a specified worker node.
+  - Returns the **owner address** of the worker node.
+  - Returns the **worker node address** being queried.
+
+- **Positional Arguments:**
+  - `address` The address of the worker node whose information will be retrieved.
+
+### Use Case
+**Why use it?**
+- This command is helpful for checking the current status of a worker node, especially if you are managing multiple nodes and want to verify the ownership or troubleshoot node configuration.
+
+**Example Scenario:**
+- You want to ensure the node you’ve set up is operating under the correct owner and is correctly registered on the network.
+
+---
+
+## Get Naive Inferer Network Regret
+
+- **RPC Method:** `GetNaiveInfererNetworkRegret`
+- **Command:** `naive-inferer-network-regret [topic_id] [inferer]`
+- **Description:** Returns the network regret associated with including an inferer's naive inference in a batch for a given topic. If no specific regret is calculated, the command defaults to the topic's `InitialRegret` value.
+- **Positional Arguments:**
+    - `topic_id`: The identifier of the topic for which the regret will be calculated.
+    - `inferer`: The address of the inferer whose naive inference is being evaluated.
+
+### Use Case:
+**Why use it?**  
+- Use this command to assess the [regret](/home/key-terms#regrets) associated with incorporating an inferer’s naive inference into a batch. Useful for analyzing how poorly an inference may perform within the context of the network’s aggregate inference for a topic.
+
+**Example Scenario:**  
+- If you want to understand how an inferer's baseline performance impacts the network outcome, this command helps quantify that penalty.
+
+---
+
+## Get One-Out Inferer-Inferer Network Regret
+
+- **RPC Method:** `GetOneOutInfererInfererNetworkRegret`
+- **Command:** `one-out-inferer-inferer-network-regret [topic_id] [one_out_inferer] [inferer]`
+- **Description:** Returns the network regret when the implied outcome of the `one_out_inferer` is included in a batch alongside the `inferer`. If no specific regret value exists, it defaults to the topic’s `InitialRegret`.
+- **Positional Arguments:**
+    - `topic_id`: The identifier of the topic for which the regret will be calculated.
+    - `one_out_inferer`: The address of the inferer whose implied inference is being evaluated.
+    - `inferer`: The address of the inferer to compare against.
+
+### Use Case:
+**Why use it?**  
+- This command is useful when comparing how two inferers impact the network when their inferences are processed together. It helps identify the potential penalty on network performance when adding a specific inferer to a batch.
+
+**Example Scenario:**
+- You might want to compare the impact of two inferers to see how their joint performance influences the overall network regret. This is particularly useful for optimizing inference strategies.
+

@@ -1,0 +1,314 @@
+# How to Query Topic Data using `allorad`
+
+
+To query network-level data on the Allora chain using the `allorad` CLI, you need to interact with various RPC methods designed to return aggregate or holistic information about specific topics.
+
+## Prerequisites
+
+- [`allorad` CLI](/devs/get-started/cli)
+
+## Query Functions
+
+These functions read from the appchain only and do not write. Add the **Command** value into your query to retrieve the expected data.
+
+```bash
+allorad q emissions [Command] --node <RPC_URL>
+```
+
+### Get Topic by Topic ID
+
+- **RPC Method:** `GetTopic`
+- **Command:** `topic [topic_id]`
+- **Description:** Retrieves information about a specific topic by its ID.
+- **Positional Arguments:**
+    - `topic_id`: The identifier of the topic.
+
+#### Use Case:
+**Why use it?**  
+- Use this command to query details about a particular topic.
+
+**Example Scenario:**  
+- You want to check the metadata and settings for a specific topic in the network.
+
+---
+
+### Check if Topic Exists
+
+- **RPC Method:** `TopicExists`
+- **Command:** `topic-exists [topic_id]`
+- **Description:** Checks if a topic exists at the given ID. Returns `true` if the topic exists, `false` otherwise.
+- **Positional Arguments:**
+    - `topic_id`: The identifier of the topic.
+
+#### Use Case:
+**Why use it?**  
+- Use this command to verify whether a topic has been created or is active in the network.
+
+**Example Scenario:**  
+- Before interacting with a topic, you want to confirm that it exists in the system.
+
+---
+
+### Check if Topic is Active
+
+- **RPC Method:** `IsTopicActive`
+- **Command:** `is-topic-active [topic_id]`
+- **Description:** Checks whether a specific topic is currently active. Returns `true` if the topic is active, `false` otherwise.
+- **Positional Arguments:**
+    - `topic_id`: The identifier of the topic.
+
+#### Use Case:
+**Why use it?**  
+- This command helps determine if a topic is active and available for participation.
+
+**Example Scenario:**  
+- Before submitting any data, you want to confirm that the topic is active and accepting inputs.
+
+---
+
+### Get Next Topic ID
+
+- **RPC Method:** `GetNextTopicId`
+- **Command:** `next-topic-id`
+- **Description:** Returns the ID of the next available topic that can be created.
+
+#### Use Case:
+**Why use it?**  
+- Use this command to determine the next available topic ID when creating a new topic.
+
+**Example Scenario:**  
+- Before creating a new topic, you may want to check what the next topic ID will be.
+
+---
+
+### Get Reputer Stake in Topic
+
+- **RPC Method:** `GetReputerStakeInTopic`
+- **Command:** `stake-in-topic-reputer [address] [topic_id]`
+- **Description:** Retrieves the stake a reputer has in a specific topic, including any stake that has been delegated to them.
+- **Positional Arguments:**
+    - `address`: The address of the reputer.
+    - `topic_id`: The identifier of the topic.
+
+#### Use Case:
+**Why use it?**  
+- Use this command to check the total stake a reputer holds in a specific topic.
+
+**Example Scenario:**  
+- You want to verify how much stake a particular reputer has in a specific topic.
+
+---
+
+### Get Total Stake Delegated to Reputer in a Topic
+
+- **RPC Method:** `GetDelegateStakeInTopicInReputer`
+- **Command:** `stake-total-delegated-in-topic-reputer [reputer_address] [topic_id]`
+- **Description:** Retrieves the total stake that has been delegated to a reputer in a specific topic.
+- **Positional Arguments:**
+    - `reputer_address`: The address of the reputer.
+    - `topic_id`: The identifier of the topic.
+
+#### Use Case:
+**Why use it?**  
+- Use this command to see how much stake has been delegated to a reputer in a topic.
+
+**Example Scenario:**  
+- You want to check the total delegated stake assigned to a specific reputer.
+
+---
+
+### Get Delegate Stake Placement in Topic
+
+- **RPC Method:** `GetDelegateStakePlacement`
+- **Command:** `delegate-stake-placement [topic_id] [delegator] [target]`
+- **Description:** Retrieves the amount of tokens delegated to a specific reputer by a given delegator for a topic.
+- **Positional Arguments:**
+    - `topic_id`: The identifier of the topic.
+    - `delegator`: The address of the delegator.
+    - `target`: The address of the target reputer.
+
+#### Use Case:
+**Why use it?**  
+- This command allows delegators to track how much stake they have assigned to a reputer for a topic.
+
+**Example Scenario:**  
+- You want to know how much stake you have delegated to a particular reputer in a specific topic.
+
+---
+
+### Get Delegate Stake Removal in a Topic
+
+- **RPC Method:** `GetDelegateStakeRemoval`
+- **Command:** `delegate-stake-removal [block_height] [topic_id] [delegator] [reputer]`
+- **Description:** Retrieves the current state of a pending delegate stake removal in a topic.
+- **Positional Arguments:**
+    - `block_height`: The block height at which the removal is pending.
+    - `topic_id`: The identifier of the topic.
+    - `delegator`: The address of the delegator.
+    - `reputer`: The address of the reputer.
+
+#### Use Case:
+**Why use it?**  
+- Use this command to check the status of pending delegated stake removals in a topic.
+
+**Example Scenario:**  
+- You want to know whether your request to remove delegated stake is still pending.
+
+---
+
+### Get Total Stake in Topic
+
+- **RPC Method:** `GetTopicStake`
+- **Command:** `topic-stake [topic_id]`
+- **Description:** Retrieves the total amount of stake, including delegate stake, in a specific topic.
+- **Positional Arguments:**
+    - `topic_id`: The identifier of the topic.
+
+#### Use Case:
+**Why use it?**  
+- Use this command to check the total stake in a topic, including both direct and delegated stakes.
+
+**Example Scenario:**  
+- You want to know the overall stake in a topic before participating or delegating more tokens.
+
+---
+
+### Get Latest Available Network Inferences for a Topic
+
+- **RPC Method:** `GetLatestAvailableNetworkInferences`
+- **Command:** `latest-available-network-inferences [topic_id]`
+- **Description:** Retrieves the latest network inference for a given topic, but only if all necessary information to compute the inference is present.
+- **Positional Arguments:**
+    - `topic_id`: The identifier of the topic.
+
+#### Use Case:
+**Why use it?**  
+- This command is useful for getting the most recent network-wide inference for a topic when all necessary data has been collected.
+
+**Example Scenario:**  
+- You want to retrieve the latest ETH price prediction, but only if all the data from workers and forecasters has been collected.
+
+---
+
+### Get Topic Reward Nonce
+
+- **RPC Method:** `GetTopicRewardNonce`
+- **Command:** `topic-reward-nonce [topic_id]`
+- **Description:** Retrieves the reward nonce used to calculate rewards for a specific topic.
+- **Positional Arguments:**
+    - `topic_id`: The identifier of the topic.
+
+#### Use Case:
+**Why use it?**  
+- Use this command to understand the reward cycle for a particular topic, as it provides the nonce used to calculate rewards.
+
+**Example Scenario:**  
+- You want to check the reward nonce for a topic before submitting contributions.
+
+---
+
+### Get Topic Fee Revenue
+
+- **RPC Method:** `GetTopicFeeRevenue`
+- **Command:** `topic-fee-revenue [topic_id]`
+- **Description:** Retrieves the effective fee revenue for a topic, which represents the total fees collected by the topic less an exponential decay of the fees over time.
+- **Positional Arguments:**
+    - `topic_id`: The identifier of the topic.
+
+#### Use Case:
+**Why use it?**  
+- This command provides insights into the fee revenue for a topic and how that impacts its overall weight and performance.
+
+**Example Scenario:**  
+- You want to check the total fee revenue generated by a topic before adjusting its parameters or interacting further.
+
+---
+
+### Get Previous Topic Weight
+
+- **RPC Method:** `GetPreviousTopicWeight`
+- **Command:** `previous-topic-weight [topic_id]`
+- **Description:** Retrieves the previous weight of a topic, which can be used to estimate future or past topic performance.
+- **Positional Arguments:**
+    - `topic_id`: The identifier of the topic.
+
+#### Use Case:
+**Why use it?**  
+- Use this command to analyze the historical weight of a topic, which can help predict its future influence.
+
+**Example Scenario:**  
+- You want to assess the past performance of a topic before participating in it again.
+
+---
+
+### Get Active Topics at Block
+
+- **RPC Method:** `GetActiveTopicsAtBlock`
+- **Command:** `active-topics-at-block [block_height]`
+- **Description:** Retrieves all active topics at a specific block height.
+- **Positional Arguments:**
+    - `block_height`: The block height at which to retrieve the active topics.
+
+#### Use Case:
+**Why use it?**  
+- Use this command to identify all topics that are active at a given block.
+
+**Example Scenario:**  
+- You want to see which topics were active during a specific block height to compare performance or contributions.
+
+---
+
+### Get Topic Inferences at Block
+
+- **RPC Method:** `GetInferencesAtBlock`
+- **Command:** `inferences-at-block [topic_id] [block_height]`
+- **Description:** Retrieves all inferences produced for a topic at a given block height.
+- **Positional Arguments:**
+    - `topic_id`: The identifier of the topic.
+    - `block_height`: The block height for which to retrieve the inferences.
+
+#### Use Case:
+**Why use it?**  
+- Use this command to get all inferences made for a topic at a specific block height.
+
+**Example Scenario:**  
+- You want to analyze the inferences produced at a specific block for performance review or reward calculation.
+
+---
+
+### Get Topic Forecast Scores Until Block
+
+- **RPC Method:** `GetForecastScoresUntilBlock`
+- **Command:** `forecast-scores-until-block [topic_id] [block_height]`
+- **Description:** Retrieves all forecast scores for a topic until a specific block height, limited by `MaxSamplesToScaleScores`.
+- **Positional Arguments:**
+    - `topic_id`: The identifier of the topic.
+    - `block_height`: The block height for which to retrieve the forecast scores.
+
+#### Use Case:
+**Why use it?**  
+- Use this command to track forecaster performance over time in a topic by looking at forecast scores until a specific block height.
+
+**Example Scenario:**  
+- You want to evaluate the forecast scores for a topic until a particular block to assess forecaster accuracy.
+
+---
+
+### Get Reputer Scores at Block
+
+- **RPC Method:** `GetReputersScoresAtBlock`
+- **Command:** `reputer-scores-at-block [topic_id] [block_height]`
+- **Description:** Retrieves all reputer scores for a topic at a specific block height.
+- **Positional Arguments:**
+    - `topic_id`: The identifier of the topic.
+    - `block_height`: The block height for which to retrieve the reputer scores.
+
+#### Use Case:
+**Why use it?**  
+- Use this command to evaluate how reputers performed at a specific block height.
+
+**Example Scenario:**  
+- You want to analyze reputer performance at a particular block to understand how their contributions impacted the topic.
+
+---
+

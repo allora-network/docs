@@ -1,0 +1,213 @@
+# How to Query Reputer Data using `allorad`
+
+Below is a list of commands to understand how to pull information about reputers via [`allorad`](/devs/get-started/cli#installing-allorad):
+
+## Prerequisites
+
+- [`allorad` CLI](/devs/get-started/cli)
+- A basic understanding of the Allora Network
+
+## Query Functions
+
+These functions read from the appchain only and do not write. Add the **Command** value into your query to retrieve the expected data.
+
+```bash
+allorad q emissions [Command] --node <RPC_URL>
+```
+
+## Check if Reputer is Registered in a Topic
+
+- **RPC Method:** `IsReputerRegisteredInTopicId`
+- **Command:** `is-reputer-registered [topic_id] [address]`
+- **Description:** Checks whether a reputer is registered in a specific topic. Returns `true` if the reputer is registered in the given topic, and `false` otherwise.
+- **Positional Arguments:**
+    - `topic_id`: The identifier of the topic where you want to check the reputer’s registration status.
+    - `address`: The address of the reputer you want to check.
+
+### Use Case:
+**Why use it?**  
+- This command is essential for verifying whether a reputer is properly registered in a specific topic before submitting reputation-related data or participating in topic-related activities.
+
+**Example Scenario:**  
+- Before a reputer attempts to evaluate workers or participate in consensus, you can confirm if they are registered to the relevant topic, ensuring their eligibility for participation.
+
+## Check Reputer Stake in a Topic
+
+- **RPC Method:** `GetReputerStakeInTopic`
+- **Command:** `stake-in-topic-reputer [address] [topic_id]`
+- **Description:** Retrieves the stake a reputer has in a specific topic, including any stake that has been delegated to them.
+- **Positional Arguments:**
+    - `address`: The address of the reputer whose stake is being queried.
+    - `topic_id`: The identifier of the topic.
+
+### Use Case:
+**Why use it?**  
+- This command is essential for understanding the total stake a reputer holds in a specific topic, including delegated stake, which is important for determining their influence.
+
+**Example Scenario:**  
+- Before delegating more stake, you may want to check how much stake a reputer already has in a particular topic.
+
+---
+
+## Get Total Delegate Stake in a Reputer for a Topic
+
+- **RPC Method:** `GetDelegateStakeInTopicInReputer`
+- **Command:** `stake-total-delegated-in-topic-reputer [reputer_address] [topic_id]`
+- **Description:** Retrieves the total amount of stake delegated to a reputer for a specific topic.
+- **Positional Arguments:**
+    - `reputer_address`: The address of the reputer.
+    - `topic_id`: The identifier of the topic.
+
+### Use Case:
+**Why use it?**  
+- This command provides insight into how much stake has been delegated to a reputer for a given topic, which can impact their role in network consensus.
+
+**Example Scenario:**  
+- As a delegator, you may want to see how much stake has already been delegated to a reputer before deciding to contribute more.
+
+---
+
+## Get Stake Delegated to a Reputer
+
+- **RPC Method:** `GetDelegateStakePlacement`
+- **Command:** `delegate-stake-placement [topic_id] [delegator] [target]`
+- **Description:** Retrieves the amount of tokens delegated to a specific reputer by a given delegator for a topic.
+- **Positional Arguments:**
+    - `topic_id`: The identifier of the topic.
+    - `delegator`: The address of the delegator.
+    - `target`: The address of the target reputer.
+
+### Use Case:
+**Why use it?**  
+- Use this command to track how much stake a delegator has assigned to a particular reputer in a specific topic.
+
+**Example Scenario:**  
+- A delegator can check the exact amount of tokens they have staked on a specific reputer within a topic.
+
+---
+
+## Get Removed Delegated Stake from a Reputer
+
+- **RPC Method:** `GetDelegateStakeRemoval`
+- **Command:** `delegate-stake-removal [block_height] [topic_id] [delegator] [reputer]`
+- **Description:** Retrieves the current state of a pending delegate stake removal for a delegator in a topic.
+- **Positional Arguments:**
+    - `block_height`: The block height at which the removal is pending.
+    - `topic_id`: The identifier of the topic.
+    - `delegator`: The address of the delegator.
+    - `reputer`: The address of the target reputer.
+
+#### Use Case:
+**Why use it?**  
+- This command helps track pending removals of delegated stake, ensuring visibility into the process of un-staking tokens from a reputer.
+
+**Example Scenario:**  
+- A delegator can check the status of their pending delegate stake removal request.
+
+---
+
+## Get Total Stake Delegated to a Reputer
+
+- **RPC Method:** `GetDelegateStakeUponReputer`
+- **Command:** `delegate-stake-on-reputer [topic_id] [target]`
+- **Description:** Retrieves the total amount of tokens delegated to a reputer in a specific topic.
+- **Positional Arguments:**
+    - `topic_id`: The identifier of the topic.
+    - `target`: The address of the target reputer.
+
+### Use Case:
+**Why use it?**  
+- This command provides insight into the total delegated stake a reputer has accumulated in a given topic, which impacts their standing in the network.
+
+**Example Scenario:**  
+- You may want to know how much stake has been assigned to a reputer before deciding to interact with them in the topic.
+
+---
+
+## Get Reputer's Latest Score in a Topic
+
+- **RPC Method:** `GetReputerScoreEma`
+- **Command:** `reputer-score-ema [topic_id] [reputer]`
+- **Description:** Returns the latest Exponential Moving Average (EMA) score for a reputer in a specific topic.
+- **Positional Arguments:**
+    - `topic_id`: The identifier of the topic.
+    - `reputer`: The address of the reputer.
+
+### Use Case:
+**Why use it?**  
+- This command allows you to track the latest performance score of a reputer, giving insight into their effectiveness within the network.
+
+**Example Scenario:**  
+- Before delegating stake, you may want to see how well a reputer is performing in terms of their most recent EMA score.
+
+---
+
+## Get Reputer's Stake Removal Information
+
+- **RPC Method:** `GetStakeRemovalForReputerAndTopicId`
+- **Command:** `stake-removal [reputer] [topic_id]`
+- **Description:** Retrieves information about a pending stake removal request for a reputer in a specific topic.
+- **Positional Arguments:**
+    - `reputer`: The address of the reputer.
+    - `topic_id`: The identifier of the topic.
+
+### Use Case:
+**Why use it?**  
+- Use this command to check the details of any pending stake removal for a reputer in a topic.
+
+**Example Scenario:**  
+- You can track the status of a reputer’s pending stake removal request in the network.
+
+---
+
+## Get Total Stake Delegated to a Reputer
+
+- **RPC Method:** `GetStakeReputerAuthority`
+- **Command:** `reputer-authority [topic_id] [reputer]`
+- **Description:** Retrieves the total stake a reputer holds in a topic, including both their own stake and delegated stake.
+- **Positional Arguments:**
+    - `topic_id`: The identifier of the topic.
+    - `reputer`: The address of the reputer.
+
+### Use Case:
+**Why use it?**  
+- This command provides a complete view of a reputer's stake in a topic, combining both self-stake and delegated stake, which influences their standing in the network.
+
+**Example Scenario:**  
+- Before interacting with a reputer in a topic, you may want to see their total stake, including how much has been delegated to them.
+
+---
+
+## Get Listening Coefficient for a Reputer
+
+- **RPC Method:** `GetListeningCoefficient`
+- **Command:** `listening-coefficient [topic_id] [reputer]`
+- **Description:** Returns the current [listening coefficient](/home/layers/consensus/reputers#solution-adjusted-stake) for a given reputer in a specific topic. The coefficient measures how much a reputer is "listening" or interacting with the network. If no coefficient exists, it defaults to `1`.
+- **Positional Arguments:**
+    - `topic_id`: The identifier of the topic.
+    - `reputer`: The address of the reputer whose listening coefficient is being queried.
+
+### Use Case:
+**Why use it?**  
+- This command is useful to determine how actively a reputer is interacting with a topic. The listening coefficient reflects how engaged the reputer is in the network's consensus and decision-making process.
+
+**Example Scenario:**  
+- As a delegator, you may want to check the listening coefficient of a reputer before deciding to delegate stake to them, ensuring they are actively participating in the topic.
+
+---
+
+## Get Multiple Reputers' Stakes in a Topic
+
+- **RPC Method:** `GetMultiReputerStakeInTopic`
+- **Command:** `multi-reputer-stake [addresses] [topic_id]`
+- **Description:** Retrieves the stakes for each reputer in a given list of addresses for a specific topic. The list can contain up to the `MaxPageLimit` number of addresses. If a reputer does not exist, their stake is defaulted to 0.
+- **Positional Arguments:**
+    - `addresses`: A list of reputer addresses whose stakes you want to retrieve.
+    - `topic_id`: The identifier of the topic.
+
+### Use Case:
+**Why use it?**  
+- This command allows you to query the stakes of multiple reputers in a specific topic in a single request, making it useful for bulk operations or analysis.
+
+**Example Scenario:**  
+- You want to check the stakes of a list of reputers for a specific topic to compare their authority and influence in the topic.

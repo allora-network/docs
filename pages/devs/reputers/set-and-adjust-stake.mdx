@@ -4,20 +4,150 @@
 
 ## How Stake works for Reputers
 
-Stake is used to signal confidence. A reputer earns more rewards based on their accuracy comparative to consensus (the other reputers providing data for a topic) and [stake](/home/key-terms#stake).
+[Stake](/home/key-terms#stake) is used to signal confidence. A reputer earns more rewards based on their accuracy comparative to consensus (the other reputers providing data for a topic) and stake.
 
 Stake also protects Allora from malicious behavior, such as sybil attacks. We require all types of nodes to register on the chain before they can earn any rewards. Registering requires staking at least a minimum amount of ALLO. As a result, creating an army of malicious nodes would quickly become prohibitively expensive.
 
-## How to adjust stake
+## Prerequisites
 
-The [Allora appchain CLI spec](/devs/get-started/cli#installing-allorad) lists functions that can be used to adjust stake or help inform how one should adjust their stake
+- [`allorad` CLI](/devs/get-started/cli)
 
-1. [Query recent inferences](/devs/consumers/onchain-query-existing-data). One can evaluate workers' abilities by viewing recent inferences and comparing them against one's expectations or revealed ground truth. These evaluations determine how much stake one should be willing to place in oneself or another worker to get the highest return.
-2. [Querying weights](/devs/consumers/onchain-query-existing-data). One can learn about whose inferences the crowd values the most by viewing the current distribution of weights across workers. Like any actor, the revealed preferences of an incentive-compatible crowd likely indicate how one should adjust their stake.
-3. [Register as a reputer](/devs/reputers/register-reputer-node). Reputers can begin to earn rewards for staking on accurate workers after registering, which involves setting a minimum stake.
-4. [Add stake](/devs/reference/allorad#add-stake)
-5. [Remove stake](/devs/reference/allorad#remove-stake-from-a-topic)
+## Tx Functions
 
-## Bridging funds to stake
+These functions read from the appchain only and do not write. Add the **Command** value into your query to retrieve the expected data.
 
-One must port their funds from an external chain to set a stake in Allora. This section will be updated once the chain is up and running and bridging has been established.
+```bash
+allorad tx emissions [Command] --node <RPC_URL>
+```
+
+## Add Stake to Self 
+
+- **RPC Method:** `AddStake`
+- **Command:** `add-stake [sender] [topic_id] [amount]`
+- **Description:** Adds stake to the sender for a specific topic.
+- **Positional Arguments:**
+    - `sender`: The address of the sender adding stake.
+    - `topic_id`: The identifier of the topic.
+    - `amount`: The amount of stake to be added.
+
+### Use Case:
+**Why use it?**  
+- This command is used when a reputer or worker wants to increase their stake in a specific topic, increasing their influence or authority.
+
+**Example Scenario:**  
+- As a reputer, you want to increase your stake in a specific topic to gain more influence and improve your reputation scores.
+
+---
+
+## Remove Stake from Self
+
+- **RPC Method:** `RemoveStake`
+- **Command:** `remove-stake [sender] [topic_id] [amount]`
+- **Description:** Removes stake from the sender (a reputer) in a specific topic.
+- **Positional Arguments:**
+    - `sender`: The address of the sender removing stake (reputer).
+    - `topic_id`: The identifier of the topic.
+    - `amount`: The amount of stake to be removed.
+
+### Use Case:
+**Why use it?**  
+- This command is used by reputers to reduce their stake in a topic, either for liquidity purposes or when their role in the topic has changed.
+
+**Example Scenario:**  
+- A reputer wants to reduce their stake in a topic after completing their contributions and being satisfied with the rewards.
+
+---
+
+## Cancel Pending Stake Removal (Reputer)
+
+- **RPC Method:** `CancelRemoveStake`
+- **Command:** `cancel-remove-stake [sender] [topic_id]`
+- **Description:** Cancels the removal of stake that is pending for the sender (a reputer) in a topic.
+- **Positional Arguments:**
+    - `sender`: The address of the sender canceling the stake removal (reputer).
+    - `topic_id`: The identifier of the topic.
+
+### Use Case:
+**Why use it?**  
+- This command allows reputers to cancel a stake removal request if they change their mind and wish to keep their stake in the topic.
+
+**Example Scenario:**  
+- A reputer wants to cancel their stake removal request because they decide to maintain their position in the topic for an additional epoch.
+
+---
+
+## Delegate Stake to a Reputer
+
+- **RPC Method:** `DelegateStake`
+- **Command:** `delegate-stake [sender] [topic_id] [reputer] [amount]`
+- **Description:** Delegates stake from the sender to a specific reputer for a topic.
+- **Positional Arguments:**
+    - `sender`: The address of the sender (delegator).
+    - `topic_id`: The identifier of the topic.
+    - `reputer`: The address of the reputer receiving the delegated stake.
+    - `amount`: The amount of stake to be delegated.
+
+### Use Case:
+**Why use it?**  
+- This command is used by delegators to delegate their stake to a reputer, giving the reputer more authority and influence within a specific topic.
+
+**Example Scenario:**  
+- As a delegator, you want to support a reputer you trust by delegating your tokens to them for a particular topic.
+
+---
+
+## Remove Delegated Stake from a Reputer
+
+- **RPC Method:** `RemoveDelegateStake`
+- **Command:** `remove-delegate-stake [sender] [topic_id] [reputer] [amount]`
+- **Description:** Removes delegated stake from a reputer for a topic.
+- **Positional Arguments:**
+    - `sender`: The address of the sender (delegator).
+    - `topic_id`: The identifier of the topic.
+    - `reputer`: The address of the reputer whose delegated stake is being removed.
+    - `amount`: The amount of stake to be removed.
+
+### Use Case:
+**Why use it?**  
+- This command is used when a delegator wants to withdraw or reduce the stake they have delegated to a reputer in a topic.
+
+**Example Scenario:**  
+- A delegator wants to reduce their stake delegated to a reputer after reassessing the reputer's performance in a topic.
+
+---
+
+## Cancel Pending Delegated Stake Removal
+
+- **RPC Method:** `CancelRemoveDelegateStake`
+- **Command:** `cancel-remove-delegate-stake [sender] [topic_id] [reputer]`
+- **Description:** Cancels the removal of delegated stake for a delegator staking on a reputer in a topic.
+- **Positional Arguments:**
+    - `sender`: The address of the sender (delegator).
+    - `topic_id`: The identifier of the topic.
+    - `reputer`: The address of the reputer whose delegated stake removal is being canceled.
+
+### Use Case:
+**Why use it?**  
+- This command allows delegators to cancel a delegated stake removal request if they change their mind and want to keep their stake with the reputer.
+
+**Example Scenario:**  
+- A delegator decides to cancel their pending stake removal and continue supporting the reputer in the topic.
+
+---
+
+## Claim Rewards for Delegated Stake
+
+- **RPC Method:** `RewardDelegateStake`
+- **Command:** `reward-delegate-stake [sender] [topic_id] [reputer]`
+- **Description:** Claims the rewards for a delegator who has delegated stake to a reputer in a specific topic.
+- **Positional Arguments:**
+    - `sender`: The address of the sender (delegator).
+    - `topic_id`: The identifier of the topic.
+    - `reputer`: The address of the reputer to whom the stake was delegated.
+
+### Use Case:
+**Why use it?**  
+- This command is used by delegators to claim their rewards based on the performance of the reputer they delegated stake to.
+
+**Example Scenario:**  
+- A delegator wants to claim their rewards for a topic after their reputer has successfully contributed to the topic's outcomes.
