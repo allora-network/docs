@@ -1,0 +1,321 @@
+import { Callout } from 'nextra/components'
+
+# Build and Deploy a Worker using the Allora Model Development Kit (MDK)
+
+The Allora MDK is an open-source github repository that allows users to spin up an inference model for over 7,000 cryptocurrencies and stocks.
+The MDK leverages the [Tiingo API](https://www.tiingo.com) as a data feed for these cryptocurrencies and stocks, although custom datasets can be 
+integrated as well. 
+
+Let's walk through the steps needed to download, train, and evaluate a given model on a custom dataset, and then deploy this trained model onto the 
+network.
+
+## Regression Techniques
+
+Each of these regression techniques is implemented at a basic level and is available out of the box in the Model Development Kit (MDK). These models provide a foundation that you can build upon to create more advanced solutions.
+
+
+| **Model**                     | **Description**                                                                                                                                                     |
+|-------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **ARIMA**                      | Auto-Regressive Integrated Moving Average model used for time series forecasting by modeling the dependencies between data points.                                   |
+| **LSTM**                       | Long Short-Term Memory neural network, a type of recurrent neural network (RNN) that excels in capturing long-term dependencies in sequential data, like time series. |
+| **Prophet**                    | A forecasting model developed by Facebook, designed to handle seasonality and make predictions over long time horizons.                                              |
+| **Random Forest**              | An ensemble learning method for regression tasks that builds multiple decision trees and outputs the average prediction from individual trees.                       |
+| **Random Forest (Time Series)**| A time series variant of Random Forest, optimized for predicting time-dependent variables.                                                                            |
+| **Regression**                 | A simple linear regression model for predicting continuous values based on input features.                                                                           |
+| **Regression (Time Series)**   | A time series version of basic regression models, optimized for forecasting trends over time.                                                                        |
+| **XGBoost**                    | Extreme Gradient Boosting, a highly efficient and scalable implementation of gradient boosting machines for regression tasks, often used for time series forecasting. |
+| **XGBoost (Time Series)**      | A time series-specific adaptation of XGBoost, tuned for forecasting with sequential data.                                                                            |
+
+<Callout type="info">
+Although these models are already integrated into the MDK, you can add more models as well as modify existing ones to create a better inference model tailored to your specific needs.
+</Callout>
+
+## Installation
+
+### Clone the MDK Repository
+
+Run the following commands in a new terminal window:
+
+```bash
+git clone https://github.com/allora-network/allora-model-maker.git
+cd allora-model-maker
+```
+
+#### Conda not Installed?
+<Callout type="warning"> 
+On Mac, simply use brew to install Miniconda:
+
+```bash
+brew install miniconda
+```
+</Callout>
+
+### Create Conda Environment
+
+```bash
+conda env create -f environment.yml
+```
+
+<Callout> 
+If you want to set it up manually:
+```bash
+conda create --name modelmaker python=3.9 && conda activate modelmaker
+pip install setuptools==72.1.0 Cython==3.0.11 numpy==1.24.3
+```
+</Callout>
+
+### Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### Add Tiingo API Key
+
+Go to [tiingo.com](https://www.tiingo.com) and set up an API Key after creating an account, which you will input into your `.env` file:
+
+```
+# .env
+TIINGO_API_KEY=your_tiingo_api_key
+```
+
+## Usage
+
+### Model Training
+
+```bash
+make train
+```
+
+Running the above command will guide you through a series of sub-prompts that you can use to curate a unique training set for the given cryptocurrency or stock you choose as a target variable.
+
+#### Select the Data Source
+
+After running `make train`, the command line will prompt you to select your dataset:
+
+```bash
+Select the data source:
+1. Tiingo Stock Data
+2. Tiingo Crypto Data
+3. Load data from CSV file
+Enter your choice (1/2/3): 
+```
+
+- Although the MDK is natively integrated with Tiingo, a model maker can effectively configure any data set to train on from a CSV file as well.
+
+#### Select the Target Variable
+
+After selecting your data source, you will be prompted to pick a target variable for your model to provide inferences on.
+
+```bash
+Enter the crypto symbol (default: btcusd):
+```
+
+#### Select the Time Interval
+
+Next, you'll have to select the time interval. The time interval determines how frequently the data points are sampled or aggregated over a given period of time.
+
+- If you're dealing with smaller [epoch lengths](/devs/topic-creators/topic-life-cycle#epoch-length), shorter intervals like minutes or seconds might be necessary to capture rapid changes in the market.
+- For longer epoch lengths, you may choose daily, weekly, or monthly intervals.
+
+```bash
+Enter the frequency (1min/5min/4hour/1day, default: 1day): 
+```
+
+<Callout type="warning">
+Using shorter time intervals increases CPU power requirements because the dataset grows significantly. More data points lead to larger memory consumption, longer data processing times, and more complex computations. The CPU has to handle more input/output operations, and models take longer to train due to the higher volume of data needed to capture patterns effectively.
+</Callout>
+
+#### Start and End Date
+
+When selecting the start and end dates for your training data, keep in mind that larger time periods result in more data, requiring increased CPU power and memory. Longer timeframes capture more trends but also demand greater computational resources, especially during model training.
+
+```bash
+Enter the start date (YYYY-MM-DD, default: 2021-01-01): 
+Enter the end date (YYYY-MM-DD, default: 2024-10-20): 
+```
+
+#### Selecting Models to Train
+
+Now that we've set up our data source, target variable, and time interval, it's time to select the models to train on. In the prompt, you can either choose to train on all available models or make a custom selection.
+
+```bash
+Select the models to train:
+1. All models
+2. Custom selection
+Enter your choice (1/2): 
+```
+
+If you opt for Custom selection, you will be prompted to choose from the regression techniques listed earlier, such as ARIMA, LSTM, Random Forest, or XGBoost. 
+
+#### Model Selection
+
+Now that we've set up our data source, target variable, and time interval, it's time to select the models to train on. In the prompt, you can either choose to train on all available models or make a custom selection.
+
+```bash
+Select the models to train:
+1. All models
+2. Custom selection
+Enter your choice (1/2): 
+```
+
+If you opt for Custom selection, you will be prompted to choose from the regression techniques listed earlier, such as ARIMA, LSTM, Random Forest, or XGBoost. You can select the models that are best suited for your specific problem or dataset.
+
+#### Model Evaluation
+
+After selecting and training the models, the next step is to evaluate them. The MDK provides built-in tools to assess the performance of your model using standard metrics like Mean Absolute Error (MAE) and Root Mean Squared Error (RMSE). Simply run:
+
+```bash
+make eval
+```
+
+This will generate performance reports, helping you identify the best model to deploy.
+
+## Deployment
+
+Deploying a model requires packaging your trained model from the MDK and integrating it with a worker node repository before exposing the worker as an endpoint.
+
+### Package your Trained Model
+
+Run the following command to package your model for the Allora worker:
+
+```bash
+make package-arima
+```
+
+<Callout type="warning">
+Replace arima with the name of the model you’d like to package (e.g., lstm, xgboost, etc.).
+</Callout>
+
+<Callout>
+This will:
+
+- Copy the model’s files and dependencies into the `packaged_models/package folder`.
+- Run test's for inference and training to validate funtionality in a worker
+- Generate a configuration file, `config.py`, that contains the active model information.
+</Callout>
+
+### Clone the Allora Worker Repository
+
+Run the following commands in a new terminal window:
+
+```bash
+git clone https://github.com/allora-network/allora-worker.git
+cd allora-worker
+```
+
+### Integrate your Model
+
+After running the packaging command:
+
+1. Navigate to the packaged_models folder in your allora-model-maker repo.
+2. Copy the package folder into the src folder of your allora-worker repository.
+
+<Callout type='info'>
+If you did this right in your allora-worker repo you'll now have `allora-worker/src/package`
+</Callout>
+
+### Deploy your Worker
+
+#### Expose the Endpoint
+
+Run:
+
+```bash
+MODEL=ARIMA make run
+cd src && uvicorn main:app --reload --port 8000
+```
+
+<Callout type="warning">
+Replace ARIMA with the name of the model you’d like to package (e.g., LSTM, XGBOOST, etc.).
+</Callout>
+
+This will expose your endpoint, which will be called when a [worker nonce](/devs/topic-creators/topic-life-cycle#nonce) is available. If your endpoint is exposed successfully, you should see the following output on your command line:
+
+```bash
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+```
+
+You can query your endpoint in the CLI by running:
+
+```bash
+curl http://127.0.0.1:8000/inference
+```
+
+#### Deploy to the Network
+
+Now that you have a specific endpoint that can be queried for an inference output, you can paste the endpoint into your `config.json` file of your prediction node repository.
+
+##### Configure Your Environment
+
+1. Copy `example.config.json` and name the copy `config.json`.
+2. Open `config.json` and **update** the necessary fields inside the `wallet` sub-object and `worker` config with your specific values:
+
+###### `wallet` Sub-object
+
+1. `nodeRpc`: The [RPC URL](/devs/get-started/setup-wallet#rpc-url-and-chain-id) for the corresponding network the node will be deployed on
+2. `addressKeyName`: The name you gave your wallet key when [setting up your wallet](/devs/get-started/setup-wallet)
+3. `addressRestoreMnemonic`: The mnemonic that was outputted when setting up a new key
+
+{/* <Callout type="info">
+`addressKeyName` and `addressRestoreMnemonic` are optional parameters. If you did not previously generate keys, keys will be generated for you when [running the node](/devs/workers/deploy-worker/using-docker#generate-keys-and-export-variables).
+
+If you have existing keys that you wish to use, you will need to provide these variables.
+</Callout> */}
+
+###### `worker` Config
+
+1. `topicId`: The specific topic ID you created the worker for. 
+2. `InferenceEndpoint`: The endpoint exposed by your worker node to provide inferences to the network.
+3. `Token`: The token for the specific topic you are providing inferences for. The token needs to be exposed in the inference server endpoint for retrieval.
+  - The `Token` variable is specific to the endpoint you expose in your `main.py` file. It is not related to any topic parameter.
+
+<Callout type="warning">
+The `worker` config is an array of sub-objects, each representing a different topic ID. This structure allows you to manage multiple topic IDs, each within its own sub-object.
+
+To deploy a worker that provides inferences for multiple topics, you can duplicate the existing sub-object and add it to the `worker` array. Update the `topicId`, `InferenceEndpoint` and `Token` fields with the appropriate values for each new topic:
+```json
+"worker": [
+      {
+        "topicId": 1,
+        "inferenceEntrypointName": "api-worker-reputer",
+        "loopSeconds": 5,
+        "parameters": {
+          "InferenceEndpoint": "http://localhost:8000/inference/{Token}",
+          "Token": "ETH"
+        }
+      },
+      // worker providing inferences for topic ID 2
+      {
+        "topicId": 2, 
+        "inferenceEntrypointName": "api-worker-reputer",
+        "loopSeconds": 5,
+        "parameters": {
+          "InferenceEndpoint": "http://localhost:8000/inference/{Token}", // the specific endpoint providing inferences
+          "Token": "ETH" // The token specified in the endpoint
+        }
+      }
+    ],
+```
+</Callout>
+
+Then run:
+
+```bash
+make node-env
+make compose
+```
+
+- This will load your config into your environment and spin up your docker node, which will check for open worker nonces and submit inferences to the network.
+
+If your node is working correctly, you should see it actively checking for the active worker nonce:
+
+```bash
+offchain_node    | {"level":"debug","topicId":1,"time":1723043600,"message":"Checking for latest open worker nonce on topic"}
+```
+
+A **successful** response from your Worker should display:
+
+```bash
+{"level":"debug","msg":"Send Worker Data to chain","txHash":<tx-hash>,"time":<timestamp>,"message":"Success"}
+```
