@@ -1,5 +1,27 @@
 # Allora Network Release Notes
 
+## v0.6.0
+
+**Release Date: October 2024**
+
+### Key Features and Improvements
+
+
+#### Reward Distribution Management
+- A new field keeps track of the sum of active topics’ weights over time, ensuring more accurate reward distribution.
+- Rewards are now accumulated across blocks rather than being recalculated every block.
+- The network now handles inactive or reactivated topics more efficiently, ensuring the total weights are always accurate for reward calculations.
+
+#### Runaway Negative Regret Calculations
+- The network now tracks initial regrets more carefully, particularly for fast-iteration topics, where regrets previously became excessively negative.
+- By only including experienced participants in regret calculations, it prevents a "runaway effect" where negative regrets grow too large.
+- New participants will have their regrets based on more stable values from established users, helping to balance the regret system and encourage continuous participation without penalizing newcomers too harshly.
+
+#### Improved Merit-Based Sortitioning
+- The network now has enhanced merit-based sortitioning by calculating participants' percentile rankings using instantaneous scores instead of Exponential Moving Averages (EMAs).
+- This change allows for quicker cycling through participants, ensuring that high-performing actors can be selected faster for rewards and network involvement.
+- The faster update to scores improves responsiveness, allowing new talent to enter the active set more easily and giving the network more up-to-date performance data, all while maintaining a merit-based selection process.
+
 ## v0.5.0
 
 **Release Date**: September 2024
