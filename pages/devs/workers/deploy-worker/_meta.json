@@ -1,5 +1,5 @@
 {
   "using-docker": "Using Docker",
   "build-and-deploy-worker-with-node-runners": "Using AWS Node Runners",
-  "allora-model-maker": "Using the Allora Model Development Kit"
+  "allora-mdk": "Using the Allora Model Development Kit"
 }
