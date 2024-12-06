@@ -1,0 +1,30 @@
+import { Callout } from 'nextra/components'
+
+# Managing Gas with `allorad`
+
+Invoking transactions causes network validators to do computations on your behalf and update the chain's state. These actions are compensated via _gas_. Gas is paid by wallets who send transactions to the Allora chain.
+
+In its [v0.7.0 release](https://github.com/allora-network/allora-chain/releases/tag/v0.7.0), Allora incorporated the [x/feemarket module](https://github.com/skip-mev/feemarket), which means that gas calculations follow an [EIP-1559-like schedule](https://help.coinbase.com/en/coinbase/getting-started/crypto-education/eip-1559) (see: the [original EIP-1559](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1559.md)). This requires transactions to be structured differently from other cosmos chains.
+
+Prior to `allora-chain` `v0.7.0` and in many other Cosmos chains, transactions are typically structured like so:
+
+```
+allorad tx emissions ... --from ACCOUNT_NAME --node RPC --chain-id allora-testnet-1 --keyring-backend test --keyring-dir ~/.allorad/ --gas auto --gas-adjustment 1.2 --fees 2024700uallo ...
+```
+
+Since `v0.7.0`, transactions should instead abide by the structure:
+```
+allorad tx emissions ... --from ACCOUNT_NAME --node RPC --chain-id allora-testnet-1 --keyring-backend test --keyring-dir ~/.allorad/ --gas 130206 --gas-adjustment 1.2 --gas-prices 10uallo ...
+```
+
+To emphasize: This^^ is the way transactions should be structured today using `allorad`.
+
+The specific differences are:
+
+__`fees Xuallo` becomes `gas-prices 10uallo`__
+- This is a config set in the network validators, so `10uallo` is the universally recommended value
+
+__`gas auto` becomes `gas 130206`__
+- This value can change per the use case
+
+Other clients such as [CosmJS](https://github.com/cosmos/cosmjs) and [Ignite](https://docs.ignite.com/clients/go-client) would similarly need to include these flags when building transactions.
