@@ -3,6 +3,7 @@
     "setup-wallet": "Setup Wallet",
     "cli": "Installation",
     "basic-usage": "Basic Usage",
+    "managing-gas": "Managing Gas",
     "existing-topics": "Existing Topics",
     "query-network-data": "How to Query Network Data using allorad"
 }
