@@ -1,5 +1,56 @@
 # Allora Network Release Notes
 
+## v0.7.0
+
+**Release Date: December 2024**
+
+### Key Features and Improvements
+
+#### Enhanced Reward Distribution Management
+
+- Optimized Topic Initialization: Initial regret values for topics have been adjusted (#670), improving accuracy in reward cycles and minimizing extreme variations for new topics.
+
+- Reputer Listening Coefficients: A new strategy for handling reputer listening coefficients (#683) ensures better responsiveness in reward cycles, addressing inefficiencies in past implementations.
+
+- Expanded Governance and Module Permissions
+Burner Permission Added to Governance Module: The governance module now supports burner permissions, enhancing flexibility in token management within proposals (#685).
+Fee Market and Fee Grant Module Integration: Introduced a fee market and fee grant module (#627), enabling advanced transaction fee mechanisms and improving usability.
+
+#### Advanced Sortition and Migration Updates
+
+- Whitelist Features: Added whitelist support for admins, topic creators, workers, and reputers, alongside the x/emissions v6 migration and chain upgrade (#663). This ensures better control over permissions and enhances network security.
+
+- Optimistic Execution and CometBFT Upgrade: Implemented optimistic execution with CometBFT v0.38.15 (#678), offering faster and more efficient block processing.
+
+- Circuit Breaker for AnteHandler: The new CircuitBreakerDecorator (#689) introduces an additional layer of safety during transaction execution.
+
+#### Improved Tooling and Developer Experience
+
+- Fuzzer Enhancements: Linter integration and fuzzer improvements ensure state transitions add up to 100% (#654). 
+Setup now runs through all state transitions once before starting fuzzing (#650), with additional bug fixes and probability configuration options (#653).
+
+- CLI Query Alignment: Refined CLI query commands to standardize user experience (#686).
+
+- Migration Tests and Upgrade Guides: Updated migration tests (#693) and added an upgrade guide to contributing documentation (#697).
+
+### Bug Fixes
+
+- Stake Validation: Implemented nil amount validation for stakes and added robust test coverage (#668).
+
+- Reputer Nonce Boundaries: Resolved boundary issues in nonce submissions, ensuring accurate validation (#687).
+
+- Investor Token Unlocks: Adjusted investor token unlock mechanisms to ensure strictly monotonically increasing amounts (#690).
+
+### Documentation and Maintenance
+
+- Documentation Enhancements: Added detailed documentation to CONTRIBUTING.md (#698), improving developer onboarding and alignment with governance and emissions modules.
+
+- Mint Module Updates: Fixed inconsistencies in the mint module's GenesisState and proto definitions, with a no-op v3 migration (#695).
+
+Security Enhancements
+
+- IBC MsgTransfer Validation: Ensured that funds sent via IBC MsgTransfer are securely received (#682), addressing a critical security concern.
+
 ## v0.6.0
 
 **Release Date: October 2024**
