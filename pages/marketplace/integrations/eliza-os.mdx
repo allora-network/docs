@@ -1,0 +1,97 @@
+# Eliza Allora Plugin ✨
+
+The Allora Network plugin for Eliza enables seamless integration with Allora's powerful AI inference platform. This integration allows Eliza agents to access real-time predictions and insights powered by Allora's sophisticated machine learning models.
+
+## Features
+
+- Leverage **Allora's self-improving AI inferences** within Eliza agents.
+- Fetch real-time predictions for various topics like ETH price predictions, market trends, and more.
+- **Simple integration** with no complex infrastructure required.
+
+---
+
+## Installation
+
+First, install the plugin via npm:
+
+```bash
+npm install @eliza-sdk/plugin-allora
+```
+
+---
+
+## Environment Variables
+
+To use the plugin, you need an Allora API key. Add the following variable to your `.env` file:
+
+- `ALLORA_API_KEY`: Your Allora API key. To generate an API key, visit the [Upshot Developer Portal](https://allora.network).
+
+---
+
+## Setup
+
+Import and configure the Allora plugin in your Eliza agent project:
+
+```typescript
+import { allora } from '@eliza-sdk/plugin-allora'
+
+const plugin = allora({
+    apiKey: process.env.ALLORA_API_KEY,
+})
+```
+
+---
+
+## Available Actions
+
+### Fetch Price Prediction
+
+Get a price prediction for a specified asset and timeframe.
+
+```typescript
+const prediction = await plugin.fetchPricePrediction({
+    asset: 'ETH',
+    timeframe: '5min',
+})
+console.log(prediction)
+// Example Output:
+// { topic: 'ETH 5min Prediction', id: 13, value: 3393.364326646801085508 }
+```
+
+---
+
+## Example Agent Interaction
+
+```plaintext
+User: "What is the predicted ETH price in 5 minutes?"
+Agent: "I'll get the inference now..."
+Agent: "Inference provided by Allora Network on topic ETH 5min Prediction (ID: 13): 3393.364326646801085508"
+```
+
+---
+
+## Testing the Plugin
+
+### Prerequisites
+
+- Ensure the `ALLORA_API_KEY` environment variable is correctly set in your `.env` file.
+- Install all dependencies and ensure Eliza is properly configured.
+
+### Steps
+
+1. Set up your environment:
+   ```bash
+   export ALLORA_API_KEY=your_api_key_here
+   ```
+
+2. Initialize the plugin in your Eliza agent.
+
+3. Run a test interaction:
+   - Ask your agent for a prediction (e.g., "What is the predicted ETH price in 5 minutes?").
+   - Validate the response contains data from Allora.
+
+---
+
+## Resources
+
+- [Eliza SDK](https://github.com/eliza-sdk) - Explore Eliza's capabilities.

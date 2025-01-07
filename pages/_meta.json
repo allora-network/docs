@@ -10,5 +10,9 @@
   "community": {
     "title": "Community",
     "type": "page"
+  },
+  "marketplace": {
+    "title": "Marketplace",
+    "type": "page"
   }
 }
