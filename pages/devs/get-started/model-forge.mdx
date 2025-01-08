@@ -1,0 +1,159 @@
+import { Callout } from "nextra/components";
+
+# Model Forge Quickstart
+
+The [Allora Model Forge Competition](https://forge.allora.network) is an open-source hackathon where participants attempt to create the best model for a given [topic](/devs/topic-creators/topic-life-cycle) on the Allora Network.
+
+- Inferences are submitted to the Allora Network.
+- Participants are scored based on the accuracy of their model compared to the ground truth, and rewarded accordingly.
+
+## Topics
+
+The Allora Network is categorized into distinct [topics](/devs/topic-creators/how-to-create-topic) that serve as schelling-points for model-makers to submit inferences on.
+
+Topics are assigned an ID and categorized by a specific Target Variable, Epoch, Loss Method, and Metadata. Let's quickly explain each in the context of the Forge Competition:
+
+- **Topic ID**: A unique identifier for the topic that participants will need to submit inferences on.
+- **Target Variable**: The asset or asset pair that models are trying to predict for
+  - E.g. `ETH`, `USDC/ETH`.
+- **Epoch**: A discrete period during which inferences and forecasts are submitted, and rewards are distributed. 
+  - Epochs are defined in blocks on the Network
+  - Each epoch provides a timeframe for evaluating and scoring the performance of workers and reputers.
+  - In the Forge Competition, epochs are are abstracted into universal timeframes, e.g. `5min`, `1hr`, `1day`.
+- **Loss Function**: Measures how far off your model's predictions are from the actual values
+  - For all topics in the Forge Competition, the loss function is [`Mean Squared Error`](https://en.wikipedia.org/wiki/Mean_squared_error).
+- **Metadata**: Additional information about the topic, including the financial indicator, abstracted epoch length, and target variable.
+  - E.g. ETH 5min Volatility Prediction
+
+<Callout>
+[Additional fields that define a given topic](/devs/topic-creators/how-to-create-topic) can be pulled using the following [`allorad`](/devs/get-started/model-forge#download-the-allorad-cli-tool) command:
+
+```bash
+allorad query emissions topic <topic-id> --node <node-url>
+```
+
+- `node-rpc` is the RPC URL of the Allora Network node you are querying.
+</Callout>
+
+### Competition Topics
+
+1. [5min ETH Price Prediction](https://forge.allora.network/competitions/1)
+2. [5min USDC/ETH Volume Prediction](https://forge.allora.network/competitions/2)
+3. [5min ETH Volatility Prediction](https://forge.allora.network/competitions/3)
+
+| Topic ID | Topic | Target Variable | Epoch | Loss Function | Metadata |
+|----------|-------|----------------|--------|---------------|-----------|
+| 13 | ETH Price Prediction | `ETH` | `5min` | Mean Squared Error | ETH 5min Price Prediction |
+| Coming Soon | USDC/ETH Volume Prediction | `USDC/ETH` | `5min` | Mean Squared Error | USDC/ETH 5min Volume Prediction |
+| 15 | ETH Volatility Prediction | `ETH` | `5min` | Mean Squared Error | ETH 5min Volatility Prediction |
+
+## Getting Started
+
+### Creating a Wallet
+
+To get started, you'll need to create a wallet on the Allora Network.
+
+#### Download the `allorad` CLI Tool
+
+Open your terminal and run the following command to install the `allorad` CLI tool.
+
+```bash
+curl -sSL https://raw.githubusercontent.com/allora-network/allora-chain/main/install.sh | bash -s -- v0.8.0
+```
+
+#### Create a Wallet
+
+Run the following command to create a wallet.
+
+```bash
+allorad keys add <key-name>
+```
+
+Save your key name, wallet address, and mnemonic in a secure location. You will need this to submit inferences to the Allora Network.
+
+### Register for the Competition
+
+To register for the competition, go to the [Sign Up](https://vk4z45e3hne.typeform.com/to/ypA2Yl1J?utm_source=landing-page&typeform-source=forge.allora.network) page.
+
+Fill out the form and submit your application. 
+
+<Callout>
+Input your wallet address that you created in the previous step in the `Allora Wallet Address` field.
+</Callout>
+
+<Callout type="warning">
+Although a discord account is not required to register, participants with a discord account will be able to join exclusive channels in the Allora Discord server to get priorityaccess to help from the Allora Labs team and other participants.
+
+Join the Allora Discord server [here](https://discord.gg/allora).
+</Callout>
+
+### Successful Registration
+
+Once you've been notified that you've been accepted into the competition:
+
+1. Connect your wallet to the [Allora Forge](forge.allora.network) site.
+
+![connect-wallet](/forge-connect.png)
+
+2. You should see an `eligible` status in the top left corner of the screen once connected.
+
+![eligible](/eligible-forge.png)
+
+Congratulations! You're now registered for the Allora Model Forge Competition.
+
+## Model Creation
+
+If your registration is successful, start building your model and preparing it for inference submission to the network.
+
+We've built out some tools to help you get started with model creation. These models are optimized for price prediction, but can be used for other topics as well.
+
+1. [Basic Coin Prediction Node](https://github.com/allora-network/basic-coin-prediction-node)
+- Features: 
+    - Optimized for price prediction
+    - Easy to connect to the Allora Network
+    - Built on top of the [Allora Offchain Node](https://github.com/allora-network/allora-offchain-node)
+
+- Downsides:
+    - Limited Model Types
+
+2. [Allora MDK](https://github.com/allora-network/allora-model-maker)
+- Features:
+  - Large set of regression strategies to choose from
+  - Easier to customize for volatility and volume predictions
+
+-Downsides:
+  - More complex steps to connect to the Allora Network
+
+We offer a comprehensive set of documentation for the [Allora MDK](/devs/workers/deploy-worker/allora-mdk) and [Basic Coin Prediction Node](/devs/workers/walkthroughs/walkthrough-price-prediction-worker) for you to dive into.
+
+## Leaderboard
+
+The leaderboard is a live-updating list of the top performing models in the competition. Go to the competition page for the specific topic you've entered to view the leaderboard.
+
+1. [5min ETH Price Prediction](https://forge.allora.network/competitions/1)
+2. [5min USDC/ETH Volume Prediction](https://forge.allora.network/competitions/2)
+3. [5min ETH Volatility Prediction](https://forge.allora.network/competitions/3)
+
+<Callout>
+Don't forget to [connect your wallet](/devs/get-started/model-forge#successful-registration) to the Allora Forge site to view the leaderboard.
+</Callout>
+
+## Detailed Performance Metrics
+
+We've built out an [Allora Explorer](explorer.allora.network) that displays performance metrics to help you evaluate the success of your model. These metrics are used to score your model in the competition.
+
+Steps:
+
+1. Connect your wallet to the Allora Explorer
+
+![connect-wallet](/explorer-connect.png)
+
+2. Click `Your Topics`
+
+![your-topics](/your-topic.png)
+
+3. Click on a topic to view your performance metrics
+
+![topic-metrics](/topic-stats.png)
+
+- Your `Score` and `ALLO Earned` indicate your overall performance in the topic.
