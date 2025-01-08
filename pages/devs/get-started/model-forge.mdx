@@ -7,46 +7,6 @@ The [Allora Model Forge Competition](https://forge.allora.network) is an open-so
 - Inferences are submitted to the Allora Network.
 - Participants are scored based on the accuracy of their model compared to the ground truth, and rewarded accordingly.
 
-## Topics
-
-The Allora Network is categorized into distinct [topics](/devs/topic-creators/how-to-create-topic) that serve as schelling-points for model-makers to submit inferences on.
-
-Topics are assigned an ID and categorized by a specific Target Variable, Epoch, Loss Method, and Metadata. Let's quickly explain each in the context of the Forge Competition:
-
-- **Topic ID**: A unique identifier for the topic that participants will need to submit inferences on.
-- **Target Variable**: The asset or asset pair that models are trying to predict for
-  - E.g. `ETH`, `USDC/ETH`.
-- **Epoch**: A discrete period during which inferences and forecasts are submitted, and rewards are distributed. 
-  - Epochs are defined in blocks on the Network
-  - Each epoch provides a timeframe for evaluating and scoring the performance of workers and reputers.
-  - In the Forge Competition, epochs are are abstracted into universal timeframes, e.g. `5min`, `1hr`, `1day`.
-- **Loss Function**: Measures how far off your model's predictions are from the actual values
-  - For all topics in the Forge Competition, the loss function is [`Mean Squared Error`](https://en.wikipedia.org/wiki/Mean_squared_error).
-- **Metadata**: Additional information about the topic, including the financial indicator, abstracted epoch length, and target variable.
-  - E.g. ETH 5min Volatility Prediction
-
-<Callout>
-[Additional fields that define a given topic](/devs/topic-creators/how-to-create-topic) can be pulled using the following [`allorad`](/devs/get-started/model-forge#download-the-allorad-cli-tool) command:
-
-```bash
-allorad query emissions topic <topic-id> --node <node-url>
-```
-
-- `node-rpc` is the RPC URL of the Allora Network node you are querying.
-</Callout>
-
-### Competition Topics
-
-1. [5min ETH Price Prediction](https://forge.allora.network/competitions/1)
-2. [5min USDC/ETH Volume Prediction](https://forge.allora.network/competitions/2)
-3. [5min ETH Volatility Prediction](https://forge.allora.network/competitions/3)
-
-| Topic ID | Topic | Target Variable | Epoch | Loss Function | Metadata |
-|----------|-------|----------------|--------|---------------|-----------|
-| 13 | ETH Price Prediction | `ETH` | `5min` | Mean Squared Error | ETH 5min Price Prediction |
-| Coming Soon | USDC/ETH Volume Prediction | `USDC/ETH` | `5min` | Mean Squared Error | USDC/ETH 5min Volume Prediction |
-| 15 | ETH Volatility Prediction | `ETH` | `5min` | Mean Squared Error | ETH 5min Volatility Prediction |
-
 ## Getting Started
 
 ### Creating a Wallet
@@ -102,6 +62,46 @@ Once you've been notified that you've been accepted into the competition:
 ![eligible](/eligible-forge.png)
 
 Congratulations! You're now registered for the Allora Model Forge Competition.
+
+## Topics
+
+The Allora Network is categorized into distinct [topics](/devs/topic-creators/how-to-create-topic) that serve as schelling-points for model-makers to submit inferences on.
+
+Topics are assigned an ID and categorized by a specific Target Variable, Epoch, Loss Method, and Metadata. Let's quickly explain each in the context of the Forge Competition:
+
+- **Topic ID**: A unique identifier for the topic that participants will need to submit inferences on.
+- **Target Variable**: The asset or asset pair that models are trying to predict for
+  - E.g. `ETH`, `USDC/ETH`.
+- **Epoch**: A discrete period during which inferences and forecasts are submitted, and rewards are distributed. 
+  - Epochs are defined in blocks on the Network
+  - Each epoch provides a timeframe for evaluating and scoring the performance of workers and reputers.
+  - In the Forge Competition, epochs are are abstracted into universal timeframes, e.g. `5min`, `1hr`, `1day`.
+- **Loss Function**: Measures how far off your model's predictions are from the actual values
+  - For all topics in the Forge Competition, the loss function is [`Mean Squared Error`](https://en.wikipedia.org/wiki/Mean_squared_error).
+- **Metadata**: Additional information about the topic, including the financial indicator, abstracted epoch length, and target variable.
+  - E.g. ETH 5min Volatility Prediction
+
+<Callout>
+[Additional fields that define a given topic](/devs/topic-creators/how-to-create-topic) can be pulled using the following [`allorad`](/devs/get-started/model-forge#download-the-allorad-cli-tool) command:
+
+```bash
+allorad query emissions topic <topic-id> --node <node-url>
+```
+
+- `node-rpc` is the RPC URL of the Allora Network node you are querying.
+</Callout>
+
+### Competition Topics
+
+1. [5min ETH Price Prediction](https://forge.allora.network/competitions/1)
+2. [5min USDC/ETH Volume Prediction](https://forge.allora.network/competitions/2)
+3. [5min ETH Volatility Prediction](https://forge.allora.network/competitions/3)
+
+| Topic ID | Topic | Target Variable | Epoch | Loss Function | Metadata |
+|----------|-------|----------------|--------|---------------|-----------|
+| 13 | ETH Price Prediction | `ETH` | `5min` | Mean Squared Error | ETH 5min Price Prediction |
+| Coming Soon | USDC/ETH Volume Prediction | `USDC/ETH` | `5min` | Mean Squared Error | USDC/ETH 5min Volume Prediction |
+| 15 | ETH Volatility Prediction | `ETH` | `5min` | Mean Squared Error | ETH 5min Volatility Prediction |
 
 ## Model Creation
 
