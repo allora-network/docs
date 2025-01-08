@@ -1,4 +1,4 @@
 {
-    "implementation": "Implementation",
-    "example-usage": "Example Usage"
+    "plugin": "Plugin",
+    "example-usage": "Example Usage with Eliza"
 }
