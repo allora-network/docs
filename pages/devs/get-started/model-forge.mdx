@@ -42,7 +42,7 @@ Input your wallet address that you created in the previous step in the `Allora W
 </Callout>
 
 <Callout type="warning">
-Although a discord account is not required to register, participants with a discord account will be able to join exclusive channels in the Allora Discord server to get priorityaccess to help from the Allora Labs team and other participants.
+Although a discord account is not required to register, participants with a discord account will be able to join exclusive channels in the Allora Discord server to get priority access to help from the Allora Labs team and other participants.
 
 Join the Allora Discord server [here](https://discord.gg/allora).
 </Callout>
@@ -52,7 +52,6 @@ Join the Allora Discord server [here](https://discord.gg/allora).
 Once you've been notified that you've been accepted into the competition:
 
 1. Download the [Keplr Wallet Chrome Extension](https://chromewebstore.google.com/detail/keplr/dmkamcknogkgcdfhhbddcghachkejeap?hl=en&pli=1) from the Chrome Web Store.
-
 2. Connect your wallet to the [Allora Forge](forge.allora.network) site.
 
 ![connect-wallet](/forge-connect.png)
@@ -65,7 +64,7 @@ Congratulations! You're now registered for the Allora Model Forge Competition.
 
 ## Topics
 
-The Allora Network is categorized into distinct [topics](/devs/topic-creators/how-to-create-topic) that serve as schelling-points for model-makers to submit inferences on.
+The Allora Network is categorized into distinct [topics](/devs/topic-creators/how-to-create-topic) that serve as Schelling points for model-makers to submit inferences on.
 
 Topics are assigned an ID and categorized by a specific Target Variable, Epoch, Loss Method, and Metadata. Let's quickly explain each in the context of the Forge Competition:
 
@@ -75,7 +74,7 @@ Topics are assigned an ID and categorized by a specific Target Variable, Epoch, 
 - **Epoch**: A discrete period during which inferences and forecasts are submitted, and rewards are distributed. 
   - Epochs are defined in blocks on the Network
   - Each epoch provides a timeframe for evaluating and scoring the performance of workers and reputers.
-  - In the Forge Competition, epochs are are abstracted into universal timeframes, e.g. `5min`, `1hr`, `1day`.
+  - In the Forge Competition, epochs are are abstracted into universal timeframes, e.g. `5min`, `1hr`, `1d`.
 - **Loss Function**: Measures how far off your model's predictions are from the actual values
   - For all topics in the Forge Competition, the loss function is [`Mean Squared Error`](https://en.wikipedia.org/wiki/Mean_squared_error).
 - **Metadata**: Additional information about the topic, including the financial indicator, abstracted epoch length, and target variable.
@@ -89,6 +88,12 @@ allorad query emissions topic <topic-id> --node <node-url>
 ```
 
 - `node-rpc` is the RPC URL of the Allora Network node you are querying.
+
+Example Usage:
+
+```bash
+allorad query emissions topic 13 --node https://allora-rpc.testnet.allora.network
+```
 </Callout>
 
 ### Competition Topics
@@ -107,26 +112,14 @@ allorad query emissions topic <topic-id> --node <node-url>
 
 If your registration is successful, start building your model and preparing it for inference submission to the network.
 
-We've built out some tools to help you get started with model creation. These models are optimized for price prediction, but can be used for other topics as well.
+We've built out the **Allora Model Development Kit** (MDK) framework to help you get started with model creation. These models are optimized for price prediction, but can be used for other topics as well.
 
-1. [Basic Coin Prediction Node](https://github.com/allora-network/basic-coin-prediction-node)
-- Features: 
-    - Optimized for price prediction
-    - Easy to connect to the Allora Network
-    - Built on top of the [Allora Offchain Node](https://github.com/allora-network/allora-offchain-node)
-
-- Downsides:
-    - Limited Model Types
-
-2. [Allora MDK](https://github.com/allora-network/allora-model-maker)
+[**Allora MDK Repository**](https://github.com/allora-network/allora-model-maker)
 - Features:
   - Large set of regression strategies to choose from
-  - Easier to customize for volatility and volume predictions
+  - Easy to customize for volatility and volume predictions
 
--Downsides:
-  - More complex steps to connect to the Allora Network
-
-We offer a comprehensive set of documentation for the [Allora MDK](/devs/workers/deploy-worker/allora-mdk) and [Basic Coin Prediction Node](/devs/workers/walkthroughs/walkthrough-price-prediction-worker) for you to dive into.
+We offer a comprehensive set of [documentation](/devs/workers/deploy-worker/allora-mdk) for the Allora MDK for you to dive into.
 
 ## Leaderboard
 
@@ -149,13 +142,10 @@ Steps:
 1. Connect your wallet to the Allora Explorer
 
 ![connect-wallet](/explorer-connect.png)
-
 2. Click `Your Topics`
 
 ![your-topics](/your-topic.png)
-
 3. Click on a topic to view your performance metrics
 
 ![topic-metrics](/topic-stats.png)
-
 - Your `Score` and `ALLO Earned` indicate your overall performance in the topic.
