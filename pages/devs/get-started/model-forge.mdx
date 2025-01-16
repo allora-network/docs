@@ -77,8 +77,11 @@ Topics are assigned an ID and categorized by a specific Target Variable, Epoch, 
   - In the Forge Competition, epochs are are abstracted into universal timeframes, e.g. `5min`, `1hr`, `1d`.
 - **Loss Function**: Measures how far off your model's predictions are from the actual values
   - For all topics in the Forge Competition, the loss function is [`Mean Squared Error`](https://en.wikipedia.org/wiki/Mean_squared_error).
-- **Metadata**: Additional information about the topic, including the financial indicator, abstracted epoch length, and target variable.
-  - E.g. ETH 5min Volatility Prediction
+- **Metadata**: Additional information about the topic, including the financial indicator, prediction period, and target variable.
+  - E.g. ETH 12hr Volatility Prediction [Epoch length: 5min]
+    - Indicates that the topic is predicting the volatility of the ETH asset 12hr into the future.
+    - Epoch length indicates that models are submitting the 12hr predicted volatility of the ETH asset every 5min.
+
 
 <Callout>
 [Additional fields that define a given topic](/devs/topic-creators/how-to-create-topic) can be pulled using the following [`allorad`](/devs/get-started/model-forge#download-the-allorad-cli-tool) command:
@@ -99,14 +102,14 @@ allorad query emissions topic 13 --node https://allora-rpc.testnet.allora.networ
 ### Competition Topics
 
 1. [5min ETH Price Prediction](https://forge.allora.network/competitions/1)
-2. [5min USDC/ETH Volume Prediction](https://forge.allora.network/competitions/2)
-3. [5min ETH Volatility Prediction](https://forge.allora.network/competitions/3)
+2. [12hr USDC/ETH Volume Prediction](https://forge.allora.network/competitions/2)
+3. [12hr ETH Volatility Prediction](https://forge.allora.network/competitions/3)
 
 | Topic ID | Topic | Target Variable | Epoch | Loss Function | Metadata |
 |----------|-------|----------------|--------|---------------|-----------|
-| 13 | ETH Price Prediction | `ETH` | `5min` | Mean Squared Error | ETH 5min Price Prediction |
-| Coming Soon | USDC/ETH Volume Prediction | `USDC/ETH` | `5min` | Mean Squared Error | USDC/ETH 5min Volume Prediction |
-| 15 | ETH Volatility Prediction | `ETH` | `5min` | Mean Squared Error | ETH 5min Volatility Prediction |
+| 30 | ETH Price Prediction | `ETH` | `5min` | Mean Squared Error | ETH 5min Price Prediction |
+| 29 | USDC/ETH Volume Prediction | `USDC/ETH` | `5min` | Mean Squared Error | USDC/ETH 12hr Volume Prediction |
+| 28 | ETH Volatility Prediction | `ETH` | `5min` | Mean Squared Error | ETH 12hr Volatility Prediction |
 
 ## Model Creation
 
