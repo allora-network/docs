@@ -1,5 +1,51 @@
 # Allora Network Release Notes
 
+## v0.8.0
+
+### Key Features and Improvements
+
+#### Enhanced Reward and Scoring Systems
+
+- **Outlier Detection for Inference Submissions**: Introduced mechanisms to detect and manage outliers in inference submissions, ensuring higher accuracy and fairness in scoring.
+
+- **EMA Score Initialization**: Actors now have initialized Exponential Moving Average (EMA) scores, improving consistency and predictability in performance evaluation.
+
+- **Initial EMA Score Generation**: Enabled support for initial EMA score calculations with queries and events, further refining reward distribution.
+
+#### Advanced Governance and Role Management
+
+- **Global Roles and Bulk Operations**: Added global worker, reputer, and admin roles with bulk operation capabilities, streamlining role management and network administration.
+
+- **Emission Flag for Mint Module**: Introduced a boolean flag for enabling or disabling emissions within the Mint Module, offering greater control over network emissions.
+
+- **Sortition Penalties Based on Liveness**: Implemented penalties based on liveness metrics, promoting consistent participation and penalizing inactivity.
+
+#### Improved Developer Tooling and Migration Processes
+
+- **Fuzzer Whitelist Awareness**: Enhanced the fuzzer to be whitelist-aware, ensuring more targeted and reliable testing scenarios.
+
+- **Install Script Improvements**: Updated the install script to handle release asset naming conventions, simplifying developer setup for new releases.
+
+- **Backward Compatibility for Transactions**: Enabled clients to unmarshal old transactions, maintaining compatibility with previous network versions.
+
+#### Documentation and Maintenance Updates
+
+- **Default Module Parameter Values**: Set research-approved default values for module parameters, aligning implementation with theoretical models.
+
+- **Preservation of `codec.go` Files**: Ensured `codec.go` files are retained during proto generation, improving developer experience and code stability.
+
+### Bug Fixes
+
+- **Score Normalization**: Adjusted score normalization to account for a broader range of samples, enhancing scoring accuracy and reliability.
+
+- **Whitepaper Alignment**: Corrected reward fraction calculations to match Whitepaper specifications, addressing discrepancies in implementation.
+
+### Security Enhancements
+
+- **IBC MsgTransfer Validation**: Strengthened security by ensuring funds transferred via IBC MsgTransfer are reliably received, mitigating potential vulnerabilities.
+
+---
+
 ## v0.7.0
 
 **Release Date: December 2024**

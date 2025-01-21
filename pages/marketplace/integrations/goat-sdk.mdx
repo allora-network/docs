@@ -1,0 +1,56 @@
+# Goat Allora Plugin 🐐 (TypeScript)
+
+The Allora Network plugin for Goat SDK empowers your blockchain agents with advanced AI-driven predictive capabilities. This integration bridges Goat's powerful on-chain interaction capabilities with Allora's sophisticated prediction models.
+
+## Features
+
+- **Smart Market Predictions**: Access real-time price forecasts and market trend analysis
+- **Cross-chain Intelligence**: Leverage data from multiple blockchain networks and off-chain sources
+- **Automated Decision Support**: Make data-driven decisions using self-improving prediction models
+- **Scalable Infrastructure**: Handle high-frequency predictions without managing complex backend systems
+
+As a Goat developer, this plugin enables you to:
+1. Integrate AI predictions directly into your on-chain automation
+2. Access market forecasts for informed trading strategies
+3. Build smarter DeFi agents with predictive capabilities
+4. Combine blockchain interactions with AI-powered insights
+
+## Installation
+
+```
+npm install @goat-sdk/plugin-allora
+```
+
+## Environment Variables
+
+- `ALLORA_API_KEY`: Your Allora API key. This is required to use the plugin.
+  - [Get your API key](https://developer.upshot.xyz)
+
+## Setup
+    
+```typescript
+import { allora } from '@goat-sdk/plugin-allora'
+
+const plugin = allora({ 
+    apiKey: process.env.ALLORA_API_KEY,
+})
+```
+
+## Available Actions
+
+### Fetch Price Prediction
+
+Fetches a price prediction for the given asset and timeframe.
+
+```typescript
+const prediction = await plugin.fetchPricePrediction({
+    asset: 'ETH',
+    timeframe: '1h'
+})
+```
+
+## About Goat 🐐
+
+Goat 🐐 (Great On-chain Agent Toolkit) is an open-source library enabling AI agents to interact with blockchain protocols and smart contracts via their own wallets.
+
+[Docs](https://ohmygoat.dev) | [Examples](https://github.com/goat-sdk/goat/tree/main/typescript/examples) | [Discord](https://discord.gg/goat-sdk)
