@@ -37,8 +37,8 @@ Although these models are already integrated into the MDK, you can add more mode
 Run the following commands in a new terminal window:
 
 ```bash
-git clone https://github.com/allora-network/allora-model-maker.git
-cd allora-model-maker
+git clone https://github.com/allora-network/allora-mdk.git
+cd allora-mdk
 ```
 
 #### Conda not Installed?
@@ -190,29 +190,9 @@ Replace arima with the name of the model you’d like to package (e.g., lstm, xg
 <Callout>
 This will:
 
-- Copy the model’s files and dependencies into the `packaged_models/package folder`.
+- Copy the model’s files and dependencies into the `package folder`.
 - Run test's for inference and training to validate functionality in a worker
 - Generate a configuration file, `config.py`, that contains the active model information.
-</Callout>
-
-### Clone the Allora Worker Repository
-
-Run the following commands in a new terminal window:
-
-```bash
-git clone https://github.com/allora-network/allora-worker.git
-cd allora-worker
-```
-
-### Integrate your Model
-
-After running the packaging command:
-
-1. Navigate to the packaged_models folder in your allora-model-maker repo.
-2. Copy the package folder into the src folder of your allora-worker repository.
-
-<Callout type='info'>
-If you did this right in your allora-worker repo you'll now have `allora-worker/src/package`
 </Callout>
 
 ### Deploy your Worker
