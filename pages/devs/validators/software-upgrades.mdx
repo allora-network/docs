@@ -48,9 +48,9 @@ version that is being upgraded from, and the function to run to do the migration
 
 #### For Allora Chain Validator Operators
 
-For those running the chain software, you will have to have to perform an upgrade as follows:
+For those running the chain software, you will have to perform an upgrade as follows:
 
-1. Make sure you're running the `allorad` software with [Cosmovisor](https://docs.cosmos.network/main/build/tooling/cosmovisor)) managing the process, `DAEMON_NAME=allorad` and `DAEMON_HOME=/path/to/allorad/data/folder`. Hopefully you've already run `cosmovisor init /path/to/allorad-binary` and have the `/allorad/data/folder/cosmovisor` set.
+1. Make sure you're running the `allorad` software with [Cosmovisor](https://docs.cosmos.network/main/build/tooling/cosmovisor) managing the process, `DAEMON_NAME=allorad` and `DAEMON_HOME=/path/to/allorad/data/folder`. Hopefully you've already run `cosmovisor init /path/to/allorad-binary` and have the `/allorad/data/folder/cosmovisor` set.
 2. At some point the blockchain developers will provide you with a binary to put in that  `/allorad/data/folder/cosmovisor` folder to upgrade to. This may be optional if the `UpgradeInfo` is set correctly by the developers, but if you're the paranoid type you can always download the binary yourself ahead of the upgrade and put it in the right folder by hand.
 3. When the developers put up the upgrade proposal to governance, be helpful and vote to make it pass. You can do this via the CLI with `allorad tx gov vote $proposal_id yes --from $validator` or an example of doing this programmatically can be found in the integration test [voteOnProposal](https://github.com/allora-network/allora-chain/blob/main/test/integration/upgrade_test.go) function.
 4. At the block height of the upgrade, the old software will panic - cosmovisor will catch the panic and restart the process using the new binary for the upgrade instead. Monitor your logs appropriately to see the restart.
