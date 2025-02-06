@@ -1,0 +1,55 @@
+name: build-and-push-docker-image
+
+on:
+  push:
+    branches:
+      - chore/Dockerize-Python
+
+jobs:
+  build-and-push-docker-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Build Docker image
+        run: docker build -t allora-rag-model .
+
+      - name: Push Docker image
+        run: docker push allora-rag-model
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Get version        
+        run: |
+          VERSION=$(cat API/VERSION)
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
+      - name: Build, Tag, and Push Worker Image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: allora-chatbot-rag-model
+          IMAGE_BASE_PATH: API
+          VERSION: ${{ env.VERSION }}
+        run: |
+          IMAGE_TAG="${GITHUB_SHA:0:8}"
+          EXTRA_IMAGE_TAGS="${VERSION};latest"
+
+          # Build and push the image to ECR with the main image tag
+          docker build --pull -f ${{ env.IMAGE_BASE_PATH }}/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ${{ env.IMAGE_BASE_PATH }}
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+          # Build and PUSH additional tags
+          for tag in $(echo $EXTRA_IMAGE_TAGS| tr ";" "\n"); do
+            docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$tag
+            docker push $ECR_REGISTRY/$ECR_REPOSITORY:$tag
+          done
