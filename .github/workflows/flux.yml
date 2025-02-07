@@ -12,6 +12,10 @@ jobs:
   build-and-push-docker-image:
     runs-on: ubuntu-latest
     steps:
+
+      - name: 'Setup yq'
+        uses: dcarbone/install-yq-action@v1
+
       - name: Checkout code
         uses: actions/checkout@v2
 
@@ -57,7 +61,6 @@ jobs:
           ECR_REPOSITORY: allora-chatbot-rag-model
           VERSION: ${{ env.VERSION }}
         run: |
-          apt update && apt install -y yq
           git clone https://github.com/allora-network/flux-infra-offchain.git
           cd flux-infra-offchain
           git checkout main
