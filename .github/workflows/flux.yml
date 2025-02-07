@@ -5,6 +5,9 @@ on:
     branches:
       - chore/Dockerize-Python
 
+permissions:
+  contents: write
+
 jobs:
   build-and-push-docker-image:
     runs-on: ubuntu-latest
@@ -47,3 +50,19 @@ jobs:
             docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$tag
             docker push $ECR_REGISTRY/$ECR_REPOSITORY:$tag
           done
+      
+      - name: Update Flux Repo
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: allora-chatbot-rag-model
+          VERSION: ${{ env.VERSION }}
+        run: |
+          apt update && apt install -y yq
+          git clone https://github.com/allora-network/flux-infra-offchain.git
+          cd flux-infra-offchain
+          git checkout main
+          git pull
+          yq -i '.spec.values.containers.chatbot.image.tag="$VERSION"' apps/offchain-testnet/allora-chatbot-rag-model/values.yaml
+          git add apps/offchain-testnet/allora-chatbot-api/values.yaml
+          git commit -m "Update allora-chatbot-api tag to $VERSION"
+          git push
