@@ -60,6 +60,10 @@ class ChatResponse(BaseModel):
     response: str
     sources: List[str]
 
+@app.get("/")
+async def root():
+    return {"Ok"}
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
     try:
