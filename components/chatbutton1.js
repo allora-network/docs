@@ -25,7 +25,7 @@ function ChatComponent({ onClose }) {
 
     try {
       // Send user's message to the FastAPI backend.
-      const response = await fetch("http://localhost:8000/chat", { // Update the URL during production
+      const response = await fetch("https://b832b91b8183b88b9c22eda604f1e09.testnet.allora.run/chat", { // Update the URL during production
         method: "POST",
         headers: {
           "Content-Type": "application/json",
