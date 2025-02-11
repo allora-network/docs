@@ -1,0 +1,8 @@
+fastapi
+pydantic
+pinecone-client
+langchain
+langchain-community
+langchain-openai
+openai
+uvicorn

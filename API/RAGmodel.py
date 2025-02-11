@@ -22,10 +22,6 @@ app.add_middleware(
 )
 
 # set/load environment variables -> edit this for production 
-os.environ["OPENAI_API_KEY"] = ""
-os.environ["PINECONE_API_KEY"] = ""
-
-
 # Initialize Pinecone client
 pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
 
@@ -64,6 +60,10 @@ class ChatResponse(BaseModel):
     response: str
     sources: List[str]
 
+@app.get("/")
+async def root():
+    return {"Ok"}
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
     try:
@@ -78,4 +78,4 @@ async def chat_endpoint(request: ChatRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000) # may need to edit this for production
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT",8000))) # may need to edit this for production
