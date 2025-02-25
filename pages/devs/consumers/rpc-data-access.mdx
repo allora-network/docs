@@ -9,6 +9,16 @@ In addition to the [Allora API](/devs/consumers/allora-api-endpoint), you can al
 - [`allorad` CLI](/devs/get-started/cli) installed
 - Access to an Allora RPC node
 
+## RPC URL and Chain ID
+
+Each network uses a different RPC URL and Chain ID which are needed to specify which network to run commands on when using specific commands on allorad.
+
+### Testnet
+- **RPC URLs**:
+  - `https://rpc.ankr.com/allora_testnet`
+  - `https://allora-rpc.testnet.allora.network/`
+- **Chain ID**: `allora-testnet-1`
+
 ## RPC Endpoints for Consumers
 
 The following RPC methods are particularly useful for consumers looking to access inference data from the Allora network:
@@ -27,7 +37,7 @@ allorad q emissions latest-available-network-inferences [topic_id] --node <RPC_U
 
 **Example:**
 ```bash
-allorad q emissions latest-available-network-inferences 1 --node https://rpc.testnet.allora.network
+allorad q emissions latest-available-network-inferences 1 --node https://allora-rpc.testnet.allora.network/
 ```
 
 **Response:**
@@ -104,7 +114,7 @@ async function getLatestInference(topicId: number, rpcUrl: string) {
 }
 
 // Example usage
-getLatestInference(1, 'https://rpc.testnet.allora.network')
+getLatestInference(1, 'https://allora-rpc.testnet.allora.network/')
   .then(data => {
     console.log('Latest inference:', data.network_inferences.combined_value);
     console.log('Confidence intervals:', data.confidence_interval_values);
@@ -154,7 +164,7 @@ def get_latest_inference(topic_id, rpc_url):
 
 # Example usage
 try:
-    data = get_latest_inference(1, "https://rpc.testnet.allora.network")
+    data = get_latest_inference(1, "https://allora-rpc.testnet.allora.network/")
     print(f"Latest inference: {data['network_inferences']['combined_value']}")
     print(f"Confidence intervals: {data['confidence_interval_values']}")
 except Exception as e:
@@ -180,9 +190,3 @@ except Exception as e:
 <Callout type="warning">
 RPC nodes may have their own rate limiting or access restrictions. Make sure to implement proper error handling and retry logic in your applications.
 </Callout>
-
-## Available RPC Nodes
-
-- Testnet: `https://rpc.testnet.allora.network`
-
-For a complete list of available RPC endpoints and their status, please contact the Allora team.
