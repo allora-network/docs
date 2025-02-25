@@ -36,7 +36,7 @@ Follow these instructions to bring the most recent inference data on-chain for a
 2. Call the Consumer Inference API using the `topicId` found in the [deployed topics list](/devs/get-started/existing-topics) and the correct chainId. For example, if you use sepolia, you would provide `ethereum-11155111`.
 
 ```shell
-curl -X 'GET' --url 'https://api.upshot.xyz/v2/allora/consumer/<chainId>?allora_topic_id=<topicId>' -H 'accept: application/json' -H 'x-api-key: <apiKey>'
+curl -X 'GET' --url 'https://api.allora.network/v2/allora/consumer/<chainId>?allora_topic_id=<topicId>' -H 'accept: application/json' -H 'x-api-key: <apiKey>'
 ```
 
 Here is an example response: 
