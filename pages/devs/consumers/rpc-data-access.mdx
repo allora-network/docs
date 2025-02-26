@@ -1,0 +1,194 @@
+import { Callout } from 'nextra/components'
+
+# Accessing Allora Data Through RPC
+
+In addition to the [Allora API](/devs/consumers/allora-api-endpoint), you can also access Allora network data directly through RPC (Remote Procedure Call) endpoints. This provides an alternative method for consuming outputs from the network, especially useful for applications that need to interact directly with the blockchain.
+
+## Prerequisites
+
+- [`allorad` CLI](/devs/get-started/cli) installed
+- Access to an Allora RPC node
+
+For a complete list of available RPC endpoints and commands, see the [allorad reference section](/devs/reference/allorad).
+
+## RPC URL and Chain ID
+
+Each network uses a different RPC URL and Chain ID which are needed to specify which network to run commands on when using specific commands on allorad.
+
+### Testnet
+- **RPC URLs**:
+  - `https://rpc.ankr.com/allora_testnet`
+  - `https://allora-rpc.testnet.allora.network/`
+- **Chain ID**: `allora-testnet-1`
+
+## RPC Endpoints for Consumers
+
+The following RPC methods are particularly useful for consumers looking to access inference data from the Allora network:
+
+### Get Latest Available Network Inferences
+
+This is the primary method for consumers to retrieve the latest network inference for a specific topic.
+
+```bash
+allorad q emissions latest-available-network-inferences [topic_id] --node <RPC_URL>
+```
+
+**Parameters:**
+- `topic_id`: The identifier of the topic for which you want to retrieve the latest available network inference.
+- `RPC_URL`: The URL of the RPC node you're connecting to.
+
+**Example:**
+```bash
+allorad q emissions latest-available-network-inferences 1 --node https://allora-rpc.testnet.allora.network/
+```
+
+**Response:**
+The response includes the network inference data, including the combined value, individual worker values, confidence intervals, and more. Here's a simplified example:
+
+```json
+{
+  "network_inferences": {
+    "topic_id": "1",
+    "combined_value": "2605.533879185080648394998043723508",
+    "inferer_values": [
+      {
+        "worker": "allo102ksu3kx57w0mrhkg37kvymmk2lgxqcan6u7yn",
+        "value": "2611.01109296"
+      },
+      {
+        "worker": "allo10q6hm2yae8slpvvgmxqrcasa30gu5qfysp4wkz",
+        "value": "2661.505295679922"
+      }
+    ],
+    "naive_value": "2605.533879185080648394998043723508"
+  },
+  "confidence_interval_values": [
+    "2492.1675618299669694181830608795809",
+    "2543.9249467952655499150756965734158",
+    "2611.033130351115229549044053766836",
+    "2662.29523395638446190095015123294396",
+    "2682.827040221238"
+  ]
+}
+```
+
+<Callout type="info">
+The `combined_value` field represents the optimized inference that takes both naive submissions and forecast data into account. This is typically the value you want to use for most consumer applications.
+</Callout>
+
+## Using RPC in Your Applications
+
+### JavaScript/TypeScript Example
+
+Here's an example of how to query the Allora network using RPC in a JavaScript/TypeScript application:
+
+```typescript
+import axios from 'axios';
+
+async function getLatestInference(topicId: number, rpcUrl: string) {
+  try {
+    const response = await axios.post(rpcUrl, {
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'abci_query',
+      params: {
+        path: `/allora.emissions.v1.Query/GetLatestAvailableNetworkInferences`,
+        data: Buffer.from(JSON.stringify({ topic_id: topicId })).toString('hex'),
+        prove: false
+      }
+    });
+
+    // Parse the response
+    const result = response.data.result;
+    if (result.response.code !== 0) {
+      throw new Error(`Query failed with code ${result.response.code}`);
+    }
+
+    // Decode the response value
+    const decodedValue = Buffer.from(result.response.value, 'base64').toString();
+    const parsedValue = JSON.parse(decodedValue);
+
+    return parsedValue;
+  } catch (error) {
+    console.error('Error querying Allora RPC:', error);
+    throw error;
+  }
+}
+
+// Example usage
+getLatestInference(1, 'https://allora-rpc.testnet.allora.network/')
+  .then(data => {
+    console.log('Latest inference:', data.network_inferences.combined_value);
+    console.log('Confidence intervals:', data.confidence_interval_values);
+  })
+  .catch(error => {
+    console.error('Failed to get inference:', error);
+  });
+```
+
+### Python Example
+
+Here's an example of how to query the Allora network using RPC in a Python application:
+
+```python
+import requests
+import json
+import base64
+
+def get_latest_inference(topic_id, rpc_url):
+    try:
+        payload = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "abci_query",
+            "params": {
+                "path": "/allora.emissions.v1.Query/GetLatestAvailableNetworkInferences",
+                "data": bytes(json.dumps({"topic_id": topic_id}), 'utf-8').hex(),
+                "prove": False
+            }
+        }
+        
+        response = requests.post(rpc_url, json=payload)
+        response.raise_for_status()
+        
+        result = response.json()["result"]
+        if result["response"]["code"] != 0:
+            raise Exception(f"Query failed with code {result['response']['code']}")
+        
+        # Decode the response value
+        decoded_value = base64.b64decode(result["response"]["value"]).decode('utf-8')
+        parsed_value = json.loads(decoded_value)
+        
+        return parsed_value
+    except Exception as e:
+        print(f"Error querying Allora RPC: {e}")
+        raise
+
+# Example usage
+try:
+    data = get_latest_inference(1, "https://allora-rpc.testnet.allora.network/")
+    print(f"Latest inference: {data['network_inferences']['combined_value']}")
+    print(f"Confidence intervals: {data['confidence_interval_values']}")
+except Exception as e:
+    print(f"Failed to get inference: {e}")
+```
+
+## RPC vs API: When to Use Each
+
+### Use RPC When:
+
+- You need direct blockchain access without intermediaries
+- You want to query historical data that might not be available through the API
+- You're building applications that need to interact with multiple aspects of the Allora network
+- You want to avoid potential rate limiting on the API
+
+### Use the API When:
+
+- You need a simpler interface with standardized authentication
+- You want to avoid the complexity of RPC calls
+- You're primarily interested in the latest inference data
+- You need additional features provided by the API that aren't available through RPC
+
+<Callout type="warning">
+RPC nodes may have their own rate limiting or access restrictions. Make sure to implement proper error handling and retry logic in your applications.
+</Callout>
