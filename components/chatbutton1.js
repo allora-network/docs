@@ -4,6 +4,7 @@ function ChatComponent({ onClose }) {
   // holds the current user input and the chat history.
   const [inputMessage, setInputMessage] = useState("");
   const [chatHistory, setChatHistory] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   // this references the chat history container.
   const chatContainerRef = useRef(null);
@@ -18,19 +19,26 @@ function ChatComponent({ onClose }) {
   // this is handler for form submission.
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    
+    // Store the message and immediately clear the input field
+    const message = inputMessage;
+    setInputMessage(""); // Clear input immediately
+    
     // Add user's message to the chat history.
-    const newUserEntry = { sender: "user", text: inputMessage };
+    const newUserEntry = { sender: "user", text: message };
     setChatHistory((prev) => [...prev, newUserEntry]);
-
+    
+    // Show loading indicator
+    setIsLoading(true);
+    
     try {
       // Send user's message to the FastAPI backend.
-      const response = await fetch("https://b832b91b8183b88b9c22eda604f1e09.testnet.allora.run/chat", { // Update the URL during production
+      const response = await fetch("https://b832b91b8183b88b9c22eda604f1e09.testnet.allora.run/chat", { 
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: inputMessage }),
+        body: JSON.stringify({ message: message }),
       });
       console.log("API went through");
 
@@ -41,7 +49,6 @@ function ChatComponent({ onClose }) {
       // Parse the JSON response.
       const data = await response.json();
       
-
       // Add the assistant's response to the chat history.
       const newBotEntry = {
         sender: "bot",
@@ -54,12 +61,12 @@ function ChatComponent({ onClose }) {
       // display an error message in the UI.
       const errorEntry = { 
         sender: "bot", text: "Sorry, something went wrong." 
-    };
+      };
       setChatHistory((prev) => [...prev, errorEntry]);
+    } finally {
+      // Hide loading indicator
+      setIsLoading(false);
     }
-
-    // Clear the input field.
-    setInputMessage("");
   };
 
   return (
@@ -69,9 +76,9 @@ function ChatComponent({ onClose }) {
         maxWidth: "600px",
         margin: "0 auto",
         backgroundColor: "#000", 
-        color: "#fff", // Set text color to white for visibility
+        color: "#fff",
         padding: "20px",
-        borderRadius: "10px", // Rounded corners nicer UI
+        borderRadius: "10px",
       }}
     >
       {/* Header with title and close button */}
@@ -105,9 +112,10 @@ function ChatComponent({ onClose }) {
         style={{
           border: "1px solid #ccc",
           padding: "10px",
-          height: "300px", // Fixed height
-          overflowY: "scroll", // Enable vertical scrolling
-          backgroundColor: "#1e1e1e", // Darker background for chat history
+          height: "300px",
+          overflowY: "scroll",
+          backgroundColor: "#1e1e1e",
+          position: "relative",
         }}
       >
         {chatHistory.map((entry, index) => (
@@ -132,8 +140,56 @@ function ChatComponent({ onClose }) {
             </div>
           </div>
         ))}
+        
+        {/* Loading indicator */}
+        {isLoading && (
+          <div
+            style={{
+              textAlign: "left",
+              margin: "10px 0",
+            }}
+          >
+            <div
+              style={{
+                display: "inline-block",
+                background: "#333",
+                color: "#fff",
+                padding: "10px",
+                borderRadius: "10px",
+              }}
+            >
+              <div className="loading-indicator" style={{ display: "flex", alignItems: "center" }}>
+                <div 
+                  style={{ 
+                    width: "16px", 
+                    height: "16px", 
+                    border: "3px solid rgba(255,255,255,0.3)", 
+                    borderRadius: "50%", 
+                    borderTopColor: "#fff", 
+                    animation: "spin 1s ease-in-out infinite",
+                    marginRight: "10px"
+                  }} 
+                />
+                <span>Thinking...</span>
+              </div>
+              <style jsx>{`
+                @keyframes spin {
+                  to { transform: rotate(360deg); }
+                }
+              `}</style>
+            </div>
+          </div>
+        )}
       </div>
-      <form onSubmit={handleSubmit} style={{ marginTop: "10px" }}>
+      <form 
+        onSubmit={handleSubmit} 
+        style={{ 
+          marginTop: "10px",
+          display: "flex",
+          alignItems: "center",
+          gap: "10px"
+        }}
+      >
         <input
           type="text"
           value={inputMessage}
@@ -141,7 +197,7 @@ function ChatComponent({ onClose }) {
           placeholder="Type your message..."
           required
           style={{
-            width: "80%",
+            flex: "1",
             padding: "10px",
             backgroundColor: "#333",
             color: "#fff",
@@ -152,14 +208,18 @@ function ChatComponent({ onClose }) {
         <button
           type="submit"
           style={{
-            width: "18%",
-            padding: "10px",
-            marginLeft: "2%",
+            minWidth: "80px",
+            padding: "10px 15px",
             backgroundColor: "#4caf50",
             color: "#fff",
             border: "none",
             borderRadius: "5px",
             cursor: "pointer",
+            whiteSpace: "nowrap",
+            height: "40px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center"
           }}
         >
           Send
