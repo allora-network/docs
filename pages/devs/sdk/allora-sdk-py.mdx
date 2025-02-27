@@ -1,0 +1,240 @@
+import { Callout } from 'nextra/components'
+
+# Allora Python SDK
+
+The Allora Python SDK provides a convenient way to interact with the Allora API from Python applications.
+
+## Installation
+
+You can install the Allora Python SDK using pip:
+
+```bash
+pip install allora_sdk
+```
+
+## Basic Usage
+
+Here's how to use the Allora Python SDK:
+
+```python
+from allora_sdk import AlloraClient
+
+# Initialize the client
+client = AlloraClient(
+    chain="testnet",  # Use "mainnet" for mainnet
+    api_key="YOUR_API_KEY"  # Optional, but recommended for production use
+)
+
+# Fetch all available topics
+def fetch_topics():
+    try:
+        topics = client.get_all_topics()
+        print(f"Available topics: {topics}")
+    except Exception as e:
+        print(f"Error fetching topics: {e}")
+
+# Fetch inference for a specific topic
+def fetch_inference(topic_id):
+    try:
+        inference = client.get_inference_by_topic_id(topic_id)
+        print(f"Inference data: {inference}")
+    except Exception as e:
+        print(f"Error fetching inference: {e}")
+
+# Fetch price inference for a specific asset and timeframe
+def fetch_price_inference():
+    try:
+        inference = client.get_price_inference(
+            asset="BTC",
+            timeframe="8h"
+        )
+        print(f"Price inference data: {inference}")
+    except Exception as e:
+        print(f"Error fetching price inference: {e}")
+```
+
+## API Reference
+
+### `AlloraClient`
+
+The main class for interacting with the Allora API.
+
+#### Constructor
+
+```python
+def __init__(self, chain="testnet", api_key=None, base_api_url=None):
+    """
+    Initialize the Allora API client.
+    
+    Args:
+        chain (str): The chain to use. Can be "testnet" or "mainnet".
+        api_key (str, optional): Your API key. Recommended for production use.
+        base_api_url (str, optional): The base URL for the API.
+    """
+```
+
+#### Methods
+
+##### `get_all_topics()`
+
+Fetches all available topics from the Allora API.
+
+```python
+def get_all_topics(self):
+    """
+    Fetch all available topics from the Allora API.
+    
+    Returns:
+        list: A list of all available topics.
+    
+    Raises:
+        Exception: If the API request fails.
+    """
+```
+
+##### `get_inference_by_topic_id(topic_id, signature_format="ethereum-11155111")`
+
+Fetches an inference for a specific topic from the Allora API.
+
+```python
+def get_inference_by_topic_id(self, topic_id, signature_format="ethereum-11155111"):
+    """
+    Fetch an inference for a specific topic from the Allora API.
+    
+    Args:
+        topic_id (int): The unique identifier of the topic to get inference for.
+        signature_format (str, optional): The format of the signature.
+            Defaults to "ethereum-11155111".
+    
+    Returns:
+        dict: The inference data.
+    
+    Raises:
+        Exception: If the API request fails.
+    """
+```
+
+##### `get_price_inference(asset, timeframe, signature_format="ethereum-11155111")`
+
+Fetches a price inference for a specific asset and timeframe from the Allora API.
+
+```python
+def get_price_inference(self, asset, timeframe, signature_format="ethereum-11155111"):
+    """
+    Fetch a price inference for a specific asset and timeframe from the Allora API.
+    
+    Args:
+        asset (str): The asset to get price inference for. Can be "BTC" or "ETH".
+        timeframe (str): The timeframe to get price inference for. Can be "5m" or "8h".
+        signature_format (str, optional): The format of the signature.
+            Defaults to "ethereum-11155111".
+    
+    Returns:
+        dict: The inference data.
+    
+    Raises:
+        Exception: If the API request fails.
+    """
+```
+
+## Examples
+
+### Fetching and Using Price Inference
+
+```python
+import os
+from allora_sdk import AlloraClient
+
+# Initialize the client
+client = AlloraClient(
+    chain="testnet",
+    api_key=os.environ.get("ALLORA_API_KEY")
+)
+
+try:
+    # Fetch BTC price inference for 8-hour timeframe
+    inference = client.get_price_inference(
+        asset="BTC",
+        timeframe="8h"
+    )
+    
+    # Extract the network inference value
+    network_inference = inference["inference_data"]["network_inference"]
+    print(f"BTC 8-hour price inference: {network_inference}")
+    
+    # Extract confidence interval values
+    confidence_intervals = inference["inference_data"]["confidence_interval_values"]
+    print("Confidence intervals:", confidence_intervals)
+    
+    # Use the inference data in your application
+    # ...
+except Exception as e:
+    print(f"Error fetching BTC price inference: {e}")
+```
+
+### Fetching All Topics and Displaying Them
+
+```python
+import os
+from allora_sdk import AlloraClient
+
+# Initialize the client
+client = AlloraClient(
+    chain="testnet",
+    api_key=os.environ.get("ALLORA_API_KEY")
+)
+
+try:
+    # Fetch all topics
+    topics = client.get_all_topics()
+    
+    # Display topics
+    print(f"Found {len(topics)} topics:")
+    for topic in topics:
+        print(f"- Topic ID: {topic['topic_id']}")
+        print(f"  Name: {topic['topic_name']}")
+        print(f"  Description: {topic.get('description', 'No description')}")
+        print(f"  Active: {'Yes' if topic.get('is_active') else 'No'}")
+        print(f"  Worker count: {topic['worker_count']}")
+        print(f"  Updated at: {topic['updated_at']}")
+        print("---")
+except Exception as e:
+    print(f"Error fetching topics: {e}")
+```
+
+### Using Inference Data in a Web Application
+
+```python
+from flask import Flask, jsonify
+import os
+from allora_sdk import AlloraClient
+
+app = Flask(__name__)
+
+# Initialize the client
+client = AlloraClient(
+    chain="testnet",
+    api_key=os.environ.get("ALLORA_API_KEY")
+)
+
+@app.route('/api/price/btc')
+def get_btc_price():
+    try:
+        # Fetch BTC price inference
+        inference = client.get_price_inference(
+            asset="BTC",
+            timeframe="8h"
+        )
+        
+        # Extract the network inference value and confidence intervals
+        return jsonify({
+            'price': inference["inference_data"]["network_inference"],
+            'confidence_intervals': inference["inference_data"]["confidence_interval_values"],
+            'timestamp': inference["inference_data"]["timestamp"]
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(debug=True)
+```
