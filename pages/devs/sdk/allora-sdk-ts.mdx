@@ -1,0 +1,360 @@
+import { Callout } from 'nextra/components'
+
+# Allora TypeScript SDK
+
+The Allora TypeScript SDK provides a convenient way to interact with the Allora API from JavaScript and TypeScript applications.
+
+## Installation
+
+You can install the Allora TypeScript SDK using npm or yarn:
+
+```bash
+# Using npm
+npm install @alloralabs/allora-sdk
+
+# Using yarn
+yarn add @alloralabs/allora-sdk
+```
+
+## Basic Usage
+
+Here's a simple example of how to use the Allora TypeScript SDK:
+
+```typescript
+import { AlloraAPIClient, ChainSlug } from '@alloralabs/allora-sdk/v2'
+
+// Initialize the client
+const alloraClient = new AlloraAPIClient({
+  chainSlug: ChainSlug.TESTNET, // Use ChainSlug.MAINNET for mainnet
+  apiKey: process.env.ALLORA_API_KEY, // Optional, but recommended for production use
+});
+
+// Fetch all available topics
+async function fetchTopics() {
+  try {
+    const topics = await alloraClient.getAllTopics();
+    console.log('Available topics:', topics);
+  } catch (error) {
+    console.error('Error fetching topics:', error);
+  }
+}
+
+// Fetch inference for a specific topic
+async function fetchInference(topicId: number) {
+  try {
+    const inference = await alloraClient.getInferenceByTopicID(topicId);
+    console.log('Inference data:', inference);
+  } catch (error) {
+    console.error('Error fetching inference:', error);
+  }
+}
+
+// Fetch price inference for a specific asset and timeframe
+async function fetchPriceInference() {
+  try {
+    const inference = await alloraClient.getPriceInference(
+      PriceInferenceToken.BTC,
+      PriceInferenceTimeframe.EIGHT_HOURS
+    );
+    console.log('Price inference data:', inference);
+  } catch (error) {
+    console.error('Error fetching price inference:', error);
+  }
+}
+```
+
+<Callout type="info">
+The API key is optional but recommended for production use. If not provided, a default API key will be used, which may be subject to rate limiting.
+</Callout>
+
+## API Reference
+
+### `AlloraAPIClient`
+
+The main class for interacting with the Allora API.
+
+#### Constructor
+
+```typescript
+constructor(config: AlloraAPIClientConfig)
+```
+
+Parameters:
+- `config`: An object with the following properties:
+  - `chainSlug`: The chain to use. Can be `ChainSlug.TESTNET` or `ChainSlug.MAINNET`.
+  - `apiKey`: Your API key. Optional, but recommended for production use.
+  - `baseAPIUrl`: The base URL for the API. Optional, defaults to `https://api.allora.network/v2`.
+
+#### Methods
+
+##### `getAllTopics()`
+
+Fetches all available topics from the Allora API.
+
+```typescript
+async getAllTopics(): Promise<AlloraTopic[]>
+```
+
+Returns: A promise that resolves to an array of all available topics.
+
+##### `getInferenceByTopicID(topicID, signatureFormat)`
+
+Fetches an inference for a specific topic from the Allora API.
+
+```typescript
+async getInferenceByTopicID(
+  topicID: number,
+  signatureFormat: SignatureFormat = SignatureFormat.ETHEREUM_SEPOLIA
+): Promise<AlloraInference>
+```
+
+Parameters:
+- `topicID`: The unique identifier of the topic to get inference for.
+- `signatureFormat`: The format of the signature. Optional, defaults to `SignatureFormat.ETHEREUM_SEPOLIA`.
+
+Returns: A promise that resolves to the inference data.
+
+##### `getPriceInference(asset, timeframe, signatureFormat)`
+
+Fetches a price inference for a specific asset and timeframe from the Allora API.
+
+```typescript
+async getPriceInference(
+  asset: PriceInferenceToken,
+  timeframe: PriceInferenceTimeframe,
+  signatureFormat: SignatureFormat = SignatureFormat.ETHEREUM_SEPOLIA
+): Promise<AlloraInference>
+```
+
+Parameters:
+- `asset`: The asset to get price inference for. Can be `PriceInferenceToken.BTC` or `PriceInferenceToken.ETH`.
+- `timeframe`: The timeframe to get price inference for. Can be `PriceInferenceTimeframe.FIVE_MIN` or `PriceInferenceTimeframe.EIGHT_HOURS`.
+- `signatureFormat`: The format of the signature. Optional, defaults to `SignatureFormat.ETHEREUM_SEPOLIA`.
+
+Returns: A promise that resolves to the inference data.
+
+### Enums
+
+#### `ChainSlug`
+
+```typescript
+enum ChainSlug {
+  TESTNET = "testnet",
+  MAINNET = "mainnet",
+}
+```
+
+#### `PriceInferenceToken`
+
+```typescript
+enum PriceInferenceToken {
+  BTC = "BTC",
+  ETH = "ETH",
+}
+```
+
+#### `PriceInferenceTimeframe`
+
+```typescript
+enum PriceInferenceTimeframe {
+  FIVE_MIN = "5m",
+  EIGHT_HOURS = "8h",
+}
+```
+
+#### `SignatureFormat`
+
+```typescript
+enum SignatureFormat {
+  ETHEREUM_SEPOLIA = "ethereum-11155111",
+}
+```
+
+### Interfaces
+
+#### `AlloraAPIClientConfig`
+
+```typescript
+interface AlloraAPIClientConfig {
+  chainSlug?: ChainSlug;
+  apiKey?: string;
+  baseAPIUrl?: string;
+}
+```
+
+#### `AlloraTopic`
+
+```typescript
+interface AlloraTopic {
+  topic_id: number;
+  topic_name: string;
+  description?: string | null;
+  epoch_length: number;
+  ground_truth_lag: number;
+  loss_method: string;
+  worker_submission_window: number;
+  worker_count: number;
+  reputer_count: number;
+  total_staked_allo: number;
+  total_emissions_allo: number;
+  is_active: boolean | null;
+  updated_at: string;
+}
+```
+
+#### `AlloraInferenceData`
+
+```typescript
+interface AlloraInferenceData {
+  network_inference: string;
+  network_inference_normalized: string;
+  confidence_interval_percentiles: string[];
+  confidence_interval_percentiles_normalized: string[];
+  confidence_interval_values: string[];
+  confidence_interval_values_normalized: string[];
+  topic_id: string;
+  timestamp: number;
+  extra_data: string;
+}
+```
+
+#### `AlloraInference`
+
+```typescript
+interface AlloraInference {
+  signature: string;
+  inference_data: AlloraInferenceData;
+}
+```
+
+## Examples
+
+### Fetching and Using Price Inference
+
+```typescript
+import { AlloraAPIClient, ChainSlug, PriceInferenceToken, PriceInferenceTimeframe } from '@alloralabs/allora-sdk/v2'
+
+async function fetchAndUseBTCPriceInference() {
+  // Initialize the client
+  const alloraClient = new AlloraAPIClient({
+    chainSlug: ChainSlug.TESTNET,
+    apiKey: process.env.ALLORA_API_KEY,
+  });
+
+  try {
+    // Fetch BTC price inference for 8-hour timeframe
+    const inference = await alloraClient.getPriceInference(
+      PriceInferenceToken.BTC,
+      PriceInferenceTimeframe.EIGHT_HOURS
+    );
+
+    // Extract the network inference value
+    const networkInference = inference.inference_data.network_inference;
+    console.log(`BTC 8-hour price inference: ${networkInference}`);
+
+    // Extract confidence interval values
+    const confidenceIntervals = inference.inference_data.confidence_interval_values;
+    console.log('Confidence intervals:', confidenceIntervals);
+
+    // Use the inference data in your application
+    // ...
+  } catch (error) {
+    console.error('Error fetching BTC price inference:', error);
+  }
+}
+```
+
+### Fetching All Topics and Displaying Them
+
+```typescript
+import { AlloraAPIClient, ChainSlug } from '@alloralabs/allora-sdk/v2'
+
+async function displayAllTopics() {
+  // Initialize the client
+  const alloraClient = new AlloraAPIClient({
+    chainSlug: ChainSlug.TESTNET,
+    apiKey: process.env.ALLORA_API_KEY,
+  });
+
+  try {
+    // Fetch all topics
+    const topics = await alloraClient.getAllTopics();
+
+    // Display topics
+    console.log(`Found ${topics.length} topics:`);
+    topics.forEach(topic => {
+      console.log(`- Topic ID: ${topic.topic_id}`);
+      console.log(`  Name: ${topic.topic_name}`);
+      console.log(`  Description: ${topic.description || 'No description'}`);
+      console.log(`  Active: ${topic.is_active ? 'Yes' : 'No'}`);
+      console.log(`  Worker count: ${topic.worker_count}`);
+      console.log(`  Updated at: ${topic.updated_at}`);
+      console.log('---');
+    });
+  } catch (error) {
+    console.error('Error fetching topics:', error);
+  }
+}
+```
+
+### Using Inference Data with React
+
+```typescript
+import React, { useState, useEffect } from 'react';
+import { AlloraAPIClient, ChainSlug, PriceInferenceToken, PriceInferenceTimeframe } from '@alloralabs/allora-sdk/v2';
+
+function PriceDisplay() {
+  const [price, setPrice] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchPrice = async () => {
+      try {
+        setLoading(true);
+        
+        // Initialize the client
+        const alloraClient = new AlloraAPIClient({
+          chainSlug: ChainSlug.TESTNET,
+          apiKey: process.env.REACT_APP_ALLORA_API_KEY,
+        });
+
+        // Fetch ETH price inference
+        const inference = await alloraClient.getPriceInference(
+          PriceInferenceToken.ETH,
+          PriceInferenceTimeframe.FIVE_MIN
+        );
+
+        // Set the price
+        setPrice(inference.inference_data.network_inference);
+        setError(null);
+      } catch (err) {
+        setError('Failed to fetch price data');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPrice();
+    
+    // Refresh price every 5 minutes
+    const intervalId = setInterval(fetchPrice, 5 * 60 * 1000);
+    
+    // Clean up interval on component unmount
+    return () => clearInterval(intervalId);
+  }, []);
+
+  if (loading) return <div>Loading price data...</div>;
+  if (error) return <div>Error: {error}</div>;
+
+  return (
+    <div>
+      <h2>Current ETH Price</h2>
+      <p className="price">{price}</p>
+    </div>
+  );
+}
+
+export default PriceDisplay;
+```
