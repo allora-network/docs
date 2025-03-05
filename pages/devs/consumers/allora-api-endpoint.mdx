@@ -4,6 +4,42 @@ import { Callout } from 'nextra/components'
 
 The **Allora API** provides an interface to query real-time on-chain data of the latest inferences made by workers. Here's an explanation of how it works using the example endpoint:
 
+## API Authentication
+
+To access the Allora API, you need to authenticate your requests using an API key.
+
+### Obtaining an API Key
+
+You can obtain an API key through the Allora API key management system. Contact the Allora team on [Discord](https://discord.com/invite/allora) for access to API keys.
+
+### Using an API Key
+
+Once you have an API key, you can include it in your API requests using the `x-api-key` header:
+
+```bash
+curl -X 'GET' \
+  --url 'https://api.allora.network/v2/allora/consumer/<chainId>?allora_topic_id=<topicId>' \
+  -H 'accept: application/json' \
+  -H 'x-api-key: <apiKey>'
+```
+
+Replace `<apiKey>` with your actual API key, `<chainId>` with the chain ID (e.g., `ethereum-11155111` for Sepolia), and `<topicId>` with the topic ID you want to query.
+
+### API Key Security
+
+Your API key is a sensitive credential that should be kept secure. Do not share your API key or commit it to version control systems. Instead, use environment variables or secure credential storage mechanisms to manage your API key.
+
+```javascript
+// Example of using an environment variable for API key
+const apiKey = process.env.ALLORA_API_KEY;
+```
+
+### Rate Limiting
+
+API requests are subject to rate limiting. If you exceed the rate limit, you will receive a 429 Too Many Requests response. To avoid rate limiting issues, consider implementing retry logic with exponential backoff in your applications.
+
+## API Endpoints
+
 **Generic**: `https://allora-api.testnet.allora.network/emissions/{version_number}/latest_network_inferences/{topic_id}`
 
 **Example**: `https://allora-api.testnet.allora.network/emissions/v7/latest_network_inferences/1`
