@@ -258,7 +258,7 @@ To deploy a worker that provides inferences for multiple topics, you can duplica
 "worker": [
       {
         "topicId": 1,
-        "inferenceEntrypointName": "api-worker-reputer",
+        "inferenceEntrypointName": "apiAdapter",
         "loopSeconds": 5,
         "parameters": {
           "InferenceEndpoint": "http://localhost:8000/inference/{Token}",
@@ -268,7 +268,7 @@ To deploy a worker that provides inferences for multiple topics, you can duplica
       // worker providing inferences for topic ID 2
       {
         "topicId": 2, 
-        "inferenceEntrypointName": "api-worker-reputer",
+        "inferenceEntrypointName": "apiAdapter",
         "loopSeconds": 5,
         "parameters": {
           "InferenceEndpoint": "http://localhost:8000/inference/{Token}", // the specific endpoint providing inferences
