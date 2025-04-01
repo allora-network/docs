@@ -1,5 +1,28 @@
 # Allora Network Release Notes
 
+## v0.9.0
+
+### Key Features and Improvements
+
+
+#### Revamped Reward and Scoring Mechanism
+
+- **Scoring and Rewards Improvements**: The scoring and rewards mechanism has been revamped to be more robust and fair.
+
+- **Outlier Impact**: Outlier submissions are now naturally penalized more heavily, ensuring that the network is not affected by a small number of high-impact submissions.
+
+- **Normalized Standard deviations**: A common stddev is used for actors on each topic on inference synthesis, ensuring that the scoring is more consistent.
+
+- **Weights Transparency**: Inferer and Forecaster weights, and their respective stddevs are now stored onchain per-topic and can be queried.
+
+#### New Emitted Events
+
+- **New Events**: Latest worker weights and common stddev events are now emitted.
+
+#### Bug Fixes
+
+- **Rewards block event emission**: Reward events are now emitted on the block of their related nonce, aligned with scores and related events.
+
 ## v0.8.0
 
 ### Key Features and Improvements
