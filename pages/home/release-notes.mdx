@@ -1,5 +1,40 @@
 # Allora Network Release Notes
 
+## v0.10.0
+### Key Features and Improvements
+
+#### Network Inferences 
+
+- **Consistent Network Inferences**: Network Inferences are now stored onchain instead of being calculated at query time, providing consistent results and reducing query gas.
+
+- **Removed Network Inference On-chain Computations (API-Breaking Change)**: Weights and confidence intervals are no longer provided on-chain - they can be calculated offchain out of chain data. 
+
+#### Stability and Security
+
+- **More Consistent Submission Window Handling**: Submission window boundaries are now applied more consistently.
+
+- **Input Layer Type-based Validation**: New input types apply validation at the type layer, improving data integrity and chain stability.
+
+- **Topic Weight Calculation**: Topic weights are now calculated more efficiently and accurately, fixing inaccuracies between topics with varying epoch lengths.
+
+- **Topic Rewards Volatility Reduction**: Topic rewards are now better adjusted to epoch-length-based cadence, reducing volatility and providing a more stable and predictable rewards distribution.
+
+#### Bug fixes and other improvements
+
+- **Security**: Fixes against potential attacks scenarios.
+
+- **Fix floating point ln calculation**: Fixing architecture-dependent ln calculation rounding issues.
+
+- **Emissions**: Preventing ecosystem rewards from being issued after supply cap is reached.
+
+- **Cosmos SDK Patch**: Update cosmos-sdk and IBC to fix ISA-2025-001
+
+#### Efficiency improvements
+
+- **Log rework**: Fixed lazy logging resulting in a considerable reduction of computation time in some cases. 
+
+- **EMA calculation improvement**: Prevent unneeded computation under some scenarios.
+
 ## v0.9.0
 
 ### Key Features and Improvements
