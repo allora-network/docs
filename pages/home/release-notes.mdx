@@ -3,15 +3,15 @@
 ## v0.10.0
 ### Key Features and Improvements
 
-#### Network Inference API Breaking Changes
+#### Network Inferences 
 
 - **Consistent Network Inferences**: Network Inferences are now stored onchain instead of being calculated at query time, providing consistent results and reducing query gas.
 
-- **Removed Network Inference On-chain Computations**: weights and confidence intervals are no longer provided on-chain - they can be calculated offchain out of chain data. 
+- **Removed Network Inference On-chain Computations (API-Breaking Change)**: Weights and confidence intervals are no longer provided on-chain - they can be calculated offchain out of chain data. 
 
 #### Stability and Security
 
-- **More Consistent Submission Window Handling**: Submission window boundaries are now correctly and consistently applied under all scenarios.
+- **More Consistent Submission Window Handling**: Submission window boundaries are now applied more consistently.
 
 - **Input Layer Type-based Validation**: New input types apply validation at the type layer, improving data integrity and chain stability.
 
