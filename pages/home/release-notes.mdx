@@ -1,5 +1,27 @@
 # Allora Network Release Notes
 
+## v0.12.0
+
+### Key Features and Improvements
+
+#### Database and Performance Enhancements
+- **PebbleDB Integration**: Enabled PebbleDB for improved database performance and reliability.
+
+#### Monitoring and Events
+- **Network Inferences Event**: New `EventNetworkInferences` event is now emitted when closing worker nonce, providing better visibility into network state changes.
+- **Mint Module Metrics**: Emit mint module metrics with improved naming conventions and additional monitoring capabilities.
+
+### Bug Fixes and Other Improvements
+
+#### Reward and Stake Management
+- **Ecosystem Account Refunds**: System now prevents rewards accumulation on a scenario when topic is active but no work is submitted.
+- **Stake Management**: Topic weights are now properly updated during stake removal operations.
+- **Monthly Reward Calculation**: Fixed the occurrence and calculation of monthly PreviousPercentageRewardToStakedReputers.
+
+#### Math Improvements
+
+- **More Performant Math**: Improved performance of some mathematical calculations by using architecture-independent deterministic math operations.
+
 ## v0.11.0
 
 ### Key Features and Improvements
@@ -13,6 +35,7 @@
 - **Network Losses**: Mitigate the presence of invalid loss bundles by filtering them instead of invalidating the network losses completely.
 
 ## v0.10.0
+
 ### Key Features and Improvements
 
 #### Network Inferences 
@@ -175,7 +198,7 @@ Setup now runs through all state transitions once before starting fuzzing (#650)
 
 
 #### Reward Distribution Management
-- A new field keeps track of the sum of active topics’ weights over time, ensuring more accurate reward distribution.
+- A new field keeps track of the sum of active topics' weights over time, ensuring more accurate reward distribution.
 - Rewards are now accumulated across blocks rather than being recalculated every block.
 - The network now handles inactive or reactivated topics more efficiently, ensuring the total weights are always accurate for reward calculations.
 
@@ -228,7 +251,7 @@ The Allora Network v0.5.0 is now live! This version introduces several major upd
 - Maximum string length limits have been enforced for new topics to prevent overflow issues and mitigate the risk of malicious input, contributing to a more secure system environment.
 
 #### Idempotent Payload Submission
-- Simplified submission conditions for inference payloads. Duplicate submissions are now handled in an idempotent manner, preventing them from affecting the system’s behavior or causing erroneous calculations.
+- Simplified submission conditions for inference payloads. Duplicate submissions are now handled in an idempotent manner, preventing them from affecting the system's behavior or causing erroneous calculations.
 
 ## v0.4.0
 
@@ -277,11 +300,11 @@ The Allora Network v0.3.0 introduced a significant update focused on enhancing p
 ### Key Changes Implemented
 
 #### The Need for Merit-Based Sortition
-- To manage the constraints of on-chain compute while avoiding a “rich get richer” scenario, Allora Network introduced **merit-based sortition**. This process selects high-quality participants each epoch based on their past performance, measured by a running average of their scores. At the same time, lower-performing participants are cycled out, allowing new talent to demonstrate its value.
+- To manage the constraints of on-chain compute while avoiding a "rich get richer" scenario, Allora Network introduced **merit-based sortition**. This process selects high-quality participants each epoch based on their past performance, measured by a running average of their scores. At the same time, lower-performing participants are cycled out, allowing new talent to demonstrate its value.
 
 #### Active and Passive Sets Management
-- **Active Set**: A group of high-performing participants whose data is used to calculate network inferences and receive rewards. The chain determines who qualifies for the active set by calculating a running average of each participant’s scores.
-- **Passive Set**: Participants who are not in the active set move into the passive set. While their data isn’t used for final rewards, their inferences are still tracked and considered for future inclusion in the active set, giving them a chance to re-enter based on improved performance.
+- **Active Set**: A group of high-performing participants whose data is used to calculate network inferences and receive rewards. The chain determines who qualifies for the active set by calculating a running average of each participant's scores.
+- **Passive Set**: Participants who are not in the active set move into the passive set. While their data isn't used for final rewards, their inferences are still tracked and considered for future inclusion in the active set, giving them a chance to re-enter based on improved performance.
 
 #### Score Calculation Using Exponential Moving Averages (EMAs)
 - **EMA-Based Score Calculation**: Scores for each participant are calculated using an Exponential Moving Average (EMA). This method smooths out individual performance over time, preventing large score fluctuations from one epoch to the next, and ensuring a more stable evaluation process.
