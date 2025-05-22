@@ -418,14 +418,12 @@ This command should output the `cosmovisor` version and also attempt to run `all
     export DAEMON_HOME=$HOME/.allorad
     export DAEMON_NAME=allorad
     export DAEMON_RESTART_AFTER_UPGRADE=true # Or false, if you want to restart manually after an upgrade
-    export DAEMON_ALLOW_DOWNLOAD_BINARIES=false # Set to true to allow auto-download (recommended for full nodes, not validators initially)
     # export UNSAFE_SKIP_BACKUP=false # Default is false, which is safer. Set to true to skip backup during upgrade.
     ```
 
     -   `DAEMON_HOME`: The home directory of your `allorad` application (e.g., `$HOME/.allorad`). This is where the `cosmovisor` directory will be created.
     -   `DAEMON_NAME`: The name of your application binary (`allorad`).
     -   `DAEMON_RESTART_AFTER_UPGRADE`: If `true`, `cosmovisor` automatically restarts `allorad` with the new binary after an upgrade. Default is `true`.
-    -   `DAEMON_ALLOW_DOWNLOAD_BINARIES`: (Optional) If `true`, `cosmovisor` attempts to auto-download new binaries. Default is `false`. For validators, it's often safer to manually place the new binary and verify it.
     - `UNSAFE_SKIP_BACKUP`: (Optional) Defaults to `false`. If `true`, `cosmovisor` skips backing up data before an upgrade. It's recommended to keep this `false`.
 
     Source your profile or open a new terminal session to apply these variables if you set them in your shell profile.
@@ -504,7 +502,6 @@ Running `cosmovisor` as a `systemd` service ensures it runs in the background, r
     Environment="DAEMON_HOME=/home/your_username/.allorad"
     Environment="DAEMON_NAME=allorad"
     Environment="DAEMON_RESTART_AFTER_UPGRADE=true"
-    Environment="DAEMON_ALLOW_DOWNLOAD_BINARIES=false" # Or true, as per your policy
     # Environment="UNSAFE_SKIP_BACKUP=false"
 
     [Install]
@@ -553,11 +550,10 @@ Running `cosmovisor` as a `systemd` service ensures it runs in the background, r
 
 When a software upgrade proposal is approved by governance and the upgrade height is reached:
 1.  `cosmovisor` detects the upgrade plan.
-2.  If `DAEMON_ALLOW_DOWNLOAD_BINARIES=true` and a download link is provided in the plan, `cosmovisor` attempts to download the new binary into `$DAEMON_HOME/cosmovisor/upgrades/<upgrade-name>/bin/`.
-3.  Alternatively, you would manually build or download the new `allorad` binary and place it in the correct upgrade directory: `$DAEMON_HOME/cosmovisor/upgrades/<upgrade-name>/bin/allorad`. You also need to create an `upgrade-info.json` if not auto-downloading.
-4.  `cosmovisor` stops the current `allorad` process.
-5.  It performs a backup if `UNSAFE_SKIP_BACKUP=false`.
-6.  It switches the `current` symlink to point to the new upgrade directory.
-7.  If `DAEMON_RESTART_AFTER_UPGRADE=true`, `cosmovisor` restarts `allorad` using the new binary.
+2.  You must manually build or download the new `allorad` binary and place it in the correct upgrade directory: `$DAEMON_HOME/cosmovisor/upgrades/<upgrade-name>/bin/allorad`. You will also need to create an `upgrade-info.json` file in the `$DAEMON_HOME/cosmovisor/upgrades/<upgrade-name>/` directory if it's not provided with the binary. This file is typically simple and might just contain `{}` if no specific upgrade information is needed by the binary itself for the upgrade process, but consult the release notes for the specific version for requirements.
+3.  `cosmovisor` stops the current `allorad` process.
+4.  It performs a backup if `UNSAFE_SKIP_BACKUP=false` (default).
+5.  It switches the `current` symlink to point to the new upgrade directory.
+6.  If `DAEMON_RESTART_AFTER_UPGRADE=true` (default), `cosmovisor` restarts `allorad` using the new binary.
 
-Ensure you monitor your node and governance proposals for upcoming upgrades. If you are not using auto-download, you will need to prepare the new binary in advance.
+Ensure you monitor your node and governance proposals for upcoming upgrades and prepare the new binary in advance.
