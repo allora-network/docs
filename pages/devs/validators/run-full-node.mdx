@@ -4,7 +4,7 @@ import { Callout } from 'nextra/components'
 
 > How to become a Validator on Allora
 
-This guide provides instructions on how to run a full node for the Allora network. There are two primary methods for running an Allora node: using `docker compose` (preferred) or using a [script](https://github.com/allora-network/allora-chain/blob/main/scripts/l1_node.sh). It's important to choose the method that best suits your environment and needs. 
+This guide provides instructions on how to run a full node for the Allora network. There are two primary methods for running an Allora node: using `docker compose` (preferred) or using a [script](https://github.com/allora-network/allora-chain/blob/main/scripts/l1_node.sh). It's important to choose the method that best suits your environment and needs.
 
 ***
 
@@ -131,3 +131,177 @@ brew install rclone
 docker compose pull
 docker compose up -d
 ```
+
+***
+
+## Method 2: Running the Binary Directly (using `allorad`)
+
+This method describes how to install and run an Allora node by directly using the `allorad` binary. This approach offers more control over the node setup and is suitable for users who prefer not to use Docker.
+
+### Prerequisites
+
+Before you begin, ensure you have the following installed:
+- **Git**: For cloning repositories.
+- **curl**: For downloading files and making HTTP requests.
+- **jq**: A command-line JSON processor (used in the state sync script).
+- **sed**: A stream editor (used in the state sync script).
+- Basic command-line knowledge.
+
+### Step 1: Download the `allorad` Binary
+
+1.  Navigate to the [Allora Chain Releases page](https://github.com/allora-network/allora-chain/releases/tag/v0.12.1).
+2.  From the "Assets" section of the release (e.g., v0.12.1 or newer), download the `allorad` binary appropriate for your operating system (e.g., `allorad-linux-amd64`, `allorad-darwin-amd64`).
+3.  Rename the downloaded binary to `allorad`.
+4.  Move the binary to a directory included in your system's `PATH`, for example, `/usr/local/bin`:
+    ```shell
+    sudo mv ./allorad /usr/local/bin/allorad
+    ```
+5.  Make the binary executable:
+    ```shell
+    sudo chmod +x /usr/local/bin/allorad
+    ```
+6.  Verify the installation by checking the version:
+    ```shell
+    allorad version
+    ```
+
+### Step 2: Initialize Node and Get Testnet Configuration
+
+1.  **Initialize your node**:
+    Replace `<your-moniker>` with a unique name for your node. This moniker will be visible on network explorers.
+    ```shell
+    allorad init <your-moniker> --chain-id allora-testnet-1
+    ```
+    This command creates the necessary configuration files and data directory at `$HOME/.allorad`.
+
+2.  **Download the Genesis File**:
+    The genesis file contains the initial state of the blockchain.
+    ```shell
+    curl -s https://raw.githubusercontent.com/allora-network/networks/main/allora-testnet-1/genesis.json > $HOME/.allorad/config/genesis.json
+    ```
+
+3.  **Download the Address Book**:
+    The address book helps your node find peers on the network.
+    ```shell
+    curl -s https://raw.githubusercontent.com/allora-network/networks/main/allora-testnet-1/addrbook.json > $HOME/.allorad/config/addrbook.json
+    ```
+
+4.  **(Optional but Recommended) Configure Seeds/Persistent Peers**:
+    You may need to configure seed nodes or persistent peers in your `$HOME/.allorad/config/config.toml` file to ensure your node can connect to the network. Look for the `seeds` and `persistent_peers` fields.
+    ```toml
+    # Example content for $HOME/.allorad/config/config.toml
+    # seeds = "..."
+    # persistent_peers = "..."
+    ```
+    You can find peer information from community channels or network explorers.
+
+### Step 3: State Sync with Polkachu
+
+State sync allows your node to quickly catch up with the network by downloading a recent snapshot of the chain state. We'll use the method provided by Polkachu. For more details, you can visit [Polkachu's Allora Testnet State-Sync guide](https://www.polkachu.com/testnets/allora/state_sync).
+
+1.  **Create the state sync script**:
+    Create a file named `state_sync.sh` with the following content:
+
+    ```bash
+    #!/bin/bash
+
+    # Script adapted from Polkachu.com for Allora Testnet state-sync
+    # Original source: https://www.polkachu.com/testnets/allora/state_sync
+
+    set -e
+
+    SNAP_RPC="https://allora-testnet-rpc.polkachu.com:443"
+    CONFIG_TOML_PATH="$HOME/.allorad/config/config.toml"
+
+    echo "Fetching latest block height from $SNAP_RPC..."
+    LATEST_HEIGHT=$(curl -s $SNAP_RPC/block | jq -r .result.block.header.height)
+    if [ -z "$LATEST_HEIGHT" ] || [ "$LATEST_HEIGHT" == "null" ]; then
+        echo "Error: Could not fetch latest height. Is jq installed and $SNAP_RPC accessible?"
+        exit 1
+    fi
+    echo "Latest height: $LATEST_HEIGHT"
+
+    # Calculate block height for trust hash (2000 blocks behind latest)
+    BLOCK_HEIGHT=$((LATEST_HEIGHT - 2000))
+    echo "Using block height for trust hash: $BLOCK_HEIGHT"
+
+    echo "Fetching trust hash for block $BLOCK_HEIGHT..."
+    TRUST_HASH=$(curl -s "$SNAP_RPC/block?height=$BLOCK_HEIGHT" | jq -r .result.block_id.hash)
+    if [ -z "$TRUST_HASH" ] || [ "$TRUST_HASH" == "null" ]; then
+        echo "Error: Could not fetch trust hash for block $BLOCK_HEIGHT."
+        exit 1
+    fi
+    echo "Trust hash: $TRUST_HASH"
+
+    echo "Updating $CONFIG_TOML_PATH for state sync..."
+
+    # Enable state sync and configure RPC servers, trust height, and trust hash
+    sed -i.bak -E \
+        -e "s|^(enable[[:space:]]*=[[:space:]]*).*$|\\1true|" \
+        -e "s|^(rpc_servers[[:space:]]*=[[:space:]]*).*$|\\1\"$SNAP_RPC,$SNAP_RPC\"|" \
+        -e "s|^(trust_height[[:space:]]*=[[:space:]]*).*$|\\1$BLOCK_HEIGHT|" \
+        -e "s|^(trust_hash[[:space:]]*=[[:space:]]*).*$|\\1\"$TRUST_HASH\"|" \
+        "$CONFIG_TOML_PATH"
+
+    echo "Configuration updated in $CONFIG_TOML_PATH."
+    echo "A backup of the original config was created at $CONFIG_TOML_PATH.bak"
+    echo "Make sure to review the changes."
+    ```
+
+2.  **Make the script executable**:
+    ```shell
+    chmod +x state_sync.sh
+    ```
+
+3.  **Run the script**:
+    ```shell
+    ./state_sync.sh
+    ```
+    This script will automatically fetch the latest state sync parameters and update your `$HOME/.allorad/config/config.toml`.
+
+<Callout type="info">
+**Note**: The script assumes your Allora configuration is at `$HOME/.allorad`. If you used a different home directory during `allorad init`, you'll need to adjust the `CONFIG_TOML_PATH` in the script.
+</Callout>
+
+### Step 4: Reset Node Data (Important for State Sync)
+
+Before starting the node with state sync enabled, you must reset its existing data (if any), while keeping the address book.
+
+```shell
+allorad tendermint unsafe-reset-all --home $HOME/.allorad --keep-addr-book
+```
+
+<Callout type="warning">
+**Warning**: This command deletes blockchain data. Do not run it on a node that already has important synced data unless you intend to resync from scratch.
+</Callout>
+
+### Step 5: Start Your Node
+
+Now, you can start your Allora node:
+
+```shell
+allorad start
+```
+
+Your node will begin the state syncing process. This can take some time, typically 10-30 minutes, depending on network conditions and the snapshot age. You will see logs indicating the progress.
+
+### Step 6: Check Sync Status
+
+To check if your node has finished syncing, open another terminal and run:
+
+```shell
+curl -s http://localhost:26657/status | jq .result.sync_info.catching_up
+```
+
+-   If it returns `true`, your node is still syncing.
+-   If it returns `false`, your node is caught up with the network.
+
+<Callout type="info">
+The default RPC port for `allorad` is `26657`. If you've configured a different port, adjust the command accordingly.
+</Callout>
+
+### Next Steps: Delegation
+
+Once your node is fully synced and running smoothly (the command above returns `false`), you can proceed with further actions such as setting up your node as a validator or delegating tokens.
+
+(Further instructions on delegation will be added here or linked to a separate guide.)
