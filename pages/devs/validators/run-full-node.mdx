@@ -172,13 +172,28 @@ Before you begin, ensure you have the following installed:
     ```shell
     allorad init <your-moniker> --chain-id allora-testnet-1
     ```
-    This command creates the necessary configuration files and data directory at `$HOME/.allorad`.
+    This command creates the default configuration files and data directory at `$HOME/.allorad`.
 
-2.  **Download the Genesis File**:
-    The genesis file contains the initial state of the blockchain.
+2.  **Download Testnet Configuration Files**:
+    Fetch the `genesis.json`, `config.toml`, and `app.toml` for `allora-testnet-1` from the official networks repository.
+
     ```shell
+    # Download genesis.json
     curl -s https://raw.githubusercontent.com/allora-network/networks/main/allora-testnet-1/genesis.json > $HOME/.allorad/config/genesis.json
+
+    # Download config.toml
+    curl -s https://raw.githubusercontent.com/allora-network/networks/main/allora-testnet-1/config.toml > $HOME/.allorad/config/config.toml
+
+    # Download app.toml
+    curl -s https://raw.githubusercontent.com/allora-network/networks/main/allora-testnet-1/app.toml > $HOME/.allorad/config/app.toml
     ```
+
+    <Callout type="info">
+    **Customize Configuration**:
+    You may need to customize `$HOME/.allorad/config/config.toml` and `$HOME/.allorad/config/app.toml`.
+    For example, in `config.toml`, you might need to set your `external_address` if you have a static IP, or adjust `laddr` to bind to a specific interface.
+    Review these files and adjust settings like moniker (if not set via `init`), pruning options, and other node-specific parameters.
+    </Callout>
 
 3.  **Download the Address Book**:
     The address book helps your node find peers on the network.
@@ -186,14 +201,42 @@ Before you begin, ensure you have the following installed:
     curl -s https://raw.githubusercontent.com/allora-network/networks/main/allora-testnet-1/addrbook.json > $HOME/.allorad/config/addrbook.json
     ```
 
-4.  **(Optional but Recommended) Configure Seeds/Persistent Peers**:
-    You may need to configure seed nodes or persistent peers in your `$HOME/.allorad/config/config.toml` file to ensure your node can connect to the network. Look for the `seeds` and `persistent_peers` fields.
-    ```toml
-    # Example content for $HOME/.allorad/config/config.toml
-    # seeds = "..."
-    # persistent_peers = "..."
+4.  **Configure Seeds and Persistent Peers**:
+    To ensure your node can connect to the network and find peers, configure seed nodes and persistent peers in your `$HOME/.allorad/config/config.toml`.
+
+    The `allora-network/networks` repository provides lists of seed nodes and peers:
+    -   [seeds.txt](https://github.com/allora-network/networks/blob/main/allora-testnet-1/seeds.txt)
+    -   [peers.txt](https://github.com/allora-network/networks/blob/main/allora-testnet-1/peers.txt)
+
+    You can fetch these lists and use their contents to populate the `seeds` and `persistent_peers` fields in `$HOME/.allorad/config/config.toml`.
+
+    **Example of fetching and setting seeds (manual step)**:
+    First, view the contents of `seeds.txt`:
+    ```shell
+    curl -s https://raw.githubusercontent.com/allora-network/networks/main/allora-testnet-1/seeds.txt
     ```
-    You can find peer information from community channels or network explorers.
+    Then, copy the comma-separated list of seed nodes from the output.
+
+    Edit `$HOME/.allorad/config/config.toml`:
+    ```shell
+    nano $HOME/.allorad/config/config.toml
+    ```
+    Find the `seeds` line and replace its value with the copied list:
+    ```toml
+    # Comma-separated list of seed nodes to connect to
+    seeds = "<paste_seeds_list_here>"
+    ```
+
+    Similarly, you can use `peers.txt` for the `persistent_peers` field if needed, especially if you have specific peers you always want to connect to.
+
+    ```toml
+    # Comma-separated list of persistent peers to connect to
+    persistent_peers = "<paste_peers_list_here>"
+    ```
+
+    <Callout type="warning">
+    Ensure the `seeds` and `persistent_peers` entries are correctly formatted as comma-separated strings within double quotes.
+    </Callout>
 
 ### Step 3: State Sync with Polkachu
 
