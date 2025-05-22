@@ -195,13 +195,8 @@ Before you begin, ensure you have the following installed:
     Review these files and adjust settings like moniker (if not set via `init`), pruning options, and other node-specific parameters.
     </Callout>
 
-3.  **Download the Address Book**:
-    The address book helps your node find peers on the network.
-    ```shell
-    curl -s https://raw.githubusercontent.com/allora-network/networks/main/allora-testnet-1/addrbook.json > $HOME/.allorad/config/addrbook.json
-    ```
 
-4.  **Configure Seeds and Persistent Peers**:
+3.  **Configure Seeds and Persistent Peers**:
     To ensure your node can connect to the network and find peers, configure seed nodes and persistent peers in your `$HOME/.allorad/config/config.toml`.
 
     The `allora-network/networks` repository provides lists of seed nodes and peers:
@@ -238,50 +233,81 @@ Before you begin, ensure you have the following installed:
     Ensure the `seeds` and `persistent_peers` entries are correctly formatted as comma-separated strings within double quotes.
     </Callout>
 
-### Step 3: State Sync with Polkachu
+### Step 3: State Sync Your Node
 
-State sync allows your node to quickly catch up with the network by downloading a recent snapshot of the chain state. We'll use the method provided by Polkachu. For more details, you can visit [Polkachu's Allora Testnet State-Sync guide](https://www.polkachu.com/testnets/allora/state_sync).
+State sync allows your node to quickly catch up with the network by downloading a recent snapshot of the chain state instead of replaying all historical blocks. This can significantly reduce the time it takes to get your node operational.
+
+You can use RPC endpoints from various providers for state sync. Here are a few options:
+-   **Official Allora RPC**: `https://allora-rpc.testnet.allora.network/`
+-   **Polkachu**: `https://allora-testnet-rpc.polkachu.com:443` (as referenced in their [State Sync Guide](https://www.polkachu.com/testnets/allora/state_sync))
+-   **Lavender Five**: `https://testnet-rpc.lavenderfive.com:443/allora` or `https://rpc.cosmos.directory:443/allora` (as referenced in their [State Sync Guide](https://www.lavenderfive.com/tools/testnet_allora/statesync))
+
+Below is a script to help automate the state sync process. You'll need to choose an RPC endpoint from the list above (or another trusted source) and set it in the script.
 
 1.  **Create the state sync script**:
-    Create a file named `state_sync.sh` with the following content:
+    Create a file named `state_sync.sh` with the following content. **Remember to replace `<YOUR_CHOSEN_RPC_ENDPOINT>` with your selected RPC URL.**
 
     ```bash
     #!/bin/bash
 
-    # Script adapted from Polkachu.com for Allora Testnet state-sync
-    # Original source: https://www.polkachu.com/testnets/allora/state_sync
+    # Script to automate state sync for an Allora node.
+    # Please choose an RPC endpoint from the documentation and set it below.
 
     set -e
 
-    SNAP_RPC="https://allora-testnet-rpc.polkachu.com:443"
+    # ------------------------------------------------------------------------------
+    # IMPORTANT: SET YOUR CHOSEN RPC ENDPOINT HERE
+    # Example: SNAP_RPC="https://allora-rpc.testnet.allora.network/"
+    # Example: SNAP_RPC="https://allora-testnet-rpc.polkachu.com:443"
+    # Example: SNAP_RPC="https://testnet-rpc.lavenderfive.com:443/allora"
+    SNAP_RPC="<YOUR_CHOSEN_RPC_ENDPOINT>"
+    # ------------------------------------------------------------------------------
+
     CONFIG_TOML_PATH="$HOME/.allorad/config/config.toml"
 
+    if [ "$SNAP_RPC" == "<YOUR_CHOSEN_RPC_ENDPOINT>" ] || [ -z "$SNAP_RPC" ]; then
+        echo "Error: Please edit the script and set the SNAP_RPC variable to your chosen RPC endpoint."
+        exit 1
+    fi
+
+    echo "Using RPC Endpoint: $SNAP_RPC"
     echo "Fetching latest block height from $SNAP_RPC..."
+    # The /block endpoint might vary slightly. Polkachu/LavenderFive uses /block, official might be different or not directly list height like this.
+    # For robust fetching, direct API interaction or a more complex query might be needed if /block isn't standard across all RPCs.
+    # This script assumes a Cosmos SDK standard /block endpoint as used by Polkachu.
     LATEST_HEIGHT=$(curl -s $SNAP_RPC/block | jq -r .result.block.header.height)
+
     if [ -z "$LATEST_HEIGHT" ] || [ "$LATEST_HEIGHT" == "null" ]; then
-        echo "Error: Could not fetch latest height. Is jq installed and $SNAP_RPC accessible?"
+        echo "Error: Could not fetch latest height. Is jq installed and $SNAP_RPC accessible and does it provide height at .result.block.header.height?"
         exit 1
     fi
     echo "Latest height: $LATEST_HEIGHT"
 
-    # Calculate block height for trust hash (2000 blocks behind latest)
-    BLOCK_HEIGHT=$((LATEST_HEIGHT - 2000))
-    echo "Using block height for trust hash: $BLOCK_HEIGHT"
+    # Determine a suitable trust height. Common practice is a few thousand blocks behind the latest.
+    # The exact offset might depend on snapshot intervals of the chosen RPC.
+    # Polkachu uses 2000, LavenderFive uses a calculation like ($LATEST_HEIGHT - ($LATEST_HEIGHT % 6000)) which means it rounds down to the nearest 6000 block
+    # We will use a common offset of 2000 for simplicity. Adjust if needed.
+    BLOCK_HEIGHT_OFFSET=2000 
+    BLOCK_HEIGHT=$((LATEST_HEIGHT - BLOCK_HEIGHT_OFFSET))
+    echo "Using block height for trust hash: $BLOCK_HEIGHT (approx. ${BLOCK_HEIGHT_OFFSET} blocks behind latest)"
 
     echo "Fetching trust hash for block $BLOCK_HEIGHT..."
     TRUST_HASH=$(curl -s "$SNAP_RPC/block?height=$BLOCK_HEIGHT" | jq -r .result.block_id.hash)
     if [ -z "$TRUST_HASH" ] || [ "$TRUST_HASH" == "null" ]; then
-        echo "Error: Could not fetch trust hash for block $BLOCK_HEIGHT."
+        echo "Error: Could not fetch trust hash for block $BLOCK_HEIGHT. Ensure the RPC supports block queries by height."
         exit 1
     fi
     echo "Trust hash: $TRUST_HASH"
 
     echo "Updating $CONFIG_TOML_PATH for state sync..."
 
-    # Enable state sync and configure RPC servers, trust height, and trust hash
+    # Construct RPC server string. Some providers suggest using their RPC twice or a backup.
+    # For simplicity, we'll use the chosen SNAP_RPC twice here. Adjust if your provider recommends a different setup.
+    RPC_SERVERS="$SNAP_RPC,$SNAP_RPC"
+
     sed -i.bak -E \
         -e "s|^(enable[[:space:]]*=[[:space:]]*).*$|\\1true|" \
-        -e "s|^(rpc_servers[[:space:]]*=[[:space:]]*).*$|\\1\"$SNAP_RPC,$SNAP_RPC\"|" \
+        -e "s|^(rpc_servers[[:space:]]*=[[:space:]]*).*$|\\1\"$RPC_SERVERS\"|" \
         -e "s|^(trust_height[[:space:]]*=[[:space:]]*).*$|\\1$BLOCK_HEIGHT|" \
         -e "s|^(trust_hash[[:space:]]*=[[:space:]]*).*$|\\1\"$TRUST_HASH\"|" \
         "$CONFIG_TOML_PATH"
@@ -289,6 +315,8 @@ State sync allows your node to quickly catch up with the network by downloading 
     echo "Configuration updated in $CONFIG_TOML_PATH."
     echo "A backup of the original config was created at $CONFIG_TOML_PATH.bak"
     echo "Make sure to review the changes."
+    echo "Important: You might also need to configure 'persistent_peers' in $CONFIG_TOML_PATH if not set by other means for the state sync to work reliably."
+    echo "Refer to the seeds.txt and peers.txt from https://github.com/allora-network/networks/tree/main/allora-testnet-1 for peer information."
     ```
 
 2.  **Make the script executable**:
