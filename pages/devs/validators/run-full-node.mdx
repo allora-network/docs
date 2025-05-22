@@ -379,9 +379,9 @@ Once your node is fully synced and running smoothly (the command above returns `
 
 ***
 
-## Method 3: Using Cosmovisor for Automated Upgrades and Management
+## Method 3: Using Cosmovisor for Upgrade Management
 
-`cosmovisor` is a process manager for Cosmos SDK application binaries like `allorad`. It monitors the chain for governance proposals approving software upgrades. If an upgrade is approved, `cosmovisor` can automatically download the new binary (if configured), stop the current binary, switch to the new version, and restart the node. This significantly simplifies the upgrade process for node operators.
+`cosmovisor` is a process manager for Cosmos SDK application binaries like `allorad`. It monitors the chain for governance proposals approving software upgrades. If an upgrade is approved, `cosmovisor` will stop the current binary, switch to the new version (which you must manually provide), and then restart the node. This significantly simplifies the upgrade process for node operators by automating the switch and restart, but not the acquisition of the new binary.
 
 For more detailed information, refer to the official [Cosmos SDK Cosmovisor documentation](https://docs.cosmos.network/v0.46/run-node/cosmovisor.html).
 
