@@ -242,7 +242,7 @@ You can use RPC endpoints from various providers for state sync. Here are a few 
 -   **Polkachu**: `https://allora-testnet-rpc.polkachu.com:443` (as referenced in their [State Sync Guide](https://www.polkachu.com/testnets/allora/state_sync))
 -   **Lavender Five**: `https://testnet-rpc.lavenderfive.com:443/allora` or `https://rpc.cosmos.directory:443/allora` (as referenced in their [State Sync Guide](https://www.lavenderfive.com/tools/testnet_allora/statesync))
 
-Below is a script to help automate the state sync process. You'll need to choose an RPC endpoint from the list above (or another trusted source) and set it in the script.
+Below is a sample script to help automate the state sync process. You'll need to choose an RPC endpoint from the list above (or another trusted source) and set it in the script.
 
 1.  **Create the state sync script**:
     Create a file named `state_sync.sh` with the following content. **Remember to replace `<YOUR_CHOSEN_RPC_ENDPOINT>` with your selected RPC URL.**
@@ -379,9 +379,9 @@ Once your node is fully synced and running smoothly (the command above returns `
 
 ***
 
-## Method 3: Using Cosmovisor for Automated Upgrades and Management
+## Method 3: Using Cosmovisor for Upgrade Management
 
-`cosmovisor` is a process manager for Cosmos SDK application binaries like `allorad`. It monitors the chain for governance proposals approving software upgrades. If an upgrade is approved, `cosmovisor` can automatically download the new binary (if configured), stop the current binary, switch to the new version, and restart the node. This significantly simplifies the upgrade process for node operators.
+`cosmovisor` is a process manager for Cosmos SDK application binaries like `allorad`. It monitors the chain for governance proposals approving software upgrades. If an upgrade is approved, `cosmovisor` will stop the current binary, switch to the new version (which you must manually provide), and then restart the node. This significantly simplifies the upgrade process for node operators by automating the switch and restart, but not the acquisition of the new binary.
 
 For more detailed information, refer to the official [Cosmos SDK Cosmovisor documentation](https://docs.cosmos.network/v0.46/run-node/cosmovisor.html).
 
@@ -545,15 +545,3 @@ Running `cosmovisor` as a `systemd` service ensures it runs in the background, r
         ```shell
         sudo systemctl stop allorad.service
         ```
-
-### Step 5: Handling Upgrades with Cosmovisor
-
-When a software upgrade proposal is approved by governance and the upgrade height is reached:
-1.  `cosmovisor` detects the upgrade plan.
-2.  You must manually build or download the new `allorad` binary and place it in the correct upgrade directory: `$DAEMON_HOME/cosmovisor/upgrades/<upgrade-name>/bin/allorad`. You will also need to create an `upgrade-info.json` file in the `$DAEMON_HOME/cosmovisor/upgrades/<upgrade-name>/` directory if it's not provided with the binary. This file is typically simple and might just contain `{}` if no specific upgrade information is needed by the binary itself for the upgrade process, but consult the release notes for the specific version for requirements.
-3.  `cosmovisor` stops the current `allorad` process.
-4.  It performs a backup if `UNSAFE_SKIP_BACKUP=false` (default).
-5.  It switches the `current` symlink to point to the new upgrade directory.
-6.  If `DAEMON_RESTART_AFTER_UPGRADE=true` (default), `cosmovisor` restarts `allorad` using the new binary.
-
-Ensure you monitor your node and governance proposals for upcoming upgrades and prepare the new binary in advance.
