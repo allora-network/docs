@@ -4,21 +4,260 @@ import { Callout } from 'nextra/components'
 
 > How to become a Validator on Allora
 
-This guide provides instructions on how to run a full node for the Allora network. There are two primary methods for running an Allora node: using `docker compose` (preferred) or using a [script](https://github.com/allora-network/allora-chain/blob/main/scripts/l1_node.sh). It's important to choose the method that best suits your environment and needs. 
+This guide provides instructions on how to run a full node for the Allora network. There are two primary methods for running an Allora node: using systemd with cosmosvisor for easier upgrade management (recommended) or using docker compose. It's important to choose the method that best suits your environment and needs.
 
 ***
 
 ## Prerequisites
 
 - Git
-- Docker with `docker compose`
+- Go (version 1.21 or later)
 - Basic command-line knowledge
+- Linux/Unix environment with systemd
+- curl and jq utilities
 
 ***
 
-## Method 1: Using `docker compose` (Recommended)
+## Method 1: Using systemd with cosmosvisor (Recommended)
 
-Running the Allora node with `docker compose` simplifies the setup and ensures consistency across different environments.
+Running the Allora node with systemd and cosmosvisor provides production-grade reliability and easier binary upgrade management. This is the recommended approach for validators and production environments.
+
+### Step 1: Install cosmosvisor
+
+First, install cosmosvisor, which will manage binary upgrades:
+
+```shell
+go install cosmossdk.io/tools/cosmovisor/cmd/cosmovisor@latest
+```
+
+Verify the installation:
+
+```shell
+cosmovisor version
+```
+
+### Step 2: Install allorad Binary
+
+Download the latest `allorad` binary from the releases page:
+
+1. Navigate to the [Allora Chain Releases page](https://github.com/allora-network/allora-chain/releases/latest).
+2. Download the `allorad` binary appropriate for your operating system (e.g., `allorad-linux-amd64`, `allorad-darwin-amd64`).
+3. Rename and move the binary to a standard location:
+
+```shell
+# Rename the downloaded binary
+mv ./allorad-linux-amd64 ./allorad  # Adjust filename as needed
+
+# Move to system path
+sudo mv ./allorad /usr/local/bin/allorad
+
+# Make executable
+sudo chmod +x /usr/local/bin/allorad
+```
+
+### Step 3: Initialize the Node
+
+Initialize your node (replace `<your-moniker>` with your desired node name):
+
+```shell
+allorad init <your-moniker> --chain-id allora-testnet-1
+```
+
+### Step 4: Download Network Configuration
+
+Download the testnet configuration files:
+
+```shell
+# Download genesis.json
+curl -s https://raw.githubusercontent.com/allora-network/networks/main/allora-testnet-1/genesis.json > $HOME/.allorad/config/genesis.json
+
+# Download config.toml
+curl -s https://raw.githubusercontent.com/allora-network/networks/main/allora-testnet-1/config.toml > $HOME/.allorad/config/config.toml
+
+# Download app.toml
+curl -s https://raw.githubusercontent.com/allora-network/networks/main/allora-testnet-1/app.toml > $HOME/.allorad/config/app.toml
+```
+
+### Step 5: Configure Seeds and Peers
+
+Configure seeds and persistent peers for network connectivity:
+
+```shell
+# Fetch and set seeds
+SEEDS=$(curl -s https://raw.githubusercontent.com/allora-network/networks/main/allora-testnet-1/seeds.txt)
+sed -i.bak -e "s/^seeds *=.*/seeds = \"$SEEDS\"/" $HOME/.allorad/config/config.toml
+
+# Optionally set persistent peers
+PEERS=$(curl -s https://raw.githubusercontent.com/allora-network/networks/main/allora-testnet-1/peers.txt)
+sed -i.bak -e "s/^persistent_peers *=.*/persistent_peers = \"$PEERS\"/" $HOME/.allorad/config/config.toml
+```
+
+### Step 6: Configure cosmosvisor
+
+Set up the cosmosvisor directory structure and environment:
+
+```shell
+# Set environment variables
+export DAEMON_NAME=allorad
+export DAEMON_HOME=$HOME/.allorad
+export DAEMON_RESTART_AFTER_UPGRADE=true
+
+# Create cosmosvisor directories
+mkdir -p $DAEMON_HOME/cosmovisor/genesis/bin
+mkdir -p $DAEMON_HOME/cosmovisor/upgrades
+
+# Copy the current binary to genesis
+cp /usr/local/bin/allorad $DAEMON_HOME/cosmovisor/genesis/bin/
+```
+
+### Step 7: Configure State Sync (Optional but Recommended)
+
+State sync allows your node to quickly catch up with the network. Create and run this state sync script:
+
+```shell
+cat > state_sync.sh << 'EOF'
+#!/bin/bash
+
+set -e
+
+# Choose your preferred RPC endpoint
+SNAP_RPC="https://allora-rpc.testnet.allora.network"
+CONFIG_TOML_PATH="$HOME/.allorad/config/config.toml"
+
+echo "Using RPC Endpoint: $SNAP_RPC"
+echo "Fetching latest block height..."
+
+LATEST_HEIGHT=$(curl -s $SNAP_RPC/block | jq -r .result.block.header.height)
+if [ -z "$LATEST_HEIGHT" ] || [ "$LATEST_HEIGHT" == "null" ]; then
+    echo "Error: Could not fetch latest height"
+    exit 1
+fi
+
+BLOCK_HEIGHT_OFFSET=2000
+BLOCK_HEIGHT=$((LATEST_HEIGHT - BLOCK_HEIGHT_OFFSET))
+
+echo "Fetching trust hash for block $BLOCK_HEIGHT..."
+TRUST_HASH=$(curl -s "$SNAP_RPC/block?height=$BLOCK_HEIGHT" | jq -r .result.block_id.hash)
+if [ -z "$TRUST_HASH" ] || [ "$TRUST_HASH" == "null" ]; then
+    echo "Error: Could not fetch trust hash"
+    exit 1
+fi
+
+echo "Updating config for state sync..."
+RPC_SERVERS="$SNAP_RPC,$SNAP_RPC"
+
+sed -i.bak -E \
+    -e "s|^(enable[[:space:]]*=[[:space:]]*).*$|\\1true|" \
+    -e "s|^(rpc_servers[[:space:]]*=[[:space:]]*).*$|\\1\"$RPC_SERVERS\"|" \
+    -e "s|^(trust_height[[:space:]]*=[[:space:]]*).*$|\\1$BLOCK_HEIGHT|" \
+    -e "s|^(trust_hash[[:space:]]*=[[:space:]]*).*$|\\1\"$TRUST_HASH\"|" \
+    "$CONFIG_TOML_PATH"
+
+echo "State sync configuration updated successfully"
+EOF
+
+chmod +x state_sync.sh
+./state_sync.sh
+```
+
+### Step 8: Reset Node Data
+
+Reset existing data while keeping the address book:
+
+```shell
+allorad tendermint unsafe-reset-all --home $HOME/.allorad --keep-addr-book
+```
+
+<Callout type="warning">
+**Warning**: This command deletes blockchain data. Only run this on a fresh node or when you intend to resync from scratch.
+</Callout>
+
+### Step 9: Create systemd Service
+
+Create a systemd service file for cosmosvisor:
+
+```shell
+sudo tee /etc/systemd/system/allorad.service > /dev/null <<EOF
+[Unit]
+Description=Allora Node (allorad via Cosmovisor)
+After=network-online.target
+
+[Service]
+User=$USER
+ExecStart=$(which cosmovisor) run start
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+Environment="DAEMON_HOME=$HOME/.allorad"
+Environment="DAEMON_NAME=allorad"
+Environment="DAEMON_ALLOW_DOWNLOAD_BINARIES=false"
+Environment="DAEMON_RESTART_AFTER_UPGRADE=true"
+Environment="DAEMON_POLL_INTERVAL=300ms"
+Environment="UNSAFE_SKIP_BACKUP=true"
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+<Callout type="info">
+**Security Note**: `DAEMON_ALLOW_DOWNLOAD_BINARIES` is set to `false` for security. Validators should manually place upgrade binaries in the appropriate directories.
+</Callout>
+
+### Step 10: Start the Service
+
+Enable and start the systemd service:
+
+```shell
+sudo systemctl daemon-reload
+sudo systemctl enable allorad
+sudo systemctl start allorad
+```
+
+### Monitoring and Management
+
+Monitor your node logs:
+
+```shell
+sudo journalctl -u allorad -f
+```
+
+Check service status:
+
+```shell
+sudo systemctl status allorad
+```
+
+Check sync status:
+
+```shell
+curl -s http://localhost:26657/status | jq .result.sync_info.catching_up
+```
+
+Once this returns `false`, your node is fully synced.
+
+### Managing Upgrades with cosmosvisor
+
+When a governance upgrade is approved, prepare for it by placing the new binary:
+
+```shell
+# For an upgrade named "v1.0.0", create the upgrade directory
+mkdir -p $DAEMON_HOME/cosmovisor/upgrades/v1.0.0/bin
+
+# Download and place the new binary (replace with actual URL)
+# wget NEW_BINARY_URL -O $DAEMON_HOME/cosmovisor/upgrades/v1.0.0/bin/allorad
+# chmod +x $DAEMON_HOME/cosmovisor/upgrades/v1.0.0/bin/allorad
+```
+
+<Callout type="info">
+**Info**: cosmosvisor will automatically switch to the new binary at the upgrade height specified in the governance proposal. Monitor governance proposals and prepare upgrade binaries in advance.
+</Callout>
+
+***
+
+## Method 2: Using `docker compose`
+
+Running the Allora node with `docker compose` simplifies the setup and ensures consistency across different environments, but requires manual upgrade management.
 
 ### Step 1: Clone the Allora Chain Repository
 
