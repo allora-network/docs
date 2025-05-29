@@ -326,7 +326,7 @@ function ChatComponent({ onClose }) {
           fontSize: "1.25rem",
           fontWeight: "600",
           letterSpacing: "-0.025em"
-        }}>AI Assistant</h2>
+        }}>Allie, Allora's AI Assistant</h2>
         <button
           onClick={onClose}
           className="close-button"
