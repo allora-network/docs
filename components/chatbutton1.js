@@ -15,7 +15,7 @@ function ChatComponent({ onClose }) {
   const suggestedQuestions = [
       "What is the Allora Network?",
       "What role do worker nodes play in the network?",
-      "What are the different layers of of the network?",
+      "What are the different layers of the network?",
       "What are the main defining characteristics of Allora?",
       "What are the differences between Reputers and Validators?",
       "How do consumers access inferences within Allora?",
