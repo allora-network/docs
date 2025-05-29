@@ -320,13 +320,31 @@ function ChatComponent({ onClose }) {
           borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
         }}
       >
-        <h2 style={{ 
-          color: "#f8fafc", 
-          margin: 0,
-          fontSize: "1.25rem",
-          fontWeight: "600",
-          letterSpacing: "-0.025em"
-        }}>Allie, Allora's AI Assistant</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div style={{ 
+            width: "8px", 
+            height: "8px", 
+            backgroundColor: "#10b981", 
+            borderRadius: "50%",
+            animation: "pulse 2s ease-in-out infinite"
+          }} />
+          <div>
+            <h2 style={{ 
+              color: "#f8fafc", 
+              margin: 0,
+              fontSize: "1.25rem",
+              fontWeight: "600",
+              letterSpacing: "-0.025em",
+              lineHeight: "1.2"
+            }}>Allie</h2>
+            <div style={{
+              color: "#64748b",
+              fontSize: "0.80rem",
+              fontWeight: "400",
+              marginTop: "-2px"
+            }}>AI Assistant</div>
+          </div>
+        </div>
         <button
           onClick={onClose}
           className="close-button"
