@@ -1,0 +1,87 @@
+import { Callout, Cards, Card } from 'nextra/components'
+
+# Create Wallet
+
+Setting up your Allora wallet is a crucial first step to participating in the network. Your wallet will be used for transactions, staking, and interacting with the Allora ecosystem.
+
+<Callout>
+For detailed wallet setup instructions, security best practices and advanced configuration, see our comprehensive [Wallet Setup Guide](/devs/get-started/setup-wallet).
+</Callout>
+
+## Prerequisites
+
+Before creating your wallet, make sure you have:
+
+- **[Allora CLI installed](/quickstart/install-cli)** - Required for wallet creation
+- **Secure environment** - For safely generating and storing your keys
+
+## Create Your Wallet
+
+Create a new wallet using the `allorad` CLI:
+
+```bash
+allorad keys add <your-wallet-name>
+```
+
+For example:
+```bash
+allorad keys add testkey
+```
+
+<Callout type="warning">
+**Save your mnemonic and account information safely!** This is the only way to recover your wallet. Write it down and store it securely offline.
+</Callout>
+
+<Callout type="info">
+Creating a wallet using `allorad` will generate a wallet address for all currently deployed versions of the Allora Chain (testnet, local, mainnet).
+</Callout>
+
+## View Your Wallet Address
+
+To see your wallet address:
+
+```bash
+allorad keys show <your-wallet-name> -a
+```
+
+## Wallet Recovery
+
+If you need to recover an existing wallet using your mnemonic:
+
+```bash
+allorad keys add <wallet-name> --recover
+```
+
+## After Creating Your Wallet
+
+Once your wallet is set up:
+
+1. **[Get Testnet Tokens](/quickstart/get-testnet-tokens)** - Fund your wallet for testing
+2. **[Deploy a Worker](/quickstart/deploy-worker)** - Start participating in the network
+3. **[Join Competition](/quickstart/join-competition)** - Participate in Model Forge
+
+<Cards>
+  <Card title="Next Step: Get Testnet Tokens" href="/quickstart/get-testnet-tokens" />
+</Cards>
+
+## Network Information
+
+**Testnet Details:**
+- **RPC URLs**: 
+  - https://rpc.ankr.com/allora_testnet
+  - https://allora-rpc.testnet.allora.network/
+- **Chain ID**: `allora-testnet-1`
+- **Explorer**: https://explorer.testnet.allora.network/
+
+## Security Tips
+
+- **Never share your private keys or seed phrase**
+- **Use secure backup methods** for your seed phrase
+- **Test with small amounts** on testnet before mainnet
+- **Keep your CLI tools updated**
+
+## Need More Help?
+
+For advanced configuration, security best practices, and detailed troubleshooting, see our comprehensive [Wallet Setup Guide](/devs/get-started/setup-wallet).
+
+If you need assistance with wallet setup, visit our [Community Discord](https://discord.com/invite/allora) for support. 

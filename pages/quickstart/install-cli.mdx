@@ -1,0 +1,70 @@
+import { Callout, Cards, Card } from 'nextra/components'
+
+# Install CLI
+
+The Allora CLI (`allorad`) is essential for interacting with the Allora network. Follow this guide to get it installed and configured.
+
+<Callout>
+For complete installation instructions, terminal commands and advanced configuration, see our detailed [CLI Installation Guide](/devs/get-started/cli).
+</Callout>
+
+## What is allorad?
+
+`allorad` is the command-line interface for the Allora network that allows you to:
+
+- Query the blockchain for network data
+- Create and manage transactions
+- Interact with [topics](/home/key-terms#topics), [workers](/devs/workers), and [reputers](/devs/reputers)
+- Manage your wallet and stake
+
+## Prerequisites
+
+You will need to install `go` to download and use `allorad` successfully.
+
+To install Go, follow the [official Go documentation](https://go.dev/doc/install) for the correct download for your operating system.
+
+## Installation
+
+Install `allorad` using the official installation script:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/allora-network/allora-chain/main/install.sh | bash -s -- v0.8.0
+```
+
+A **successful** installation should output something like:
+
+```bash
+YYYY-MM-DD hh:mm:ss (N MB/s) - '/tmp/allorad' saved [116706514/116706514]
+```
+
+## Verifying Installation
+
+After installation, verify that `allorad` is correctly installed by running:
+
+```bash
+allorad version
+```
+
+You can also run `allorad` to see all available commands:
+
+```bash
+allorad --help
+```
+
+## After Installation
+
+Once you have `allorad` installed, you can:
+
+1. **[Create a Wallet](/quickstart/create-wallet)** - Set up your Allora wallet
+2. **[Get Testnet Tokens](/quickstart/get-testnet-tokens)** - Fund your wallet for testing
+3. **[Deploy a Worker](/quickstart/deploy-worker)** - Start participating in the network
+
+<Cards>
+  <Card title="Next Step: Create a Wallet" href="/quickstart/create-wallet" />
+</Cards>
+
+## Need More Help?
+
+For advanced configuration, troubleshooting, and detailed reference information, see our comprehensive [CLI Installation Guide](/devs/get-started/cli).
+
+If you encounter issues during installation, check our [Community Discord](https://discord.com/invite/allora) for support. 

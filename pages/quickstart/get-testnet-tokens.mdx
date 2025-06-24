@@ -1,0 +1,73 @@
+import { Callout, Cards, Card } from 'nextra/components'
+
+# Get Testnet Tokens
+
+To interact with the Allora testnet, you'll need testnet tokens. This guide shows you how to get them from the official faucet.
+
+<Callout>
+Testnet tokens have no real-world value and are only used for testing and development purposes on the Allora testnet.
+</Callout>
+
+## Allora Testnet Faucet
+
+The official Allora testnet faucet provides free tokens for development and testing:
+
+**🚰 [Allora Testnet Faucet](https://faucet.testnet.allora.network/)**
+
+## How to Get Tokens
+
+1. **Create Your Wallet** - First, make sure you have [created your Allora wallet](/quickstart/create-wallet)
+2. **Copy Your Address** - Copy your Allora wallet address 
+3. **Visit the Faucet** - Go to [faucet.testnet.allora.network](https://faucet.testnet.allora.network/)
+4. **Request Tokens** - Paste your address and request tokens
+5. **Wait for Confirmation** - Tokens should arrive in your wallet shortly
+
+## Verifying Your Balance
+
+After requesting tokens, you can check your balance using the CLI:
+
+```bash
+allorad query bank balance [your-address] --node https://allora-rpc.testnet.allora.network/
+```
+
+Or view your balance in the [Allora Explorer](https://explorer.testnet.allora.network/).
+
+## What's Next?
+
+Once you have testnet tokens, you can:
+
+1. **[Deploy a Worker](/quickstart/deploy-worker)** - Use tokens to register and stake workers
+2. **[Join Competition](/quickstart/join-competition)** - Participate in Model Forge competitions
+3. **Practice Transactions** - Test various network operations
+
+<Cards>
+  <Card title="Next Step: Deploy a Worker" href="/quickstart/deploy-worker" />
+</Cards>
+
+## Network Information
+
+**Testnet Details:**
+- **Faucet**: https://faucet.testnet.allora.network/
+- **Explorer**: https://explorer.testnet.allora.network/
+- **RPC Endpoints**:
+  - https://rpc.ankr.com/allora_testnet
+  - https://allora-rpc.testnet.allora.network/
+- **Chain ID**: `allora-testnet-1`
+
+## Usage Guidelines
+
+- **Request Responsibly** - Only request what you need for testing
+- **No Real Value** - These tokens cannot be exchanged for real currency
+- **Rate Limits** - The faucet may have rate limits to prevent abuse
+
+## Need More Information?
+
+For more details about wallet setup and testnet configuration, see our [Complete Wallet Setup Guide](/devs/get-started/setup-wallet).
+
+## Troubleshooting
+
+If you have issues getting testnet tokens:
+- Check your wallet address is correct
+- Ensure you're using the testnet network
+- Wait a few minutes for token distribution
+- Visit our [Community Discord](https://discord.com/invite/allora) for help 

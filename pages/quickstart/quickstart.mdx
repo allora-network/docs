@@ -1,0 +1,71 @@
+import { Callout } from 'nextra/components'
+
+# Quickstart: Build on Allora in 5 Steps
+
+Get started with Allora quickly and start participating in the network!
+
+## 1. Install Allora CLI
+
+First, install the Allora command-line interface. See our [CLI Installation Guide](/devs/get-started/cli) for detailed instructions.
+
+**Verify install:**
+```bash
+allorad version
+```
+
+## 2. Create a wallet
+
+Create your Allora wallet using the CLI:
+
+```bash
+allorad keys add <your-wallet-name>
+```
+
+<Callout type="warning">
+**Save your 24-word mnemonic securely.** This is the only way to recover your wallet. Never share it with anyone.
+</Callout>
+
+## 3. Get Testnet Tokens
+
+Visit the **[Allora Testnet Faucet](https://faucet.testnet.allora.network/)**
+
+1. Copy your wallet address:
+   ```bash
+   allorad keys show <your-wallet-name> -a
+   ```
+2. Paste your wallet address in the faucet
+3. Request tokens
+
+## 4. Join the Model Forge Competition
+
+1. **Go to:** https://forge.allora.network/
+2. **Install** Keplr or Leap browser extension
+3. **Import your wallet** using your mnemonic in the browser extension
+4. **Register** your wallet address with the Forge team
+5. **Get whitelisted** for competition participation
+
+<Callout>
+For detailed competition registration, see our [Model Forge Guide](/devs/get-started/model-forge).
+</Callout>
+
+## 5. Deploy a Worker or Run a Job
+
+Deploy your first AI worker to start earning on the network.
+
+**Check our sample inference worker guide:**
+- **[Deploy a Worker using Docker](/devs/workers/deploy-worker/using-docker)** - Recommended for beginners
+- **[Worker Walkthroughs](/devs/workers/walkthroughs/index)** - Step-by-step examples
+
+## What's Next?
+
+After completing these steps:
+- Monitor your worker's performance on the leaderboard
+- Optimize your models for better predictions
+- Explore advanced deployment options
+- Join our [Community Discord](https://discord.com/invite/allora) for support
+
+## Need Help?
+
+- **[Developer Documentation](/devs/get-started/overview)** - Comprehensive guides
+- **[Community Discord](https://discord.com/invite/allora)** - Get help from the community
+- **[Model Forge Competition](/devs/get-started/model-forge)** - Detailed competition guide 

@@ -2,7 +2,54 @@ import { Callout } from 'nextra/components'
 
 # Workers
 
+## Table of Contents
+
+- [For Data Scientists](#for-data-scientists)
+- [Deployment Options](#deployment-options)
+- [System Requirements](/devs/workers/requirements)
+- [Build/Deploy an Inference Worker](/devs/workers/deploy-worker)
+- [Build and Deploy a Forecaster](/devs/workers/deploy-forecaster)
+- [Walkthroughs](/devs/workers/walkthroughs)
+- [Query Worker Data](/devs/workers/query-worker-data)
+- [Query EMA Score](/devs/workers/query-ema-score)
+
 ## For Data Scientists
 
 As a data scientist, your expertise in AI and ML is invaluable to this network, enabling you to contribute predictive models and insights that power a wide range of applications. The Allora Network, powered by Allora's unique consensus mechanism, crowdsources financial predictions produced by machine learning models. The network incentivizes the contribution of machine intelligence to optimize various financial objectives.
+
+## Deployment Options
+
+There are several ways to deploy workers on the Allora network, each suited for different use cases and skill levels:
+
+### 🐳 Docker Deployment (Recommended for Beginners)
+The most straightforward approach using containerized deployment:
+- **Pre-configured environment** - Everything you need is included
+- **Easy to manage** - Simple Docker Compose setup
+- **Quick start** - Get up and running in minutes
+- **[Get Started →](/devs/workers/deploy-worker/using-docker)**
+
+### 🛠️ Allora MDK (Model Development Kit)
+Advanced deployment with the Model Development Kit:
+- **Custom model development** - Build sophisticated AI/ML models
+- **Greater flexibility** - Full control over your inference pipeline
+- **Advanced configuration** - Fine-tune every aspect of your worker
+- **[Learn More →](/devs/workers/deploy-worker/allora-mdk)**
+
+### 🔧 Node Runners
+Alternative deployment method for specialized use cases:
+- **Custom node runner setup** - Tailored to your specific needs
+- **Advanced networking** - Complex network configurations
+- **Specialized environments** - For unique deployment scenarios
+- **[Explore →](/devs/workers/deploy-worker/build-and-deploy-worker-with-node-runners)**
+
+### 📈 Forecaster Workers
+Specialized workers for time-series predictions:
+- **Future value predictions** - Forecast upcoming market movements
+- **Time-series analysis** - Leverage historical data patterns
+- **Advanced forecasting models** - Use sophisticated prediction algorithms
+- **[Deploy a Forecaster →](/devs/workers/deploy-forecaster)**
+
+<Callout>
+**New to Allora?** Check out our **[Walkthroughs](/devs/workers/walkthroughs)** for step-by-step examples that guide you through building and deploying real-world workers, from simple price prediction models to complex forecasting systems.
+</Callout>
 

@@ -1,0 +1,194 @@
+import { Callout, Cards, Card } from 'nextra/components'
+
+# Deploy a Worker with Docker
+
+This tutorial will guide you through deploying your first AI worker on the Allora network using Docker. This is the most straightforward way to get started with worker deployment.
+
+## Alternative Paths
+
+If you prefer step-by-step examples with real models, check out our walkthroughs:
+- **[Price Prediction Worker Walkthrough](/devs/workers/walkthroughs/walkthrough-price-prediction-worker)** - Build a worker that predicts cryptocurrency prices using linear regression
+- **[Hugging Face Worker Walkthrough](/devs/workers/walkthroughs/walkthrough-hugging-face-worker)** - Deploy a worker using pre-trained Hugging Face models
+
+<Callout>
+This tutorial covers the essential steps to deploy a basic worker. The [full Worker Deployment docs](/devs/workers/) includes many more options:
+- **Docker Deployment** - Advanced multi-topic configurations and custom model development
+- **Allora MDK (Model Development Kit)** - Custom model development with greater flexibility
+- **Node Runners** - Specialized configurations for advanced networking
+- **Forecaster Workers** - Time-series prediction models for forecasting future values
+- **Reputer Configuration** - Set up reputation management systems
+- **Production Deployment** - Enterprise-grade deployment and optimization
+- **Advanced Troubleshooting** - Comprehensive debugging and performance tuning
+</Callout>
+
+## What are Workers?
+
+Workers in the Allora network are AI/ML nodes that:
+
+- Provide predictions and inferences for specific topics
+- Compete with other workers for rewards
+- Contribute to the network's collective intelligence
+- Earn tokens based on prediction quality
+
+## Prerequisites
+
+Before starting, ensure you have:
+
+- **[Allora CLI installed](/quickstart/install-cli)**
+- **[Wallet created](/quickstart/create-wallet)** and funded with [testnet tokens](/quickstart/get-testnet-tokens)
+- **Docker and Docker Compose** installed
+- **Git** installed
+- **Go** (version 1.16 or later)
+
+## Step 1: Clone the Repository
+
+Download the `allora-offchain-node` repository:
+
+```bash
+git clone https://github.com/allora-network/allora-offchain-node
+cd allora-offchain-node
+```
+
+## Step 2: Configure Your Environment
+
+1. **Copy the configuration file:**
+   ```bash
+   cp config.example.json config.json
+   ```
+
+2. **Edit the configuration** with your wallet details:
+
+   Open `config.json` and update the `wallet` section:
+   ```json
+   "wallet": {
+     "nodeRpc": "https://allora-rpc.testnet.allora.network/",
+     "addressKeyName": "your-wallet-name",
+     "addressRestoreMnemonic": "your 24-word mnemonic phrase"
+   }
+   ```
+
+3. **Configure the worker** for a specific topic:
+   ```json
+   "worker": [
+     {
+       "topicId": 1,
+       "inferenceEntrypointName": "api-worker-reputer",
+       "loopSeconds": 5,
+       "parameters": {
+         "InferenceEndpoint": "http://localhost:8000/inference/{Token}",
+         "Token": "ETH"
+       }
+     }
+   ]
+   ```
+
+<Callout type="warning">
+Replace `your-wallet-name` with the name you used when creating your wallet, and `your 24-word mnemonic phrase` with your actual mnemonic. The `topicId` should match an existing topic on the network.
+</Callout>
+
+## Step 3: Set Up the Inference Server
+
+The repository comes with a basic Flask application. The key files are already configured:
+
+### `main.py` (Flask Application)
+```python
+from flask import Flask
+import random
+
+app = Flask(__name__)
+
+@app.route('/inference/<token>')
+def get_inference(token):
+    # This is a basic example - replace with your actual model
+    random_float = str(random.uniform(0.0, 100.0))
+    return random_float
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8000)
+```
+
+### `Dockerfile`
+```dockerfile
+FROM python:3.9-slim
+
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+EXPOSE 8000
+
+CMD ["python", "main.py"]
+```
+
+<Callout>
+This tutorial uses a simple random number generator as the inference model. For production use, replace this with your actual AI/ML model. See the [full guide](/devs/workers/deploy-worker/using-docker) for examples of more sophisticated models.
+</Callout>
+
+## Step 4: Deploy Your Worker
+
+1. **Export environment variables:**
+   ```bash
+   chmod +x init.config
+   ./init.config
+   ```
+
+2. **Deploy with Docker Compose:**
+   ```bash
+   docker compose up --build
+   ```
+
+## Step 5: Verify Deployment
+
+If your worker is running correctly, you should see logs like:
+
+```bash
+offchain_node | {"level":"debug","topicId":1,"time":1723043600,"message":"Checking for latest open worker nonce on topic"}
+```
+
+A successful worker registration will show:
+
+```bash
+{"level":"debug","msg":"Send Worker Data to chain","txHash":<tx-hash>,"time":<timestamp>,"message":"Success"}
+```
+
+## Step 6: Test Your Worker
+
+Test your local inference server:
+
+```bash
+curl http://localhost:8000/inference/ETH
+```
+
+This should return a random number between 0 and 100.
+
+## What's Next?
+
+Once your worker is deployed:
+
+1. **Monitor Performance** - Track your worker's predictions and scores
+2. **Optimize Models** - Improve prediction accuracy over time
+3. **[Join Competition](/quickstart/join-competition)** - Participate in Model Forge
+4. **Scale Up** - Deploy additional workers for different topics
+
+<Cards>
+  <Card title="Next Step: Join Competition" href="/quickstart/join-competition" />
+</Cards>
+
+## Troubleshooting
+
+**Common Issues:**
+- **Configuration errors**: Double-check your wallet name and mnemonic
+- **Network connectivity**: Ensure you're using the correct RPC URL
+- **Docker issues**: Make sure Docker and Docker Compose are running
+- **Insufficient tokens**: Request more testnet tokens from the faucet
+
+## Need More Help?
+
+- **[Full Docker Deployment Guide](/devs/workers/deploy-worker/using-docker)** - Advanced configuration and troubleshooting
+- **[Worker Walkthroughs](/devs/workers/walkthroughs/index)** - Step-by-step examples with real models
+- **[System Requirements](/devs/workers/requirements)** - Hardware and software requirements
+- **[Community Discord](https://discord.com/invite/allora)** - Get help from the community 

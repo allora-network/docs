@@ -1,0 +1,9 @@
+{
+  "overview": "Overview",
+  "quickstart": "5-Min Quickstart", 
+  "install-cli": "Install CLI",
+  "create-wallet": "Create Wallet",
+  "get-testnet-tokens": "Get Testnet Tokens",
+  "deploy-worker": "Deploy a Worker",
+  "join-competition": "Join Competition"
+} 
