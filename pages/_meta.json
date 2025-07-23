@@ -1,18 +1,18 @@
 {
   "home": {
-    "title": "Home",
+    "title": "Getting Started",
     "type": "page"
   },
   "devs": {
     "title": "Developers",
     "type": "page"
   },
-  "community": {
-    "title": "Community",
+  "marketplace": {
+    "title": "SDK & Integrations",
     "type": "page"
   },
-  "marketplace": {
-    "title": "Marketplace",
+  "release-notes": {
+    "title": "Release Notes",
     "type": "page"
   }
 }
