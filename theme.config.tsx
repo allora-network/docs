@@ -170,6 +170,56 @@ const config: DocsThemeConfig = {
             -webkit-text-fill-color: transparent;
             background-clip: text;
           }
+
+          /* Sidebar Section Headings */
+          .sidebar-separator-container {
+            margin: 12px 0 4px 0 !important;
+            padding: 0 !important;
+          }
+
+          .sidebar-separator-container:first-child {
+            margin-top: 8px !important;
+          }
+
+          .sidebar-separator-container:not(:first-child) {
+            margin-top: 8px !important;
+          }
+
+          .sidebar-separator-line {
+            height: 1px !important;
+            background-color: #e5e7eb !important;
+            margin: 4px 0 0 0 !important;
+            width: 100% !important;
+          }
+
+          .sidebar-separator-line-top {
+            height: 1px !important;
+            background-color: #e5e7eb !important;
+            margin: 0 0 4px 0 !important;
+            width: 100% !important;
+          }
+
+          .sidebar-separator {
+            display: block !important;
+            color: #6b7280 !important;
+            font-size: 13px !important;
+            font-weight: 600 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            padding: 4px 16px 4px 16px !important;
+          }
+
+          .dark .sidebar-separator-line {
+            background-color: #374151 !important;
+          }
+
+          .dark .sidebar-separator-line-top {
+            background-color: #374151 !important;
+          }
+
+          .dark .sidebar-separator {
+            color: #9ca3af !important;
+          }
         `}</style>
       </>
     )
@@ -190,7 +240,14 @@ const config: DocsThemeConfig = {
     defaultMenuCollapseLevel: 2,
     titleComponent: ({ title, type }) => {
       if (type === 'separator') {
-        return <span className="sidebar-separator">{title}</span>
+        const isFirst = title === 'DOCUMENTATION'
+        return (
+          <div className="sidebar-separator-container">
+            {!isFirst && <div className="sidebar-separator-line-top"></div>}
+            <span className="sidebar-separator">{title}</span>
+            {isFirst && <div className="sidebar-separator-line"></div>}
+          </div>
+        )
       }
       return <>{title}</>
     }

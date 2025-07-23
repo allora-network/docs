@@ -1,4 +1,8 @@
 {
+    "---documentation": {
+      "type": "separator",
+      "title": "DOCUMENTATION"
+    },
     "explore": "Explore Allora",
     "overview": "Overview",
     "key-terms": "Key Terminology",
@@ -10,5 +14,17 @@
     "whitepaper": {
       "title": "Whitepaper",
       "href": "https://research.assets.allora.network/allora.0x10001.pdf"
-    }
+    },
+    "---developers": {
+      "type": "separator",
+      "title": "DEVELOPERS"
+    },
+    "dev-get-started": "Get Started",
+    "dev-topic-creators": "Topic Creators",
+    "dev-consumers": "Consumers",
+    "dev-sdks": "SDKs",
+    "dev-workers": "Workers",
+    "dev-reputers": "Reputers",
+    "dev-validators": "Validators",
+    "dev-reference": "Reference"
 }

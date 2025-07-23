@@ -1,0 +1,26 @@
+{
+  "requirements": {
+    "title": "System Requirements",
+    "href": "/devs/workers/requirements"
+  },
+  "deploy-worker": {
+    "title": "Build/Deploy an Inference Worker",
+    "href": "/devs/workers/deploy-worker"
+  },
+  "walkthroughs": {
+    "title": "Walkthroughs",
+    "href": "/devs/workers/walkthroughs"
+  },
+  "deploy-forecaster": {
+    "title": "Build and Deploy a Forecaster",
+    "href": "/devs/workers/deploy-forecaster"
+  },
+  "query-worker-data": {
+    "title": "How To Query Worker Data using allorad",
+    "href": "/devs/workers/query-worker-data"
+  },
+  "query-ema-score": {
+    "title": "Query EMA Score of a Worker using allorad",
+    "href": "/devs/workers/query-ema-score"
+  }
+} 

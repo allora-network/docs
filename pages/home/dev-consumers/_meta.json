@@ -1,0 +1,22 @@
+{
+  "allora-api-endpoint": {
+    "title": "Allora API Endpoint",
+    "href": "/devs/consumers/allora-api-endpoint"
+  },
+  "rpc-data-access": {
+    "title": "RPC Data Access",
+    "href": "/devs/consumers/rpc-data-access"
+  },
+  "consumer-contracts": {
+    "title": "Consumer Contracts",
+    "href": "/devs/consumers/consumer-contracts"
+  },
+  "existing-consumers": {
+    "title": "Existing Consumers",
+    "href": "/devs/consumers/existing-consumers"
+  },
+  "walkthrough-use-topic-inference": {
+    "title": "Walkthrough: Using a Topic Inference on-chain",
+    "href": "/devs/consumers/walkthrough-use-topic-inference"
+  }
+} 

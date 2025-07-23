@@ -1,0 +1,22 @@
+{
+  "reputers": {
+    "title": "Deploy a Simple Reputer using Docker",
+    "href": "/devs/reputers/reputers"
+  },
+  "coin-prediction-reputer": {
+    "title": "Deploy a Pre-configured Reputer",
+    "href": "/devs/reputers/coin-prediction-reputer"
+  },
+  "set-and-adjust-stake": {
+    "title": "Set and Adjust Stake",
+    "href": "/devs/reputers/set-and-adjust-stake"
+  },
+  "query-reputer-data": {
+    "title": "How to Query Reputer Data using allorad",
+    "href": "/devs/reputers/query-reputer-data"
+  },
+  "query-ema-score": {
+    "title": "Query EMA Score for a Reputer using allorad",
+    "href": "/devs/reputers/query-ema-score"
+  }
+} 

@@ -1,0 +1,26 @@
+{
+  "nop-requirements": {
+    "title": "System Requirements",
+    "href": "/devs/validators/nop-requirements"
+  },
+  "deploy-chain": {
+    "title": "Deploy Allora Chain",
+    "href": "/devs/validators/deploy-chain"
+  },
+  "run-full-node": {
+    "title": "Run a Full Node",
+    "href": "/devs/validators/run-full-node"
+  },
+  "stake-a-validator": {
+    "title": "Stake a Validator",
+    "href": "/devs/validators/stake-a-validator"
+  },
+  "validator-operations": {
+    "title": "Validator Operations",
+    "href": "/devs/validators/validator-operations"
+  },
+  "software-upgrades": {
+    "title": "Software Upgrades",
+    "href": "/devs/validators/software-upgrades"
+  }
+} 

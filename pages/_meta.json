@@ -5,7 +5,8 @@
   },
   "devs": {
     "title": "Developers",
-    "type": "page"
+    "type": "page",
+    "href": "/devs/get-started"
   },
   "marketplace": {
     "title": "SDK & Integrations",
