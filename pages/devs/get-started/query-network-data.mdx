@@ -1,65 +1,147 @@
 # How to Query Network Data using `allorad`
 
+## What You'll Learn
+- How to query network-level data using allorad CLI commands
+- Essential RPC methods for retrieving aggregate network information
+- Understanding network inference data, reward distributions, and parameters
+- Practical use cases for different types of network queries
 
-To query network-level data on the Allora chain using the `allorad` CLI, you need to interact with various RPC methods designed to return aggregate or holistic information about the
-network. These methods enable you to pull data that is crucial for understanding the overall state and performance of the network.
+## Overview
+
+**To query network-level data on the Allora chain using the `allorad` CLI, you need to interact with various RPC methods designed to return aggregate or holistic information about the network.** These methods enable you to pull data that is crucial for understanding the overall state and performance of the network.
+
+### Why Query Network Data?
+
+Network-level queries provide:
+- **Comprehensive insights**: Aggregate data across all network participants
+- **Decision support**: Complete information for informed decision-making
+- **Performance monitoring**: Track network health and activity
+- **Transparency**: Access to network parameters and configurations
 
 ## Prerequisites
 
-- [`allorad` CLI](/devs/get-started/cli)
+- **[`allorad` CLI](/devs/get-started/cli)**: Command-line interface for network interactions
+- **Basic understanding**: Familiarity with blockchain query concepts
+- **Network access**: Connectivity to Allora Network RPC endpoints
+- **Topic knowledge**: Understanding of topic IDs you want to query
 
-## Query Functions
+## Query Command Structure
 
 These functions read from the appchain only and do not write. Add the **Command** value into your query to retrieve the expected data.
 
+**Base Query Format**:
 ```bash
 allorad q emissions [Command] --node <RPC_URL>
 ```
 
+**Command Components**:
+- **`allorad q emissions`**: Base structure for emissions module queries
+- **`[Command]`**: Specific function to execute (detailed below)
+- **`--node <RPC_URL>`**: RPC endpoint for network connection
+
+## Core Network Queries
+
 ### Get Latest Available Network Inferences
 
+**Query Details**:
 - **RPC Method:** `GetLatestAvailableNetworkInferences`
 - **Command:** `latest-available-network-inferences [topic_id]`
 - **Description:** Returns the latest network inference for a given topic, but only if all necessary information to compute the inference is present. The result is only provided when complete data from the network is available to ensure accuracy.
-- **Positional Arguments:**
-    - `topic_id`: The identifier of the topic for which you want to retrieve the latest available network inference.
 
-#### Use Case:
+**Positional Arguments**:
+- **`topic_id`**: The identifier of the topic for which you want to retrieve the latest available network inference.
+
+#### Use Case
+
 **Why use it?**  
 - This command is useful when you need to retrieve the most recent network-wide inference for a topic, ensuring that all necessary data has been collected and processed. It is ideal for situations where decision-making relies on the completeness of the data and where partial data may lead to inaccurate conclusions.
 
-**Example Scenario:**  
+**Example Scenario**:  
 - If you want to make a decision based on network predictions, but only when the inference is fully computed, use this command. For example, you might want the latest ETH price prediction, but only when all worker and forecaster data is available to provide an accurate result.
 
----
+**Practical Applications**:
+- Building reliable data oracles that require complete information
+- Making trading decisions based on comprehensive network predictions
+- Ensuring data quality in downstream applications
+
+## Network Economics Queries
 
 ### Get Total Rewards to Distribute
 
+**Query Details**:
 - **RPC Method:** `GetTotalRewardToDistribute`
 - **Command:** `total-rewards`
 - **Description:** Returns the total amount of rewards that will be distributed across all rewardable topics in the current block. It provides an aggregate view of the rewards available for distribution.
 
-#### Use Case:
+#### Use Case
+
 **Why use it?**  
 - This command is useful if you want to understand the total reward pool for a given block. It helps participants gauge the potential rewards available and how they may be distributed across topics based on performance.
 
-**Example Scenario:**  
+**Example Scenario**:  
 - As a worker or forecaster, you might use this command to estimate the reward pool for the current block. This allows you to understand the potential total rewards before they are distributed across different topics and participants.
 
----
+**Practical Applications**:
+- Calculating potential earnings as a network participant
+- Understanding network economics and reward mechanisms
+- Planning resource allocation across different topics
+
+## Network Configuration Queries
 
 ### Get Current Module Parameters
 
+**Query Details**:
 - **RPC Method:** `GetParams`
 - **Command:** `params`
 - **Description:** Retrieves the current parameters of the module in the Allora network. It is used to check the configuration and settings that control various aspects of the module's behavior.
-- **Positional Arguments:**
-    - This command does not require any positional arguments.
 
-#### Use Case:
+**Positional Arguments**:
+- This command does not require any positional arguments.
+
+#### Use Case
+
 **Why use it?**  
 - This command is useful for querying the configuration settings of the module. It provides transparency into how the module is configured and allows participants to verify whether certain parameters, such as reward distribution rules or other operational settings, are up-to-date.
 
-**Example Scenario:**  
+**Example Scenario**:  
 - If you're troubleshooting the behavior of a module or need to verify the configuration before making any changes, this command can give you insight into the current parameters and their values.
+
+**Practical Applications**:
+- Troubleshooting network behavior and configurations
+- Verifying parameter changes and updates
+- Understanding network rules and operational settings
+
+## Common Workflows
+
+### Data Analysis Workflow
+
+1. **Start with parameters**: Use `params` to understand current network configuration
+2. **Check reward pool**: Use `total-rewards` to understand current incentives
+3. **Query specific data**: Use `latest-available-network-inferences` for topic-specific insights
+4. **Monitor over time**: Repeat queries to track network evolution
+
+### Decision Making Workflow
+
+1. **Ensure data completeness**: Use inference queries that wait for complete data
+2. **Understand context**: Check network parameters that might affect results
+3. **Consider economics**: Factor in reward structures when making participation decisions
+4. **Validate assumptions**: Cross-reference multiple data sources for accuracy
+
+### Development Integration
+
+**For Applications**:
+- Integrate inference queries for real-time data feeds
+- Monitor reward distributions for user dashboards
+- Check parameters for configuration management
+
+**For Analytics**:
+- Track network growth through reward pool changes
+- Analyze inference patterns across different topics
+- Monitor parameter changes for network evolution insights
+
+## Next Steps
+
+- [Learn worker-specific data queries](/devs/workers/query-worker-data) for participant-focused information
+- [Explore basic network usage](/devs/get-started/basic-usage) for hands-on interaction
+- [Review complete allorad reference](/devs/reference/allorad) for all available commands
 

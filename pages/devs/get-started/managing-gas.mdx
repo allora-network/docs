@@ -2,9 +2,31 @@ import { Callout } from 'nextra/components'
 
 # Managing Gas with `allorad`
 
-Invoking transactions causes network validators to do computations on your behalf and update the chain's state. These actions are compensated via _gas_. Gas is paid by wallets who send transactions to the Allora chain.
+## What You'll Learn
+- Understanding gas mechanics and the EIP-1559-like fee market in Allora Network
+- How to structure transactions correctly with the updated gas system
+- Differences between pre-v0.7.0 and current transaction formats
+- Best practices for setting gas prices and gas limits
 
-In its [v0.7.0 release](https://github.com/allora-network/allora-chain/releases/tag/v0.7.0), Allora incorporated the [x/feemarket module](https://github.com/skip-mev/feemarket), which means that gas calculations follow an [EIP-1559-like schedule](https://help.coinbase.com/en/coinbase/getting-started/crypto-education/eip-1559) (see: the [original EIP-1559](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1559.md)). This requires transactions to be structured differently from other cosmos chains.
+## Overview
+
+**Invoking transactions causes network validators to do computations on your behalf and update the chain's state.** These actions are compensated via _gas_. Gas is paid by wallets who send transactions to the Allora chain.
+
+### What Changed in v0.7.0?
+
+**In its [v0.7.0 release](https://github.com/allora-network/allora-chain/releases/tag/v0.7.0), Allora incorporated the [x/feemarket module](https://github.com/skip-mev/feemarket), which means that gas calculations follow an [EIP-1559-like schedule](https://help.coinbase.com/en/coinbase/getting-started/crypto-education/eip-1559) (see: the [original EIP-1559](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1559.md)).** This requires transactions to be structured differently from other cosmos chains.
+
+### Why the Change Matters
+
+The EIP-1559-like system provides:
+- **Predictable fees**: More stable gas pricing mechanisms
+- **Better user experience**: Improved fee estimation and transaction processing
+- **Network efficiency**: Optimized resource allocation for validators
+- **Ethereum compatibility**: Familiar fee structure for developers
+
+## Transaction Structure Evolution
+
+### Before v0.7.0 (Legacy Format)
 
 Prior to `allora-chain` `v0.7.0` and in many other Cosmos chains, transactions are typically structured like so:
 
@@ -12,19 +34,89 @@ Prior to `allora-chain` `v0.7.0` and in many other Cosmos chains, transactions a
 allorad tx emissions ... --from ACCOUNT_NAME --node RPC --chain-id allora-testnet-1 --keyring-backend test --keyring-dir ~/.allorad/ --gas auto --gas-adjustment 1.2 --fees 2024700uallo ...
 ```
 
+**Legacy Format Characteristics**:
+- Used `--gas auto` for automatic gas estimation
+- Used `--fees Xuallo` format for fee specification
+- Relied on simple fee calculation methods
+
+### Current Format (v0.7.0+)
+
 Since `v0.7.0`, transactions should instead abide by the structure:
+
 ```
 allorad tx emissions ... --from ACCOUNT_NAME --node RPC --chain-id allora-testnet-1 --keyring-backend test --keyring-dir ~/.allorad/ --gas 130206 --gas-adjustment 1.2 --gas-prices 10uallo ...
 ```
 
-To emphasize: This^^ is the way transactions should be structured today using `allorad`.
+**To emphasize: This^^ is the way transactions should be structured today using `allorad`.**
 
-The specific differences are:
+**Current Format Benefits**:
+- More precise gas control with explicit gas limits
+- Standardized gas pricing across the network
+- Better compatibility with fee market mechanisms
 
-__`fees Xuallo` becomes `gas-prices 10uallo`__
+## Key Parameter Changes
+
+### Fee Structure Update
+
+**`fees Xuallo` becomes `gas-prices 10uallo`**
+
+**What This Means**:
 - This is a config set in the network validators, so `10uallo` is the universally recommended value
+- Provides consistent pricing across all network transactions
+- Aligns with validator fee market configurations
 
-__`gas auto` becomes `gas 130206`__
+### Gas Estimation Update
+
+**`gas auto` becomes `gas 130206`**
+
+**What This Means**:
 - This value can change per the use case
+- Requires explicit gas limit specification rather than automatic estimation
+- Gives developers more control over transaction costs
+
+## Implementation Across Clients
+
+### Other Development Tools
 
 Other clients such as [CosmJS](https://github.com/cosmos/cosmjs) and [Ignite](https://docs.ignite.com/clients/go-client) would similarly need to include these flags when building transactions.
+
+**Multi-Client Compatibility**:
+- All Cosmos SDK-based tools need to adopt the new format
+- Consistent parameter structure across different development environments
+- Ensures compatibility with the Allora fee market system
+
+## Best Practices
+
+### Gas Price Management
+
+**Recommended Settings**:
+- Always use `--gas-prices 10uallo` as the standard value
+- Monitor network congestion for potential adjustments
+- Test transactions with different gas limits for optimization
+
+### Gas Limit Optimization
+
+**Determining Gas Limits**:
+- Start with `130206` as a baseline for standard operations
+- Adjust based on transaction complexity and network conditions
+- Monitor transaction success rates and adjust accordingly
+
+### Transaction Monitoring
+
+**Success Verification**:
+- Check transaction hashes for confirmation
+- Monitor for out-of-gas errors and adjust limits
+- Track fee spending for cost optimization
+
+## Prerequisites
+
+- [allorad CLI installed](/devs/get-started/cli) and properly configured
+- [Wallet set up](/devs/get-started/setup-wallet) with sufficient funds for gas
+- Understanding of basic transaction concepts
+- Knowledge of your specific use case requirements
+
+## Next Steps
+
+- [Learn about basic network usage](/devs/get-started/basic-usage) to apply gas management
+- [Review allorad reference](/devs/reference/allorad) for complete command documentation
+- [Set up your wallet](/devs/get-started/setup-wallet) if you haven't already

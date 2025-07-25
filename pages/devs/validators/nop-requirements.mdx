@@ -1,34 +1,153 @@
 # System Requirements
 
-You can use any modern Linux distribution to run an Allora validator.  
+## What You'll Learn
+- Complete hardware and software requirements for running Allora validators
+- Understanding validator responsibilities and infrastructure requirements
+- How validators execute loss-calculation logic using WASM and IPFS
+- Current access requirements and application process for validator participation
+
+## Overview
+
+**You can use any modern Linux distribution to run an Allora validator.**  
 Internally we use **Debian 12** x86_64.
 
-## MAINNET and TESTNET validators' requirements:
+### Why These Requirements Matter
 
-- CPU: ≥6cores, ≥12 threads
-- Memory: ≥64GB
-- Disk: SSD or NVMe ≥1.92 TB total
-- Bandwidth: ≥1Gbit/s guaranteed
+**Infrastructure Importance**:
+- **Network reliability**: Robust hardware ensures consistent validator performance
+- **Consensus participation**: Adequate resources enable proper blockchain consensus
+- **Scalability**: Sufficient capacity handles growing network demands
+- **Security**: Professional-grade infrastructure protects network integrity
 
-## Note
+## Hardware Specifications
 
-Participating as a validator is temporarily allowed only for whitelisted accounts. The Upshot Team currently has access to whitelisted addresses. We plan to make this action permissionless soon. In the meantime, those interested in becoming validators should reach out [here](https://docs.google.com/forms/d/e/1FAIpQLScj2rGAjFAAPZANrr2vZr_WAmLhniHn2x_l8K7EQcJ1i8XqHw/viewform).
+### Production Requirements
 
-## Responsibilities
+**MAINNET and TESTNET validators' requirements:**
 
-Validators are responsible for operating most of the infrastructure associated with instantiating the Allora Network. They do this in three ways:
+- **CPU**: ≥6cores, ≥12 threads
+- **Memory**: ≥64GB
+- **Disk**: SSD or NVMe ≥1.92 TB total
+- **Bandwidth**: ≥1Gbit/s guaranteed
 
-1. Staking in worker nodes (data scientists) based on their confidence in said workers' abilities to produce accurate inferences.
-2. Operating the appchain as Cosmos validators.
+#### Specification Rationale
 
-## Executing Loss-Calculation Logic Off-Chain
+**CPU Requirements**:
+- **Multi-threading**: Parallel processing for consensus and WASM execution
+- **Performance**: Adequate processing power for real-time network operations
+- **Reliability**: Professional-grade processors for continuous operation
 
-The topic-specific logic ran by validators is compiled to WASM and stored on IPFS. Our appchain calls upon validators to execute this logic in every `topic.loss_cadence`-length epoch. Running this WASM involves querying for the following values:
+**Memory Requirements**:
+- **Large datasets**: Handle blockchain state and historical data
+- **Caching**: Improve performance through in-memory data storage
+- **Future-proofing**: Accommodate network growth and increased activity
 
-- Current set of losses between reputers and workers
-- Inferences from the past epoch
-- The revealed ground truth consisting of up to `topic.inference_cadence/topic.loss_cadence`-many values. In other words, it entails one ground truth value for each inference cadence within the preceding loss-calculation epoch.
+**Storage Requirements**:
+- **High-speed access**: SSD/NVMe for fast data retrieval and blockchain operations
+- **Capacity planning**: Sufficient space for blockchain data and growth
+- **Reliability**: Enterprise-grade storage for data integrity
 
-The WASM also involves committing the new losses to the appchain in a transaction. This is ultimately done by one b7s node.
+**Network Requirements**:
+- **Guaranteed bandwidth**: Consistent network performance for consensus participation
+- **Latency optimization**: Fast communication with other validators
+- **Redundancy**: Multiple network connections for reliability
 
-Computing loss-calculation logic off-chain saves the network validators operating expenses (because less is run on-chain), allows topic creators to write loss-calculation logic in any language (that compiles to WASM), and lessens the need for frequent node software upgrades (because the module source code remains unchanged even as new topics are added, each with their specific loss-calculation schemes).
+## Access and Participation
+
+### Current Status
+
+**Note: Participating as a validator is temporarily allowed only for whitelisted accounts.** The Upshot Team currently has access to whitelisted addresses. We plan to make this action permissionless soon. In the meantime, those interested in becoming validators should reach out [here](https://docs.google.com/forms/d/e/1FAIpQLScj2rGAjFAAPZANrr2vZr_WAmLhniHn2x_l8K7EQcJ1i8XqHw/viewform).
+
+#### Application Process
+
+**How to Apply**:
+- **Submit application**: Complete the Google Form with validator information
+- **Wait for review**: Upshot Team evaluates applications for network suitability
+- **Receive whitelist**: Approved validators gain access to network participation
+- **Follow setup**: Complete validator deployment following technical documentation
+
+**Future Access**:
+- **Permissionless transition**: Network will become open to all qualified participants
+- **Democratic participation**: Removal of centralized approval requirements
+- **Community governance**: Validator participation based on technical and economic criteria
+
+## Validator Responsibilities
+
+### Core Functions
+
+**Validators are responsible for operating most of the infrastructure associated with instantiating the Allora Network. They do this in three ways:**
+
+1. **Staking in worker nodes (data scientists)** based on their confidence in said workers' abilities to produce accurate inferences.
+2. **Operating the appchain as Cosmos validators.**
+
+#### Operational Duties
+
+**Infrastructure Management**:
+- **Network security**: Maintain blockchain consensus and transaction validation
+- **Worker evaluation**: Assess and stake on promising data science participants
+- **System monitoring**: Ensure continuous uptime and performance optimization
+- **Community participation**: Engage in governance and network decision-making
+
+## Technical Architecture
+
+### WASM-Based Loss Calculation
+
+**Executing Loss-Calculation Logic Off-Chain:**
+
+**The topic-specific logic ran by validators is compiled to WASM and stored on IPFS.** Our appchain calls upon validators to execute this logic in every `topic.loss_cadence`-length epoch. Running this WASM involves querying for the following values:
+
+#### Data Requirements
+
+**WASM Execution Process**:
+- **Current set of losses** between reputers and workers
+- **Inferences from the past epoch**
+- **The revealed ground truth** consisting of up to `topic.inference_cadence/topic.loss_cadence`-many values. In other words, it entails one ground truth value for each inference cadence within the preceding loss-calculation epoch.
+
+#### Transaction Processing
+
+**The WASM also involves committing the new losses to the appchain in a transaction. This is ultimately done by one b7s node.**
+
+**Execution Benefits**:
+- **Cost efficiency**: Off-chain computation reduces validator operating expenses
+- **Flexibility**: Topic creators can write loss-calculation logic in any WASM-compatible language
+- **Maintainability**: Reduces need for frequent node software upgrades
+- **Scalability**: Module source code remains unchanged as new topics are added
+
+### Technical Advantages
+
+**Off-Chain Processing Benefits**:
+- **Computing loss-calculation logic off-chain saves the network validators operating expenses** (because less is run on-chain)
+- **Allows topic creators to write loss-calculation logic in any language** (that compiles to WASM)
+- **Lessens the need for frequent node software upgrades** (because the module source code remains unchanged even as new topics are added, each with their specific loss-calculation schemes)
+
+## Planning and Preparation
+
+### Infrastructure Assessment
+
+**Pre-Deployment Checklist**:
+- **Hardware procurement**: Ensure all system requirements are met or exceeded
+- **Network setup**: Configure high-speed, reliable internet connectivity
+- **Operating system**: Install and configure supported Linux distribution
+- **Security measures**: Implement firewalls, monitoring, and backup systems
+
+### Cost Considerations
+
+**Financial Planning**:
+- **Hardware investment**: Professional-grade servers and networking equipment
+- **Operational costs**: Electricity, internet, and facility expenses
+- **Maintenance budget**: Ongoing upgrades and support requirements
+- **Stake requirements**: Initial and ongoing token commitments
+
+## Prerequisites
+
+- **Technical expertise**: Strong understanding of blockchain operations and Linux systems
+- **Infrastructure resources**: Professional-grade hardware and networking
+- **Financial commitment**: Significant investment in equipment and operations
+- **Time availability**: Ongoing monitoring and maintenance responsibilities
+
+## Next Steps
+
+- [Apply for validator whitelist](https://docs.google.com/forms/d/e/1FAIpQLScj2rGAjFAAPZANrr2vZr_WAmLhniHn2x_l8K7EQcJ1i8XqHw/viewform) to gain network access
+- [Learn to run a full node](/devs/validators/run-full-node) for hands-on experience
+- [Understand validator operations](/devs/validators/validator-operations) for ongoing management
+- [Study validator economics](/devs/validators/stake-a-validator) for financial planning

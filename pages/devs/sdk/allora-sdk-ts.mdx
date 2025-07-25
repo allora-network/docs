@@ -2,11 +2,33 @@ import { Callout } from 'nextra/components'
 
 # Allora TypeScript SDK
 
-The Allora TypeScript SDK provides a convenient way to interact with the Allora API from JavaScript and TypeScript applications.
+## What You'll Learn
+- How to install and configure the Allora TypeScript SDK for web and Node.js applications
+- Complete TypeScript API reference with method signatures and usage examples  
+- Best practices for integration with modern JavaScript frameworks and TypeScript projects
+- Authentication strategies and production deployment considerations
+
+## Overview
+
+**The Allora TypeScript SDK provides a convenient way to interact with the Allora API from JavaScript and TypeScript applications.**
+
+### Why Use the TypeScript SDK?
+
+**Development Benefits**:
+- **Type safety**: Full TypeScript support with IntelliSense and compile-time error checking
+- **Modern JavaScript**: Native async/await support and Promise-based architecture
+- **Framework integration**: Seamless compatibility with React, Vue, Angular, and Node.js
+- **Production ready**: Built-in error handling and retry mechanisms
+
+**Technical Advantages**:
+- **Developer experience**: Auto-completion, type checking, and comprehensive documentation
+- **Bundle optimization**: Tree-shaking support for minimal production bundles
+- **Cross-platform**: Works in browsers, Node.js, and serverless environments
+- **Community support**: Active maintenance and regular updates
 
 ## Installation
 
-You can install the Allora TypeScript SDK using npm or yarn:
+**You can install the Allora TypeScript SDK using npm or yarn:**
 
 ```bash
 # Using npm
@@ -16,9 +38,15 @@ npm install @alloralabs/allora-sdk
 yarn add @alloralabs/allora-sdk
 ```
 
+**Installation Benefits**:
+- **Package manager compatibility**: Works with npm, yarn, pnpm, and other package managers
+- **Dependency management**: Automatic handling of required dependencies
+- **Version control**: Semantic versioning for predictable updates
+- **Security**: Regular security updates and vulnerability patches
+
 ## Basic Usage
 
-Here's a simple example of how to use the Allora TypeScript SDK:
+**Here's a simple example of how to use the Allora TypeScript SDK:**
 
 ```typescript
 import { AlloraAPIClient, ChainSlug } from '@alloralabs/allora-sdk/v2'
@@ -63,6 +91,18 @@ async function fetchPriceInference() {
 }
 ```
 
+### Code Example Breakdown
+
+**Client Configuration**:
+- **Chain selection**: Toggle between testnet and mainnet environments  
+- **API authentication**: Optional API key for enhanced rate limits
+- **Environment variables**: Secure credential management with process.env
+
+**Error Handling Pattern**:
+- **Try-catch blocks**: Comprehensive error management for network operations
+- **Graceful failures**: Handle API issues without crashing applications
+- **Debug support**: Clear error messages for development and troubleshooting
+
 <Callout type="info">
 The API key is optional but recommended for production use. If not provided, a default API key will be used, which may be subject to rate limiting.
 </Callout>
@@ -71,7 +111,7 @@ The API key is optional but recommended for production use. If not provided, a d
 
 ### `AlloraAPIClient`
 
-The main class for interacting with the Allora API.
+**The main class for interacting with the Allora API.**
 
 #### Constructor
 
@@ -79,27 +119,38 @@ The main class for interacting with the Allora API.
 constructor(config: AlloraAPIClientConfig)
 ```
 
-Parameters:
-- `config`: An object with the following properties:
-  - `chainSlug`: The chain to use. Can be `ChainSlug.TESTNET` or `ChainSlug.MAINNET`.
-  - `apiKey`: Your API key. Optional, but recommended for production use.
-  - `baseAPIUrl`: The base URL for the API. Optional, defaults to `https://api.allora.network/v2`.
+**Parameters:**
+- **`config`**: An object with the following properties:
+  - **`chainSlug`**: The chain to use. Can be `ChainSlug.TESTNET` or `ChainSlug.MAINNET`.
+  - **`apiKey`**: Your API key. Optional, but recommended for production use.
+  - **`baseAPIUrl`**: The base URL for the API. Optional, defaults to `https://api.allora.network/v2`.
 
-#### Methods
+**Configuration Options**:
+- **Environment targeting**: Switch between development and production networks
+- **Custom endpoints**: Override default API URLs for specialized deployments
+- **Authentication setup**: Manage API keys for rate limiting and usage tracking
+
+#### Core Methods
 
 ##### `getAllTopics()`
 
-Fetches all available topics from the Allora API.
+**Fetches all available topics from the Allora API.**
 
 ```typescript
 async getAllTopics(): Promise<AlloraTopic[]>
 ```
 
-Returns: A promise that resolves to an array of all available topics.
+**Returns:** A promise that resolves to an array of all available topics.
+
+**Usage Scenarios**:
+- **Topic discovery**: Explore available prediction categories and markets
+- **Application initialization**: Load topic data for user interface components
+- **Analytics**: Analyze network activity and topic popularity
+- **Integration planning**: Select appropriate topics for specific use cases
 
 ##### `getInferenceByTopicID(topicID, signatureFormat)`
 
-Fetches an inference for a specific topic from the Allora API.
+**Fetches an inference for a specific topic from the Allora API.**
 
 ```typescript
 async getInferenceByTopicID(
@@ -108,15 +159,21 @@ async getInferenceByTopicID(
 ): Promise<AlloraInference>
 ```
 
-Parameters:
-- `topicID`: The unique identifier of the topic to get inference for.
-- `signatureFormat`: The format of the signature. Optional, defaults to `SignatureFormat.ETHEREUM_SEPOLIA`.
+**Parameters:**
+- **`topicID`**: The unique identifier of the topic to get inference for.
+- **`signatureFormat`**: The format of the signature. Optional, defaults to `SignatureFormat.ETHEREUM_SEPOLIA`.
 
-Returns: A promise that resolves to the inference data.
+**Returns:** A promise that resolves to the inference data.
+
+**Method Benefits**:
+- **Real-time data**: Access current network predictions and inference results
+- **Signature verification**: Built-in cryptographic proof of data authenticity
+- **Flexible formatting**: Support for multiple signature standards
+- **Type safety**: Strong typing ensures correct parameter usage
 
 ##### `getPriceInference(asset, timeframe, signatureFormat)`
 
-Fetches a price inference for a specific asset and timeframe from the Allora API.
+**Fetches a price inference for a specific asset and timeframe from the Allora API.**
 
 ```typescript
 async getPriceInference(
@@ -126,14 +183,20 @@ async getPriceInference(
 ): Promise<AlloraInference>
 ```
 
-Parameters:
-- `asset`: The asset to get price inference for. Can be `PriceInferenceToken.BTC` or `PriceInferenceToken.ETH`.
-- `timeframe`: The timeframe to get price inference for. Can be `PriceInferenceTimeframe.FIVE_MIN` or `PriceInferenceTimeframe.EIGHT_HOURS`.
-- `signatureFormat`: The format of the signature. Optional, defaults to `SignatureFormat.ETHEREUM_SEPOLIA`.
+**Parameters:**
+- **`asset`**: The asset to get price inference for. Can be `PriceInferenceToken.BTC` or `PriceInferenceToken.ETH`.
+- **`timeframe`**: The timeframe to get price inference for. Can be `PriceInferenceTimeframe.FIVE_MIN` or `PriceInferenceTimeframe.EIGHT_HOURS`.
+- **`signatureFormat`**: The format of the signature. Optional, defaults to `SignatureFormat.ETHEREUM_SEPOLIA`.
 
-Returns: A promise that resolves to the inference data.
+**Returns:** A promise that resolves to the inference data.
 
-### Enums
+**Price Inference Applications**:
+- **Trading applications**: Integrate predictions into trading algorithms and strategies
+- **Portfolio management**: Make informed decisions based on network consensus
+- **Market analysis**: Access crowd-sourced price predictions for research
+- **Risk assessment**: Evaluate market conditions using aggregated intelligence
+
+### Type Definitions and Enums
 
 #### `ChainSlug`
 
@@ -144,6 +207,12 @@ enum ChainSlug {
 }
 ```
 
+**Chain Selection Strategy**:
+- **Development workflow**: Use testnet for development and testing phases
+- **Production deployment**: Switch to mainnet for live applications
+- **Environment parity**: Maintain consistent code across environments
+- **Testing strategy**: Validate functionality before mainnet deployment
+
 #### `PriceInferenceToken`
 
 ```typescript
@@ -153,208 +222,180 @@ enum PriceInferenceToken {
 }
 ```
 
+**Supported Assets**:
+- **Major cryptocurrencies**: Bitcoin and Ethereum price predictions
+- **Market coverage**: Focus on most liquid and actively traded assets
+- **Expansion ready**: Framework supports additional assets as network grows
+- **Standardized symbols**: Consistent asset identification across applications
+
 #### `PriceInferenceTimeframe`
 
 ```typescript
 enum PriceInferenceTimeframe {
-  FIVE_MIN = "5m",
+  FIVE_MIN = "5min",
   EIGHT_HOURS = "8h",
 }
 ```
 
-#### `SignatureFormat`
+**Timeframe Strategy**:
+- **Short-term predictions**: 5-minute intervals for high-frequency trading
+- **Medium-term forecasts**: 8-hour windows for swing trading and analysis
+- **Prediction accuracy**: Different timeframes optimize for different use cases
+- **Data frequency**: Balance between prediction accuracy and computational efficiency
 
+## Advanced Integration Patterns
+
+### React Application Integration
+
+**React Hook Example**:
 ```typescript
-enum SignatureFormat {
-  ETHEREUM_SEPOLIA = "ethereum-11155111",
-}
-```
+import { useState, useEffect } from 'react';
+import { AlloraAPIClient, ChainSlug } from '@alloralabs/allora-sdk/v2';
 
-### Interfaces
-
-#### `AlloraAPIClientConfig`
-
-```typescript
-interface AlloraAPIClientConfig {
-  chainSlug?: ChainSlug;
-  apiKey?: string;
-  baseAPIUrl?: string;
-}
-```
-
-#### `AlloraTopic`
-
-```typescript
-interface AlloraTopic {
-  topic_id: number;
-  topic_name: string;
-  description?: string | null;
-  epoch_length: number;
-  ground_truth_lag: number;
-  loss_method: string;
-  worker_submission_window: number;
-  worker_count: number;
-  reputer_count: number;
-  total_staked_allo: number;
-  total_emissions_allo: number;
-  is_active: boolean | null;
-  updated_at: string;
-}
-```
-
-#### `AlloraInferenceData`
-
-```typescript
-interface AlloraInferenceData {
-  network_inference: string;
-  network_inference_normalized: string;
-  confidence_interval_percentiles: string[];
-  confidence_interval_percentiles_normalized: string[];
-  confidence_interval_values: string[];
-  confidence_interval_values_normalized: string[];
-  topic_id: string;
-  timestamp: number;
-  extra_data: string;
-}
-```
-
-#### `AlloraInference`
-
-```typescript
-interface AlloraInference {
-  signature: string;
-  inference_data: AlloraInferenceData;
-}
-```
-
-## Examples
-
-### Fetching and Using Price Inference
-
-```typescript
-import { AlloraAPIClient, ChainSlug, PriceInferenceToken, PriceInferenceTimeframe } from '@alloralabs/allora-sdk/v2'
-
-async function fetchAndUseBTCPriceInference() {
-  // Initialize the client
-  const alloraClient = new AlloraAPIClient({
-    chainSlug: ChainSlug.TESTNET,
-    apiKey: process.env.ALLORA_API_KEY,
-  });
-
-  try {
-    // Fetch BTC price inference for 8-hour timeframe
-    const inference = await alloraClient.getPriceInference(
-      PriceInferenceToken.BTC,
-      PriceInferenceTimeframe.EIGHT_HOURS
-    );
-
-    // Extract the network inference value
-    const networkInference = inference.inference_data.network_inference;
-    console.log(`BTC 8-hour price inference: ${networkInference}`);
-
-    // Extract confidence interval values
-    const confidenceIntervals = inference.inference_data.confidence_interval_values;
-    console.log('Confidence intervals:', confidenceIntervals);
-
-    // Use the inference data in your application
-    // ...
-  } catch (error) {
-    console.error('Error fetching BTC price inference:', error);
-  }
-}
-```
-
-### Fetching All Topics and Displaying Them
-
-```typescript
-import { AlloraAPIClient, ChainSlug } from '@alloralabs/allora-sdk/v2'
-
-async function displayAllTopics() {
-  // Initialize the client
-  const alloraClient = new AlloraAPIClient({
-    chainSlug: ChainSlug.TESTNET,
-    apiKey: process.env.ALLORA_API_KEY,
-  });
-
-  try {
-    // Fetch all topics
-    const topics = await alloraClient.getAllTopics();
-
-    // Display topics
-    console.log(`Found ${topics.length} topics:`);
-    topics.forEach(topic => {
-      console.log(`- Topic ID: ${topic.topic_id}`);
-      console.log(`  Name: ${topic.topic_name}`);
-      console.log(`  Description: ${topic.description || 'No description'}`);
-      console.log(`  Active: ${topic.is_active ? 'Yes' : 'No'}`);
-      console.log(`  Worker count: ${topic.worker_count}`);
-      console.log(`  Updated at: ${topic.updated_at}`);
-      console.log('---');
-    });
-  } catch (error) {
-    console.error('Error fetching topics:', error);
-  }
-}
-```
-
-### Using Inference Data with React
-
-```typescript
-import React, { useState, useEffect } from 'react';
-import { AlloraAPIClient, ChainSlug, PriceInferenceToken, PriceInferenceTimeframe } from '@alloralabs/allora-sdk/v2';
-
-function PriceDisplay() {
-  const [price, setPrice] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+export function useAlloraTopics() {
+  const [topics, setTopics] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchPrice = async () => {
-      try {
-        setLoading(true);
-        
-        // Initialize the client
-        const alloraClient = new AlloraAPIClient({
-          chainSlug: ChainSlug.TESTNET,
-          apiKey: process.env.REACT_APP_ALLORA_API_KEY,
-        });
+    const client = new AlloraAPIClient({
+      chainSlug: ChainSlug.MAINNET,
+      apiKey: process.env.REACT_APP_ALLORA_API_KEY,
+    });
 
-        // Fetch ETH price inference
-        const inference = await alloraClient.getPriceInference(
-          PriceInferenceToken.ETH,
-          PriceInferenceTimeframe.FIVE_MIN
-        );
-
-        // Set the price
-        setPrice(inference.inference_data.network_inference);
-        setError(null);
-      } catch (err) {
-        setError('Failed to fetch price data');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPrice();
-    
-    // Refresh price every 5 minutes
-    const intervalId = setInterval(fetchPrice, 5 * 60 * 1000);
-    
-    // Clean up interval on component unmount
-    return () => clearInterval(intervalId);
+    client.getAllTopics()
+      .then(setTopics)
+      .catch(setError)
+      .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div>Loading price data...</div>;
-  if (error) return <div>Error: {error}</div>;
-
-  return (
-    <div>
-      <h2>Current ETH Price</h2>
-      <p className="price">{price}</p>
-    </div>
-  );
+  return { topics, loading, error };
 }
-
-export default PriceDisplay;
 ```
+
+### Node.js Backend Integration
+
+**Express.js API Example**:
+```typescript
+import express from 'express';
+import { AlloraAPIClient, ChainSlug } from '@alloralabs/allora-sdk/v2';
+
+const app = express();
+const alloraClient = new AlloraAPIClient({
+  chainSlug: ChainSlug.MAINNET,
+  apiKey: process.env.ALLORA_API_KEY,
+});
+
+app.get('/api/inference/:topicId', async (req, res) => {
+  try {
+    const topicId = parseInt(req.params.topicId);
+    const inference = await alloraClient.getInferenceByTopicID(topicId);
+    res.json(inference);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+```
+
+### Production Deployment Considerations
+
+**Environment Configuration**:
+- **API key management**: Use environment variables for secure credential storage
+- **Rate limiting**: Implement client-side rate limiting to respect API quotas
+- **Error recovery**: Add retry logic with exponential backoff for network failures
+- **Monitoring**: Track API usage and performance metrics for optimization
+
+**Performance Optimization**:
+- **Response caching**: Cache frequently accessed data to reduce API calls
+- **Request batching**: Group multiple requests when possible to improve efficiency
+- **Error boundaries**: Implement proper error handling to prevent application crashes
+- **Load balancing**: Distribute API requests across multiple instances if needed
+
+## Framework-Specific Guides
+
+### Next.js Integration
+
+**Server-Side Usage**:
+```typescript
+// pages/api/topics.ts
+import { AlloraAPIClient, ChainSlug } from '@alloralabs/allora-sdk/v2';
+
+export default async function handler(req, res) {
+  const client = new AlloraAPIClient({
+    chainSlug: ChainSlug.MAINNET,
+    apiKey: process.env.ALLORA_API_KEY,
+  });
+
+  try {
+    const topics = await client.getAllTopics();
+    res.status(200).json(topics);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch topics' });
+  }
+}
+```
+
+### Vue.js Integration
+
+**Composition API Usage**:
+```typescript
+import { ref, onMounted } from 'vue';
+import { AlloraAPIClient, ChainSlug } from '@alloralabs/allora-sdk/v2';
+
+export function useAlloraInference(topicId: number) {
+  const inference = ref(null);
+  const loading = ref(false);
+  const error = ref(null);
+
+  const fetchInference = async () => {
+    loading.value = true;
+    try {
+      const client = new AlloraAPIClient({
+        chainSlug: ChainSlug.MAINNET,
+        apiKey: process.env.VUE_APP_ALLORA_API_KEY,
+      });
+      inference.value = await client.getInferenceByTopicID(topicId);
+    } catch (err) {
+      error.value = err.message;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  onMounted(fetchInference);
+
+  return { inference, loading, error, refetch: fetchInference };
+}
+```
+
+## Security and Best Practices
+
+### API Key Security
+
+**Protection Strategies**:
+- **Environment variables**: Never hardcode API keys in source code
+- **Build-time injection**: Use build tools to inject keys at deployment time
+- **Key rotation**: Regularly update API keys for enhanced security
+- **Access control**: Limit API key permissions to minimum required scope
+
+### Error Handling Best Practices
+
+**Robust Error Management**:
+- **Specific error types**: Handle different error categories appropriately
+- **User experience**: Show meaningful error messages to end users
+- **Logging**: Log errors for debugging and monitoring purposes
+- **Graceful degradation**: Provide fallback behavior when API is unavailable
+
+## Prerequisites
+
+- **TypeScript/JavaScript knowledge**: Proficiency in modern JavaScript and TypeScript
+- **Async programming**: Understanding of Promises, async/await, and asynchronous patterns
+- **Package management**: Familiarity with npm, yarn, or other package managers
+- **Web development**: Basic knowledge of frontend frameworks or Node.js development
+
+## Next Steps
+
+- [Explore the Python SDK](/devs/sdk/allora-sdk-py) for Python-based applications
+- [Learn about API endpoints](/devs/consumers/allora-api-endpoint) for direct API integration
+- [Study consumer examples](/devs/consumers/existing-consumers) for real-world implementation patterns
+- [Review network topics](/devs/get-started/existing-topics) for available data sources

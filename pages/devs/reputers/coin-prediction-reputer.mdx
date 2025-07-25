@@ -2,41 +2,94 @@ import { Callout } from 'nextra/components'
 
 # Deploy a Coin Prediction Reputer
 
-This is an example of a setup for running an Allora Network reputer node for providing ground truth and reputation, where the Allora Network node defers the requests to another container which is responsible for providing the ground truth, which is run in a separate container. It also provides a means of updating the internal database of the ground truth provider.
+## What You'll Learn
+- Complete setup process for a coin prediction reputer node using Docker
+- Understanding the three-component architecture: Reputer, Truth, and Updater containers
+- Configuration management for wallet settings and reputer parameters
+- Real-world implementation for ETH price prediction topics
 
-## Components
+## Overview
 
-- **Reputer**: The node that responds to reputer requests from the Allora Network.
-- **Truth**: A container that performs reputation tasks, maintains the state of the model, and responds to reputation requests via a simple Flask application. It fetches data from CoinGecko.
-- **Updater**: A cron-like container designed to periodically trigger the Truth node's data updates.
+**This is an example of a setup for running an Allora Network reputer node for providing ground truth and reputation, where the Allora Network node defers the requests to another container which is responsible for providing the ground truth, which is run in a separate container.** It also provides a means of updating the internal database of the ground truth provider.
 
-A full working example for a reputer node for ETH price prediction topics is provided in the [`docker-compose.yml` file](https://github.com/allora-network/coin-prediction-reputer/blob/main/docker-compose.yml) of our example repo. Simply run:
+### Architecture Benefits
 
-## Explainer Video
+**Why This Design Works**:
+- **Separation of concerns**: Each component handles specific responsibilities
+- **Scalability**: Individual containers can be scaled independently
+- **Maintainability**: Components can be updated without affecting others
+- **Reliability**: Isolated failures don't compromise the entire system
 
-Please see the video below to get a full deep-dive on how to deploy a reputer:
+## System Components
+
+### Component Architecture
+
+**Reputer**: The node that responds to reputer requests from the Allora Network.
+- **Primary function**: Interface between Allora Network and ground truth system
+- **Network communication**: Handles all blockchain interactions and consensus
+- **Request routing**: Forwards evaluation requests to the Truth container
+
+**Truth**: A container that performs reputation tasks, maintains the state of the model, and responds to reputation requests via a simple Flask application. It fetches data from CoinGecko.
+- **Data source**: CoinGecko API integration for reliable price data
+- **Ground truth provision**: Supplies authoritative data for loss calculations
+- **State management**: Maintains historical data and current market information
+
+**Updater**: A cron-like container designed to periodically trigger the Truth node's data updates.
+- **Automation**: Scheduled updates to maintain data freshness
+- **Data integrity**: Ensures continuous availability of ground truth
+- **System reliability**: Reduces manual intervention requirements
+
+### Example Implementation
+
+**A full working example for a reputer node for ETH price prediction topics is provided in the [`docker-compose.yml` file](https://github.com/allora-network/coin-prediction-reputer/blob/main/docker-compose.yml) of our example repo. Simply run:**
+
+**Repository Benefits**:
+- **Complete implementation**: Ready-to-deploy configuration
+- **Best practices**: Proven architecture and setup patterns
+- **Documentation**: Comprehensive examples and explanations
+- **Community support**: Maintained by the Allora Network team
+
+## Educational Resources
+
+### Video Walkthrough
+
+**Please see the video below to get a full deep-dive on how to deploy a reputer:**
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/STNSWR2MNqU?si=8tZwcpHLF5wez-wA" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
-## Setup a Reputer Node with `docker-compose`
+**Video Learning Benefits**:
+- **Visual guidance**: Step-by-step demonstration of the entire process
+- **Troubleshooting**: Common issues and their solutions
+- **Best practices**: Expert recommendations for optimal setup
+- **Real-time examples**: Live deployment walkthrough
 
-### Download the Repository
+## Setup Process
+
+### Step 1: Download the Repository
 
 ```bash
 git clone https://github.com/allora-network/coin-prediction-reputer.git
 cd coin-prediction-reputer
 ```
 
-## Configure Your Environment
+**Repository Structure**:
+- **Complete codebase**: All necessary files for reputer deployment
+- **Configuration templates**: Pre-built examples for quick setup
+- **Documentation**: Detailed instructions and troubleshooting guides
+- **Docker integration**: Containerized deployment for easy management
+
+### Step 2: Configure Your Environment
 
 1. Copy `config.example.json` and name the copy `config.json`.
 2. Open `config.json` and **update** the necessary fields inside the `wallet` sub-object and `worker` config with your specific values:
 
-### `wallet` Sub-object
+#### Wallet Configuration
 
-1. `nodeRpc`: The [RPC URL](/devs/get-started/setup-wallet#rpc-url-and-chain-id) for the corresponding network the node will be deployed on
-2. `addressKeyName`: The name you gave your wallet key when [setting up your wallet](/devs/get-started/setup-wallet)
-3. `addressRestoreMnemonic`: The mnemonic that was outputted when setting up a new key
+**`wallet` Sub-object**:
+
+1. **`nodeRpc`**: The [RPC URL](/devs/get-started/setup-wallet#rpc-url-and-chain-id) for the corresponding network the node will be deployed on
+2. **`addressKeyName`**: The name you gave your wallet key when [setting up your wallet](/devs/get-started/setup-wallet)
+3. **`addressRestoreMnemonic`**: The mnemonic that was outputted when setting up a new key
 
 {/* <Callout type="info">
 `addressKeyName` and `addressRestoreMnemonic` are optional parameters. If you did not previously generate keys, keys will be generated for you when [running the node](/devs/workers/deploy-worker/using-docker#generate-keys-and-export-variables).
@@ -44,18 +97,27 @@ cd coin-prediction-reputer
 If you have existing keys that you wish to use, you will need to provide these variables.
 </Callout> */}
 
-### `reputer` Config
+**Configuration Security**:
+- **Secure storage**: Keep your mnemonic phrase in a safe location
+- **Access control**: Limit file permissions for configuration files
+- **Backup strategy**: Maintain secure backups of wallet information
 
-1. `topicId`: The specific topic ID you created the reputer for.
-2. `SourceOfTruthEndpoint`: The endpoint exposed by your source of truth server to provide the truth data to the network.
-3. `Token`: The token for the specific topic you are verifying truth data for. This token should be included in the source of truth endpoint for retrieval.
+#### Reputer Configuration
+
+**`reputer` Config**:
+
+1. **`topicId`**: The specific topic ID you created the reputer for.
+2. **`SourceOfTruthEndpoint`**: The endpoint exposed by your source of truth server to provide the truth data to the network.
+3. **`Token`**: The token for the specific topic you are verifying truth data for. This token should be included in the source of truth endpoint for retrieval.
    - The `Token` variable is specific to the endpoint you expose in your `main.py` file. It is **not** related to any blockchain parameter and is only locally specific.
-4. `minStake`: The minimum stake required to participate as a reputer. This stake will be deducted from the reputer's wallet balance.
-5. `loopSeconds`: The amount of seconds to wait between attempts to get the next reputer [nonce](devs/topic-creators/topic-life-cycle#nonce)
+4. **`minStake`**: The minimum stake required to participate as a reputer. This stake will be deducted from the reputer's wallet balance.
+5. **`loopSeconds`**: The amount of seconds to wait between attempts to get the next reputer [nonce](devs/topic-creators/topic-life-cycle#nonce)
 
 <Callout>
 When placing your minimum stake, the system will verify the amount of funds you have already staked in the topic. If your staked amount is insufficient, it will automatically pull the necessary funds from your wallet to meet the required minimum.
 </Callout>
+
+#### Multi-Topic Support
 
 <Callout type="warning">
 The `reputer` config is an array of sub-objects, each representing a different topic ID. This structure allows you to manage multiple topic IDs, each within its own sub-object.
@@ -88,11 +150,19 @@ To deploy a reputer that provides inferences for multiple topics, you can duplic
 ```
 </Callout>
 
-## Running the Node
+**Multi-Topic Strategy**:
+- **Resource allocation**: Distribute stakes strategically across topics
+- **Performance monitoring**: Track individual topic performance
+- **Risk management**: Diversify across different prediction categories
+- **Scaling considerations**: Plan for increased computational requirements
+
+## Deployment Process
+
+### Step 3: Running the Node
 
 Now that the node is configured, let's deploy and register it to the network. To run the node, follow these steps:
 
-### Export Variables
+#### Export Variables
 
 Execute the following command from the root directory:
 
@@ -115,11 +185,22 @@ before proceeding.
 
 </Callout>
 
-### Request from Faucet
+**Variable Export Benefits**:
+- **Environment isolation**: Secure separation of configuration data
+- **Docker integration**: Seamless container environment setup
+- **Security enhancement**: Prevents credential exposure in command line
+- **Configuration validation**: Ensures all required parameters are present
+
+#### Request from Faucet
 
 Copy your Allora address and request some tokens from the [Allora Testnet Faucet](https://faucet.testnet.allora.network/) to register your reputer in the next step successfully.
 
-### Deploy the Node
+**Funding Requirements**:
+- **Minimum stake**: Sufficient tokens for your configured minimum stake
+- **Transaction fees**: Additional tokens for network operations
+- **Operational buffer**: Extra funds for ongoing network participation
+
+#### Deploy the Node
 
 ```
 docker compose up --build
@@ -127,15 +208,33 @@ docker compose up --build
 
 Both the offchain node and the source services will be started. They will communicate through endpoints attached to the internal DNS.
 
+**Deployment Process**:
+- **Container orchestration**: All components start in coordinated fashion
+- **Internal networking**: Secure communication between containers
+- **Service discovery**: Automatic endpoint resolution and connection
+- **Health monitoring**: Built-in checks for service availability
+
+## Verification and Monitoring
+
+### Successful Deployment
+
 A **successful** response from your Reputer should display:
 
 ```bash
 {"level":"debug","msg":"Send Reputer Data to chain","txHash":"<tx-hash>","time":"<timestamp>","message":"Success"}
 ```
 
-Congratulations! You've successfully deployed and registered your node on Allora.
+**Congratulations! You've successfully deployed and registered your node on Allora.**
 
-### Keep it updated
+**Success Indicators**:
+- **Transaction confirmation**: Valid transaction hash in logs
+- **Network registration**: Node appears in network participant lists
+- **Data flow**: Truth service responding to requests properly
+- **Consensus participation**: Active involvement in reputation calculations
+
+### Data Maintenance
+
+#### Keep it updated
 
 You can keep the state updated by hitting the url: 
 
@@ -147,16 +246,24 @@ where:
 - `token-from`: the name of the token on Coingecko naming, e.g. ethereum
 - `token-to`: the name of the token on Coingecko naming, e.g. usd
 
-It is expected that this endpoint is hit periodically, as this is crucial for maintaining the accuracy of the provided ground truth.
+**It is expected that this endpoint is hit periodically, as this is crucial for maintaining the accuracy of the provided ground truth.**
 
-## Testing the Truth Service
+**Update Strategy**:
+- **Scheduled updates**: Implement regular data refresh cycles
+- **Real-time monitoring**: Track data freshness and accuracy
+- **Error handling**: Manage API failures and network issues
+- **Performance optimization**: Balance update frequency with resource usage
 
-Here we'll setup a reputer with only the "truth service", which fetches the ground truth.
+## Testing and Validation
 
-To only test the truth service, you can simply follow these steps:
+### Testing the Truth Service
 
-- Run `docker compose up --build truth` and wait for the initial data load.
-- Requests can now be sent, e.g. ETH price ground truths can be fetched with: 
+**Here we'll setup a reputer with only the "truth service", which fetches the ground truth.**
+
+**To only test the truth service, you can simply follow these steps:**
+
+- **Run `docker compose up --build truth`** and wait for the initial data load.
+- **Requests can now be sent**, e.g. ETH price ground truths can be fetched with: 
   ```
     $ curl http://localhost:8000/gt/ETHUSD/1719565747
     {"value":"3431.440268842158"}
@@ -165,3 +272,41 @@ To only test the truth service, you can simply follow these steps:
   ```
     $ curl http://localhost:8000/update/ETHUSD/ethereum/usd
   ```
+
+**Testing Benefits**:
+- **Component isolation**: Test truth service independently
+- **Data validation**: Verify ground truth accuracy before full deployment
+- **Performance assessment**: Measure response times and reliability
+- **Debugging facilitation**: Identify issues before network integration
+
+## Best Practices
+
+### Operational Considerations
+
+**Reliability Strategies**:
+- **Regular monitoring**: Track all component health and performance
+- **Data backup**: Maintain copies of critical configuration and state data
+- **Update procedures**: Establish processes for software and configuration updates
+- **Error recovery**: Implement robust error handling and recovery mechanisms
+
+### Security Guidelines
+
+**Protection Measures**:
+- **Access control**: Limit network access to reputer endpoints
+- **Credential management**: Secure storage of wallet keys and API credentials
+- **Network security**: Use firewalls and secure communication protocols
+- **Regular updates**: Keep all software components current with security patches
+
+## Prerequisites
+
+- **Docker and Docker Compose**: Container orchestration platform
+- **Network connectivity**: Stable internet connection for API access and blockchain communication
+- **Wallet setup**: Configured Allora wallet with sufficient funds
+- **Technical understanding**: Basic knowledge of containerized applications and blockchain operations
+
+## Next Steps
+
+- [Learn about reputer data querying](/devs/reputers/query-reputer-data) for performance monitoring
+- [Understand stake management](/devs/reputers/set-and-adjust-stake) for optimal network participation
+- [Explore general reputer deployment](/devs/reputers/reputers) for broader implementation options
+- [Study the reputer role](/devs/reputers) for comprehensive understanding of network functions

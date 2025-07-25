@@ -1,17 +1,133 @@
 # Existing Consumer Deployments
 
-> Where deployments on supported chains can be found
+## What You'll Learn
+- How to find and interact with deployed consumer contracts
+- Available blockchain networks with consumer contract deployments
+- Process for deploying consumer contracts to additional chains
+- Resources for exploring existing Allora Network topics
 
-## Consumer Contract Deployments
+## Overview
 
-You can find the deployed consumer contracts by looking at the latest saved deployments in the repository:
-- [Sepolia](https://sepolia.etherscan.io/address/0x8E45fbef38DaC54e32AfB27AC8cBab30E6818ce6#code)
-- [Arbitrum One](https://arbiscan.io/address/0xd75A47C0e5Eb0CeDF57072268F48ba971d2cD7F3#code)
+**Where deployments on supported chains can be found.**
 
-## Deploying to additional chains
+### Why Use Existing Deployments?
 
-If you would like to deploy to an additional chain not listed above, you can learn how to do so [here](./deploy-consumer).
+**Benefits of leveraging deployed contracts**:
+- **Ready-to-use infrastructure**: No deployment overhead or setup complexity
+- **Tested reliability**: Proven contracts with established track records
+- **Cost efficiency**: Avoid deployment gas costs and development time
+- **Community validation**: Contracts used and validated by other developers
 
-## Existing Allora Appchain Topics
+## Deployed Consumer Contracts
 
-Existing Allora Appchain Topics can be found [here](/devs/get-started/existing-topics).
+### Supported Networks
+
+**You can find the deployed consumer contracts by looking at the latest saved deployments in the repository:**
+
+#### Ethereum Sepolia Testnet
+- **Network**: [Sepolia](https://sepolia.etherscan.io/address/0x8E45fbef38DaC54e32AfB27AC8cBab30E6818ce6#code)
+- **Purpose**: Testing and development environment
+- **Benefits**: Free testnet tokens for experimentation
+- **Use case**: Prototype development and integration testing
+
+#### Arbitrum One Mainnet
+- **Network**: [Arbitrum One](https://arbiscan.io/address/0xd75A47C0e5Eb0CeDF57072268F48ba971d2cD7F3#code)
+- **Purpose**: Production-ready Layer 2 solution
+- **Benefits**: Lower gas costs and faster transactions
+- **Use case**: Production deployments and high-frequency applications
+
+### Contract Verification
+
+**Deployment Verification**:
+- **Source code**: All contracts are verified on their respective block explorers
+- **Transparency**: Review contract functionality before interaction
+- **Security**: Audit contract code for security considerations
+- **Compatibility**: Ensure contract interfaces match your integration needs
+
+## Extending to Additional Chains
+
+### Custom Deployment Process
+
+**If you would like to deploy to an additional chain not listed above, you can learn how to do so [here](./deploy-consumer).**
+
+**When to Deploy to New Chains**:
+- **Network requirements**: Target blockchain not currently supported
+- **Custom modifications**: Need contract changes for specific use cases
+- **Geographic considerations**: Regional blockchain preferences
+- **Cost optimization**: More favorable gas costs on alternative networks
+
+**Deployment Considerations**:
+- **Gas costs**: Evaluate deployment and operational costs
+- **Network security**: Assess blockchain maturity and decentralization
+- **Developer tooling**: Availability of debugging and monitoring tools
+- **Community support**: Active developer community and documentation
+
+## Network Topics and Resources
+
+### Available Topics
+
+**Existing Allora Appchain Topics can be found [here](/devs/get-started/existing-topics).**
+
+**Topic Integration Strategy**:
+- **Review active topics**: Understand available inference categories
+- **Assess data quality**: Evaluate prediction accuracy and reliability
+- **Match use cases**: Align topic data with your application needs
+- **Monitor performance**: Track topic activity and participant engagement
+
+### Integration Planning
+
+**Development Workflow**:
+1. **Explore existing topics**: Review available inference categories and data
+2. **Select target networks**: Choose between testnet (development) and mainnet (production)
+3. **Integrate with deployed contracts**: Use existing contracts for rapid development
+4. **Test thoroughly**: Validate integration functionality before production use
+
+## Getting Started with Existing Deployments
+
+### Development Phase
+
+**Testnet Integration**:
+- **Start with Sepolia**: Use the testnet deployment for initial development
+- **Test all functionality**: Validate inference retrieval and processing
+- **Monitor gas usage**: Optimize transaction patterns for cost efficiency
+- **Debug edge cases**: Handle network delays and data availability issues
+
+### Production Deployment
+
+**Mainnet Migration**:
+- **Deploy to Arbitrum One**: Use the production-ready Layer 2 deployment
+- **Implement monitoring**: Track contract interactions and performance
+- **Plan for scaling**: Design for increased usage and data volume
+- **Establish fallbacks**: Prepare contingency plans for network issues
+
+## Best Practices
+
+### Security Considerations
+
+**Safe Integration Guidelines**:
+- **Verify contract addresses**: Always double-check deployment addresses
+- **Test with small amounts**: Start with minimal value transactions
+- **Monitor for updates**: Stay informed about contract upgrades or changes
+- **Implement rate limiting**: Avoid overwhelming the network with requests
+
+### Performance Optimization
+
+**Efficiency Strategies**:
+- **Batch requests**: Group multiple inference queries when possible
+- **Cache responses**: Store frequently accessed data to reduce network calls
+- **Optimize gas usage**: Use efficient transaction patterns and timing
+- **Monitor latency**: Track response times and adjust accordingly
+
+## Prerequisites
+
+- **Smart contract interaction knowledge**: Understanding of blockchain transactions and contract calls
+- **Web3 development tools**: Familiarity with libraries like ethers.js or web3.js
+- **Network configuration**: Ability to connect to different blockchain networks
+- **Gas management**: Understanding of transaction fees and optimization
+
+## Next Steps
+
+- [Learn to deploy your own consumer contracts](./deploy-consumer) for custom functionality
+- [Explore the consumer contract development guide](./dev-consumers) for detailed implementation
+- [Review existing topics](/devs/get-started/existing-topics) to understand available data sources
+- [Follow the topic inference walkthrough](./walkthrough-use-topic-inference) for hands-on experience

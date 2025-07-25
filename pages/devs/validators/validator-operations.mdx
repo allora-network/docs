@@ -1,17 +1,66 @@
 # Validator Operations
 
-## Unjailing a validator
+## What You'll Learn
+- Essential validator management operations for ongoing network participation
+- How to unjail a validator that has been penalized by the network
+- Complete process for unstaking and removing a validator from the chain
+- Command-line procedures for critical validator maintenance tasks
 
-To unjail a validator execute the following command from the validator
+## Overview
 
-```Text bash
+**This guide covers essential operations for managing your validator node on the Allora Network.** These operations are critical for maintaining validator status and handling various network scenarios.
+
+### Why These Operations Matter
+
+**Operational Importance**:
+- **Network compliance**: Maintain good standing with network consensus requirements
+- **Penalty recovery**: Restore validator functionality after network penalties
+- **Exit procedures**: Properly remove validators when needed
+- **Risk management**: Handle emergency situations and validator maintenance
+
+**Professional Responsibility**:
+- **Uptime maintenance**: Ensure continuous participation in network consensus
+- **Quick recovery**: Minimize downtime and restore operations rapidly
+- **Proper procedures**: Follow correct protocols to avoid additional penalties
+- **Network health**: Contribute to overall network stability and reliability
+
+## Critical Validator Operations
+
+### Unjailing a Validator
+
+**To unjail a validator execute the following command from the validator:**
+
+```bash
 allorad --home="$APP_HOME" \
   tx slashing unjail --from $VALIDATOR_ADDRESS
 ```
 
-## Unstaking/unbounding a validator
+#### When Unjailing Is Needed
 
-If you need to delete a validator from the chain, you just need to unbound the stake with your custom parameters:
+**Common Jailing Scenarios**:
+- **Downtime penalties**: Extended periods of missed block signatures
+- **Double signing**: Accidental signing of conflicting blocks (serious offense)
+- **Network violations**: Failure to follow consensus rules or protocol requirements
+- **Technical issues**: Infrastructure problems causing validator misbehavior
+
+#### Unjailing Process
+
+**Steps to Recovery**:
+1. **Identify the issue**: Determine why the validator was jailed
+2. **Fix underlying problems**: Resolve technical issues causing the penalty
+3. **Wait for unjail period**: Respect minimum jailing duration requirements
+4. **Execute unjail command**: Use the provided command to restore validator status
+5. **Monitor restoration**: Verify validator returns to active consensus participation
+
+**Post-Unjailing Actions**:
+- **System monitoring**: Implement better monitoring to prevent future jailing
+- **Infrastructure review**: Assess and improve validator setup for reliability
+- **Performance tracking**: Monitor validator metrics and network participation
+- **Backup procedures**: Establish redundancy to prevent future downtime
+
+### Unstaking/Unbonding a Validator
+
+**If you need to delete a validator from the chain, you just need to unbound the stake with your custom parameters:**
 
 ```bash
 allorad --home="$APP_HOME" \
@@ -19,3 +68,101 @@ allorad --home="$APP_HOME" \
   ${STAKE_AMOUNT}uallo --from "$MONIKER" \
    --keyring-backend=test --chain-id ${NETWORK}
 ```
+
+#### Unbonding Considerations
+
+**When to Unbond**:
+- **Permanent exit**: Shutting down validator operations permanently
+- **Infrastructure changes**: Major system upgrades requiring validator restart
+- **Economic decisions**: Reallocating stake to other investment opportunities
+- **Network transitions**: Moving to different networks or protocols
+
+#### Unbonding Process Details
+
+**Command Parameters**:
+- **`$VALIDATOR_OPERATOR_ADDRESS`**: The specific validator's operator address
+- **`$STAKE_AMOUNT`**: Amount of tokens to unbond (in base denomination uallo)
+- **`$MONIKER`**: Your validator's human-readable name
+- **`$NETWORK`**: The chain ID for the network (e.g., allora-testnet-1)
+
+**Important Considerations**:
+- **Unbonding period**: Tokens are locked for a specified period after unbonding
+- **Partial unbonding**: You can unbond partial amounts rather than entire stake
+- **Delegator impact**: Unbonding affects delegators who have staked with your validator
+- **Slashing exposure**: Validators remain subject to slashing during unbonding period
+
+### Advanced Operations
+
+#### Validator Key Management
+
+**Security Best Practices**:
+- **Key rotation**: Regularly update validator signing keys for security
+- **Backup procedures**: Maintain secure backups of all validator keys and configurations
+- **Access control**: Limit access to validator infrastructure and key materials
+- **Multi-signature**: Consider multi-signature setups for critical operations
+
+#### Emergency Procedures
+
+**Crisis Management**:
+- **Emergency shutdown**: Procedures for safely shutting down validator during crises
+- **Key compromise**: Steps to take if validator keys are potentially compromised
+- **Infrastructure failure**: Backup plans for hardware or network failures
+- **Coordinated response**: Communication with network during emergency situations
+
+## Operational Best Practices
+
+### Monitoring and Maintenance
+
+**Continuous Operations**:
+- **Performance metrics**: Track validator performance and network statistics
+- **Alert systems**: Set up monitoring and alerting for validator issues
+- **Regular updates**: Keep validator software updated with latest releases
+- **Health checks**: Implement automated health checks and status monitoring
+
+### Risk Management
+
+**Penalty Prevention**:
+- **Redundant infrastructure**: Multiple servers and network connections
+- **Automated failover**: Systems to switch to backup infrastructure automatically
+- **Regular testing**: Test disaster recovery and emergency procedures regularly
+- **Documentation**: Maintain detailed runbooks for all operational procedures
+
+### Community Engagement
+
+**Network Participation**:
+- **Governance voting**: Actively participate in network governance decisions
+- **Community communication**: Maintain open communication with delegators and community
+- **Technical contributions**: Share knowledge and contribute to network development
+- **Professional network**: Build relationships with other validators and network participants
+
+## Troubleshooting Common Issues
+
+### Jailing Problems
+
+**Diagnostic Steps**:
+- **Check validator status**: Verify current validator state and jailing reason
+- **Review logs**: Examine validator logs for error messages and issues
+- **Network connectivity**: Ensure stable connection to network peers
+- **System resources**: Verify adequate computational resources and performance
+
+### Unbonding Issues
+
+**Common Solutions**:
+- **Insufficient balance**: Ensure adequate tokens for transaction fees
+- **Address verification**: Double-check validator operator address accuracy
+- **Network parameters**: Verify correct chain ID and network configuration
+- **Transaction confirmation**: Monitor transaction status and confirmation
+
+## Prerequisites
+
+- **Active validator**: Currently operating validator node on the Allora Network
+- **Command-line access**: Terminal access to validator infrastructure
+- **Administrative permissions**: Appropriate access rights for validator operations
+- **Network connectivity**: Stable connection to Allora Network blockchain
+
+## Next Steps
+
+- [Learn about software upgrades](/devs/validators/software-upgrades) for maintaining current validator software
+- [Review validator requirements](/devs/validators/nop-requirements) for infrastructure optimization
+- [Study validator staking](/devs/validators/stake-a-validator) for understanding stake management
+- [Explore full node operations](/devs/validators/run-full-node) for comprehensive validator setup

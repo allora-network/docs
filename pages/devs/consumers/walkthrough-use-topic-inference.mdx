@@ -1,8 +1,29 @@
 # Walkthrough: Using a Topic Inference on-chain
 
-Follow these instructions to bring the most recent inference data on-chain for a given topic. 
+## What You'll Learn
+- Complete workflow for integrating Allora Network inferences into smart contracts
+- How to query the Consumer Inference API for prediction data
+- Step-by-step implementation of on-chain inference verification
 
-## Complete Example:
+## Overview
+
+**Follow these instructions to bring the most recent inference data on-chain for a given topic.**
+
+This walkthrough shows the complete process:
+- Query inference data from the API
+- Use that data in your smart contract
+- Verify the data on-chain with cryptographic signatures
+
+## Prerequisites
+
+- Smart contract development experience (Solidity)
+- Web3 development knowledge (TypeScript/JavaScript)
+- Access to Allora Consumer API with valid API key
+- Understanding of [consumer contracts](/devs/consumers/consumer-contracts/dev-consumers)
+
+## Complete Example
+
+Here's the smart contract function you'll implement:
 
 ```solidity
     /**
@@ -30,19 +51,25 @@ Follow these instructions to bring the most recent inference data on-chain for a
     }
 ```
 
-## Step by Step Guide:
+## Step-by-Step Guide
+
+### Step 1: Query the API
 
 Call the Consumer Inference API using the `asset` and `timeframe` you want to query.
 
-- `asset` is the asset you want to query, e.g. `BTC`, `ETH`
-- `timeframe` is the timeframe you want to query, e.g. `5m`, `8h`
+**Parameters**:
+- **`asset`**: The asset you want to query, e.g. `BTC`, `ETH`
+- **`timeframe`**: The timeframe you want to query, e.g. `5m`, `8h`
 
+**API Request**:
 ```shell
 
 curl -X 'GET' --url 'https://api.allora.network/v2/allora/consumer/price/ethereum-111551111/ETH/5m' -H 'x-api-key: <apiKey>'
 ```
 
-Here is an example response: 
+### Step 2: Parse the API Response
+
+**Example API Response**:
 ```json
 {
 	"request_id": "b52b7c20-57ae-4852-bdbb-8f39cf317974",
@@ -61,12 +88,23 @@ Here is an example response:
 }
 ```
 
-3. Construct a call to the Allora Consumer contract on the chain of your choice (options listed under [deployments](./existing-consumers)) using the returned `signature` and `network-inference` as follows:
+**Key Response Fields**:
+- **`signature`**: Cryptographic signature for on-chain verification
+- **`network_inference`**: The main prediction value
+- **`confidence_interval_percentiles`**: Statistical confidence levels
+- **`confidence_interval_values`**: Prediction bounds for risk assessment
+- **`topic_id`**: Identifier for the prediction topic
+- **`timestamp`**: When the inference was generated
 
-## Creating the Transaction:
+### Step 3: Create the Smart Contract Transaction
 
-Note you be doing something more like `callProtocolFunctionWithAlloraTopicInference` in the example above, so you would want to construct your call to that contract in a similar way to the following. You can find the complete example [here](https://github.com/allora-network/allora-consumer/blob/main/script/verifyDataExampleSimple.ts). 
+Construct a call to the Allora Consumer contract on the chain of your choice (options listed under [deployments](./existing-consumers)) using the returned `signature` and `network-inference` as follows:
 
+#### Creating the Transaction
+
+Note you be doing something more like `callProtocolFunctionWithAlloraTopicInference` in the example above, so you would want to construct your call to that contract in a similar way to the following. You can find the complete example [here](https://github.com/allora-network/allora-consumer/blob/main/script/verifyDataExampleSimple.ts).
+
+**TypeScript Implementation**:
 ```typescript
 const alloraConsumer = 
   (new AlloraConsumer__factory())
@@ -94,13 +132,31 @@ const result = await tx.wait()
 console.info('tx receipt:', result)
 ```
 
+**Transaction Flow**:
+1. Create consumer contract instance with factory
+2. Connect your wallet for transaction signing
+3. Call `verifyNetworkInference` with the API response data
+4. Wait for transaction confirmation
 
-## Notes
+## Important Notes
 
+**Data Format Differences**:
 - The API endpoint uses `snake_case`, while the smart contract uses `camelCase` for attribute names.
 - Ethers.js does not accept `''` for `extraData`. Empty `extraData` should be denoted with `'0x'`.
 
-## Code Links
+**Field Mapping**:
+- API: `network_inference` → Contract: `networkInference`
+- API: `confidence_interval_percentiles` → Contract: `confidenceIntervalPercentiles`
+- API: `confidence_interval_values` → Contract: `confidenceIntervalValues`
 
+## Source Code References
+
+**Open Source Resources**:
 - [Open source consumer code](https://github.com/allora-network/allora-consumer/blob/main/src/)
 - [IAlloraConsumer](https://github.com/allora-network/allora-consumer/blob/main/src/interface/IAlloraConsumer.sol), including the structs used for Solidity code.
+
+## Next Steps
+
+- [Learn about consumer contract development](/devs/consumers/consumer-contracts/dev-consumers)
+- [Deploy your own consumer contracts](/devs/consumers/consumer-contracts/deploy-consumer)
+- [Explore alternative data access methods](/devs/consumers/rpc-data-access)

@@ -1,13 +1,49 @@
 # System Requirements
 
-To participate in the Allora Network, ensure your system meets the following requirements:
+## What You'll Learn
+- Minimum hardware requirements for running Allora Network worker nodes
+- Required development and production environment tools  
+- Technical prerequisites for deploying predictive models as workers
+
+## Overview
+
+**To participate in the Allora Network, ensure your system meets the following requirements:**
+
+### Why These Requirements Matter
+
+Meeting these specifications ensures:
+- **Reliable operation**: Consistent worker performance without resource constraints
+- **Network compatibility**: Proper integration with Allora Network protocols
+- **Development efficiency**: Smooth model development and deployment workflow
+- **Production readiness**: Stable operation in live network environments
+
+## Hardware Requirements
+
+### Minimum System Specifications
 
 **Operating System**: Any modern operating system including Windows, macOS, or Linux  
-**CPU**: Minimum of 1/2 core.  
+**CPU**: Minimum of 0.5 core.  
 **Memory**: 2 to 4 GB.  
 **Storage**: SSD or NVMe with at least 5GB of space.
 
-## Technical Requirement
+### Resource Planning
+
+**CPU Considerations**:
+- Half-core minimum supports basic inference operations
+- Consider higher specs for complex models or multiple topics
+- Performance scales with computational requirements of your models
+
+**Memory Guidelines**:
+- 2GB minimum for lightweight models
+- 4GB recommended for more complex inference tasks
+- Additional memory needed for model training and data processing
+
+**Storage Requirements**:
+- SSD/NVMe provides faster model loading and data access
+- 5GB minimum covers base requirements and small models
+- Scale storage based on model size and data retention needs
+
+## Technical Requirements
 
 Certain technical tools and platforms are required to develop and deploy your predictive models as workers within the Allora Network.
 
@@ -15,8 +51,39 @@ Certain technical tools and platforms are required to develop and deploy your pr
 
 **Docker**: Essential for creating and managing containers.
 
+**Development Benefits**:
+- **Containerization**: Consistent environment across development and production
+- **Dependency management**: Isolated runtime environments
+- **Easy deployment**: Simplified packaging and distribution
+
 ### Production Environment
 
 **Kubernetes**: A container orchestration system for automating software deployment, scaling, and management  
 **Helm**: A package manager for Kubernetes. _We advise the use of the Upshot Universal Helm Chart for deployment_  
-**Preferred Cloud Service**: Depending on your preference, you can choose a cloud environment where your Node  will be running
+**Preferred Cloud Service**: Depending on your preference, you can choose a cloud environment where your Node will be running
+
+**Production Considerations**:
+- **Kubernetes**: Provides auto-scaling, load balancing, and service discovery
+- **Helm Charts**: Standardized deployment templates for consistent configuration
+- **Cloud Services**: Choose based on latency, cost, and regional requirements
+
+### Recommended Cloud Providers
+
+Popular options include:
+- **AWS**: Comprehensive services with global presence
+- **Google Cloud**: Strong AI/ML integration and competitive pricing
+- **Azure**: Enterprise features and hybrid cloud capabilities
+- **DigitalOcean**: Simple, developer-friendly interface
+
+## Prerequisites
+
+- Basic understanding of containerization concepts
+- Familiarity with command-line interfaces
+- Knowledge of your preferred cloud platform
+- Understanding of [Allora Network architecture](/home/concepts/overview)
+
+## Next Steps
+
+- [Set up your development environment](/devs/get-started/setup-wallet)
+- [Learn worker deployment with Docker](/devs/workers/deploy-worker/using-docker)
+- [Explore cloud deployment options](/devs/workers/deploy-worker/build-and-deploy-worker-with-node-runners)

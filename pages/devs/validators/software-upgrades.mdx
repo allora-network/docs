@@ -1,67 +1,253 @@
 # Software Upgrades
 
-> How to upgrade the Allora software version during hard forks.
+## What You'll Learn
+- Understanding Allora Network's multi-component software architecture and upgrade requirements
+- Complete process for handling breaking version upgrades and hard forks
+- Step-by-step procedures for both developers and validator operators during upgrades
+- How to use Cosmovisor for automated upgrade management and execution
 
-The Allora network relies on multiple different pieces of software to do different tasks.
-For example the `allora-chain` repository handles the blockchain software that runs the chain, while
-the `offchain-node` repository performs off-chain tasks. Each piece of software may need to
-be upgraded separately.
+## Overview
+
+> **How to upgrade the Allora software version during hard forks.**
+
+**The Allora network relies on multiple different pieces of software to do different tasks.** For example the `allora-chain` repository handles the blockchain software that runs the chain, while the `offchain-node` repository performs off-chain tasks. Each piece of software may need to be upgraded separately.
+
+### Why Software Upgrades Matter
+
+**Network Evolution**:
+- **Feature enhancements**: Add new capabilities and improve existing functionality
+- **Security patches**: Address vulnerabilities and strengthen network protection
+- **Performance optimization**: Improve efficiency and scalability
+- **Bug fixes**: Resolve issues and enhance network stability
+
+**Coordination Benefits**:
+- **Network consensus**: Ensure all validators upgrade simultaneously for network integrity
+- **Backward compatibility**: Maintain interoperability during transition periods
+- **Risk mitigation**: Minimize disruption through coordinated upgrade procedures
+- **Community coordination**: Enable democratic decision-making for network changes
+
+## Allora Network Architecture
+
+### Software Components
+
+**Multi-Repository Structure**:
+- **`allora-chain`**: Cosmos-SDK based blockchain handling core network operations
+- **`offchain-node`**: Performs specialized off-chain tasks and computations
+- **Additional components**: Various supporting services and tools
+
+**Independent Upgrade Paths**:
+- **Component isolation**: Each software component can be upgraded independently
+- **Selective updates**: Target specific components without affecting others
+- **Version synchronization**: Coordinate upgrades across related components when needed
+- **Rollback capability**: Ability to revert individual components if issues arise
 
 ## Allora-Chain Upgrades
 
-The `allora-chain` software is a cosmos-sdk based blockchain that runs the Allora network. New 
-software releases are published on the 
-Allora Chain [Github](https://github.com/allora-network/allora-chain/releases) page and are tagged
-with a version number. Upgrading to non-breaking versions is as simple as downloading the
-pre-built binaries or compiling the software from source and running the new version.
+**The `allora-chain` software is a cosmos-sdk based blockchain that runs the Allora network.** New software releases are published on the Allora Chain [Github](https://github.com/allora-network/allora-chain/releases) page and are tagged with a version number. Upgrading to non-breaking versions is as simple as downloading the pre-built binaries or compiling the software from source and running the new version.
 
-### Upgrading to a Breaking Version
+### Standard Version Updates
 
-For breaking versions such as hard forks, or software upgrades requiring changes to the underlying
-state machine of the allora-chain, the upgrade process is more involved. These upgrades require 
-using the `gov` and `upgrade` cosmos-sdk modules to first propose and vote on a software upgrade,
-and then to execute the upgrade at a specific block height.
+**Non-Breaking Upgrades**:
+- **Simple process**: Download new binaries or compile from source
+- **No coordination needed**: Validators can upgrade at their own pace
+- **Backward compatibility**: New versions work with existing network state
+- **Minimal downtime**: Quick replacement of running software
 
-#### For Allora Chain Developers
+**Update Procedure**:
+1. **Download release**: Get the latest version from GitHub releases
+2. **Verify integrity**: Check signatures and hashes for security
+3. **Stop services**: Safely shutdown current validator processes
+4. **Replace binaries**: Update to new software version
+5. **Restart services**: Resume validator operations with new version
 
-For writing an upgrade the steps are roughly the following:
+### Breaking Version Upgrades
 
-1. In the `app/` [folder](https://github.com/allora-network/allora-chain/tree/main/app/upgrades), 
-create a new folder for your upgrade. 
-2. In that folder create a file that contains an `UpgradeName`, and a function `CreateUpgradeHandler` which 
-returns a `"cosmossdk.io/x/upgrade/types".UpgradeHandler`.Optionally include a `UpgradeInfo` that is a json string telling the client software
-where to download the upgrade binary version e.g.
+**For breaking versions such as hard forks, or software upgrades requiring changes to the underlying state machine of the allora-chain, the upgrade process is more involved.** These upgrades require using the `gov` and `upgrade` cosmos-sdk modules to first propose and vote on a software upgrade, and then to execute the upgrade at a specific block height.
+
+#### Governance-Based Upgrade Process
+
+**Why Governance Is Required**:
+- **Network consensus**: Ensure all validators upgrade at the same block height
+- **Democratic process**: Allow community input on significant network changes
+- **Risk management**: Provide time for review and preparation before execution
+- **Coordination mechanism**: Synchronize complex upgrades across the network
+
+## Developer Upgrade Procedures
+
+### For Allora Chain Developers
+
+**For writing an upgrade the steps are roughly the following:**
+
+#### Step 1: Create Upgrade Handler
+
+1. **In the `app/` [folder](https://github.com/allora-network/allora-chain/tree/main/app/upgrades), create a new folder for your upgrade.**
+2. **In that folder create a file that contains an `UpgradeName`, and a function `CreateUpgradeHandler` which returns a `"cosmossdk.io/x/upgrade/types".UpgradeHandler`.** Optionally include a `UpgradeInfo` that is a json string telling the client software where to download the upgrade binary version e.g.
 
 ```golang
 const UpgradeInfo = `'{"binaries":{"linux/amd64":"https://github.com/allora-network/allora-chain/releases/download/v9.9.9/allorad_amd64.tar.gz"}}'`
 ```
 
-3. Wire up the new upgrade handler to the chain by editing the `setupUpgradeHandlers` function in [app/upgrades.go](https://github.com/allora-network/allora-chain/blob/main/app/upgrades.go). You can see a reference for how to do this in the upgrade integration test [here](https://github.com/allora-network/allora-chain/blob/main/test/integration/upgrade.patch)
-4. If you're upgrading standard cosmos-sdk module versions you may have to tweak the `module.VersionMap` that the `CreateUpgradeHandler` returns/processes.
-5. If you're upgrading one of the Allora forked/created modules, you'll need to bump the `ConsensusVersion` for the module.
-6. In the module, have the `module.Configurator` do a `cfg.RegisterMigration` with the module name, the previous consensus 
-version that is being upgraded from, and the function to run to do the migration as a parameter.
-7. Write a function that process the kv store or does whatever other migrations are necessary. Examples [here](https://github.com/allora-network/allora-chain/blob/main/x/emissions/migrations/v2/migrations.go) and [here](https://github.com/evmos/evmos/blob/main/x/evm/migrations/v7/migrate.go).
-8. Merge the PR, tag it appropriately and post it to the releases page.
-9. Create a Software Upgrade Proposal for validators to vote on. You can see a reference where this is done in the [proposeUpgrade](https://github.com/allora-network/allora-chain/blob/main/test/integration/upgrade_test.go) function in the integration tests.
-10. Convince all the validators to vote yes on the Software Upgrade Proposal, and run cosmovisor so that the upgrade will actually go through at the proposed block.
+**Upgrade Handler Benefits**:
+- **Automated execution**: Handles complex state migrations automatically
+- **Version coordination**: Ensures consistent upgrade across all validators
+- **Binary distribution**: Provides secure download locations for new software
+- **Error handling**: Manages upgrade failures and rollback scenarios
 
-#### For Allora Chain Validator Operators
+#### Step 2: Wire Up Handler
 
-For those running the chain software, you will have to have to perform an upgrade as follows:
+3. **Wire up the new upgrade handler to the chain by editing the `setupUpgradeHandlers` function in [app/upgrades.go](https://github.com/allora-network/allora-chain/blob/main/app/upgrades.go).** You can see a reference for how to do this in the upgrade integration test [here](https://github.com/allora-network/allora-chain/blob/main/test/integration/upgrade.patch)
 
-1. Make sure you're running the `allorad` software with [Cosmovisor](https://docs.cosmos.network/main/build/tooling/cosmovisor)) managing the process, `DAEMON_NAME=allorad` and `DAEMON_HOME=/path/to/allorad/data/folder`. Hopefully you've already run `cosmovisor init /path/to/allorad-binary` and have the `/allorad/data/folder/cosmovisor` set.
-2. At some point the blockchain developers will provide you with a binary to put in that  `/allorad/data/folder/cosmovisor` folder to upgrade to. This may be optional if the `UpgradeInfo` is set correctly by the developers, but if you're the paranoid type you can always download the binary yourself ahead of the upgrade and put it in the right folder by hand.
-3. When the developers put up the upgrade proposal to governance, be helpful and vote to make it pass. You can do this via the CLI with `allorad tx gov vote $proposal_id yes --from $validator` or an example of doing this programmatically can be found in the integration test [voteOnProposal](https://github.com/allora-network/allora-chain/blob/main/test/integration/upgrade_test.go) function.
-4. At the block height of the upgrade, the old software will panic - cosmovisor will catch the panic and restart the process using the new binary for the upgrade instead. Monitor your logs appropriately to see the restart.
+#### Step 3: Handle Module Versions
 
-## Further References
+4. **If you're upgrading standard cosmos-sdk module versions you may have to tweak the `module.VersionMap` that the `CreateUpgradeHandler` returns/processes.**
+5. **If you're upgrading one of the Allora forked/created modules, you'll need to bump the `ConsensusVersion` for the module.**
 
-This is probably the most helpful document to understand the full workflow of a cosmos-sdk chain
-upgrade: [Medium Blog Post Cosmos Dev Series: Cosmos Blockchain Upgrade](https://medium.com/web3-surfers/cosmos-dev-series-cosmos-sdk-based-blockchain-upgrade-b5e99181554c)
+#### Step 4: Implement Migrations
 
-Cosmos SDK Upgrade Module: [Documentation](https://docs.cosmos.network/main/build/modules/upgrade)
+6. **In the module, have the `module.Configurator` do a `cfg.RegisterMigration` with the module name, the previous consensus version that is being upgraded from, and the function to run to do the migration as a parameter.**
+7. **Write a function that process the kv store or does whatever other migrations are necessary.** Examples [here](https://github.com/allora-network/allora-chain/blob/main/x/emissions/migrations/v2/migrations.go) and [here](https://github.com/evmos/evmos/blob/main/x/evm/migrations/v7/migrate.go).
 
-Cosmovisor Process Manager Software [Documentation](https://docs.cosmos.network/main/build/tooling/cosmovisor)
+**Migration Process Benefits**:
+- **Data integrity**: Ensure existing data remains valid after upgrades
+- **State transformation**: Convert old data formats to new requirements
+- **Backward compatibility**: Handle version transitions smoothly
+- **Testing framework**: Validate migrations before network deployment
 
-Cosmos SDK Gov Module: [Documentation](https://docs.cosmos.network/main/build/modules/gov)
+#### Step 5: Release and Propose
+
+8. **Merge the PR, tag it appropriately and post it to the releases page.**
+9. **Create a Software Upgrade Proposal for validators to vote on.** You can see a reference where this is done in the [proposeUpgrade](https://github.com/allora-network/allora-chain/blob/main/test/integration/upgrade_test.go) function in the integration tests.
+10. **Convince all the validators to vote yes on the Software Upgrade Proposal, and run cosmovisor so that the upgrade will actually go through at the proposed block.**
+
+**Release Management**:
+- **Version tagging**: Use semantic versioning for clear version identification
+- **Release documentation**: Provide comprehensive upgrade notes and instructions
+- **Testing validation**: Ensure thorough testing before release
+- **Community communication**: Announce upgrades with sufficient advance notice
+
+## Validator Operator Procedures
+
+### For Allora Chain Validator Operators
+
+**For those running the chain software, you will have to have to perform an upgrade as follows:**
+
+#### Step 1: Setup Cosmovisor
+
+1. **Make sure you're running the `allorad` software with [Cosmovisor](https://docs.cosmos.network/main/build/tooling/cosmovisor)) managing the process, `DAEMON_NAME=allorad` and `DAEMON_HOME=/path/to/allorad/data/folder`.** Hopefully you've already run `cosmovisor init /path/to/allorad-binary` and have the `/allorad/data/folder/cosmovisor` set.
+
+**Cosmovisor Benefits**:
+- **Automated upgrades**: Handles binary replacement during network upgrades
+- **Zero-downtime**: Minimizes service interruption during upgrades
+- **Safety features**: Validates upgrades before execution
+- **Rollback capability**: Provides mechanisms to revert failed upgrades
+
+#### Step 2: Prepare Upgrade Binary
+
+2. **At some point the blockchain developers will provide you with a binary to put in that `/allorad/data/folder/cosmovisor` folder to upgrade to.** This may be optional if the `UpgradeInfo` is set correctly by the developers, but if you're the paranoid type you can always download the binary yourself ahead of the upgrade and put it in the right folder by hand.
+
+**Binary Preparation Strategy**:
+- **Manual download**: Secure control over upgrade timing and verification
+- **Automatic download**: Rely on UpgradeInfo for convenience
+- **Security verification**: Always verify binary signatures and checksums
+- **Backup procedures**: Maintain copies of both old and new binaries
+
+#### Step 3: Participate in Governance
+
+3. **When the developers put up the upgrade proposal to governance, be helpful and vote to make it pass.** You can do this via the CLI with `allorad tx gov vote $proposal_id yes --from $validator` or an example of doing this programmatically can be found in the integration test [voteOnProposal](https://github.com/allora-network/allora-chain/blob/main/test/integration/upgrade_test.go) function.
+
+**Governance Participation**:
+- **Proposal review**: Carefully evaluate upgrade proposals before voting
+- **Community engagement**: Discuss upgrades with other validators and community
+- **Vote responsibility**: Consider network impact when casting governance votes
+- **Timeline awareness**: Vote within proposal timeframes to ensure participation
+
+#### Step 4: Monitor Upgrade Execution
+
+4. **At the block height of the upgrade, the old software will panic - cosmovisor will catch the panic and restart the process using the new binary for the upgrade instead.** Monitor your logs appropriately to see the restart.
+
+**Upgrade Monitoring**:
+- **Log analysis**: Watch for upgrade trigger and successful restart
+- **Performance tracking**: Monitor validator performance after upgrade
+- **Network synchronization**: Ensure continued participation in consensus
+- **Issue identification**: Quickly identify and report any upgrade problems
+
+### Upgrade Execution Timeline
+
+**Pre-Upgrade Phase**:
+- **Proposal submission**: Developers submit upgrade proposal to governance
+- **Community review**: Validators and community review proposed changes
+- **Voting period**: Network participants vote on upgrade proposal
+- **Preparation time**: Validators prepare infrastructure for upgrade
+
+**Upgrade Execution**:
+- **Block height trigger**: Upgrade executes at predetermined block height
+- **Automatic migration**: State migrations and binary replacement occur
+- **Network restart**: All validators restart with new software simultaneously
+- **Validation**: Network confirms successful upgrade completion
+
+## Troubleshooting Upgrade Issues
+
+### Common Problems
+
+**Upgrade Failures**:
+- **Binary issues**: Incorrect or corrupted upgrade binaries  
+- **Migration errors**: State migration failures during upgrade
+- **Network desynchronization**: Validators upgrading at different times
+- **Infrastructure problems**: Hardware or network issues during upgrade
+
+### Recovery Procedures
+
+**Failure Response**:
+- **Rollback mechanisms**: Revert to previous software version if needed
+- **Community coordination**: Communicate with other validators during issues
+- **Log analysis**: Examine detailed logs to identify specific problems
+- **Emergency procedures**: Follow emergency protocols for critical failures
+
+## Best Practices
+
+### Preparation Guidelines
+
+**Pre-Upgrade Checklist**:
+- **Backup procedures**: Create comprehensive backups before upgrades
+- **Testing environments**: Test upgrades in non-production environments first
+- **Communication channels**: Maintain contact with development team and community
+- **Monitoring setup**: Ensure robust monitoring during upgrade process
+
+### Operational Security
+
+**Security Considerations**:
+- **Binary verification**: Always verify upgrade binary authenticity
+- **Infrastructure security**: Secure validator infrastructure before upgrades
+- **Access control**: Limit access during sensitive upgrade operations
+- **Emergency contacts**: Maintain emergency communication channels
+
+## Educational Resources
+
+### Further References
+
+**This is probably the most helpful document to understand the full workflow of a cosmos-sdk chain upgrade:** [Medium Blog Post Cosmos Dev Series: Cosmos Blockchain Upgrade](https://medium.com/web3-surfers/cosmos-dev-series-cosmos-sdk-based-blockchain-upgrade-b5e99181554c)
+
+**Additional Documentation**:
+- **Cosmos SDK Upgrade Module:** [Documentation](https://docs.cosmos.network/main/build/modules/upgrade)
+- **Cosmovisor Process Manager Software** [Documentation](https://docs.cosmos.network/main/build/tooling/cosmovisor)
+- **Cosmos SDK Gov Module:** [Documentation](https://docs.cosmos.network/main/build/modules/gov)
+
+**Learning Resources**:
+- **Technical deep-dive**: Comprehensive coverage of upgrade mechanisms and procedures
+- **Best practices**: Community-proven approaches to upgrade management
+- **Troubleshooting guides**: Solutions to common upgrade problems and issues
+- **Reference implementations**: Real-world examples and code samples
+
+## Prerequisites
+
+- **Validator operations**: Active validator node running on Allora Network
+- **Cosmovisor setup**: Properly configured Cosmovisor for upgrade management
+- **Governance participation**: Understanding of network governance and voting procedures
+- **Technical expertise**: Command-line proficiency and blockchain operations knowledge
+
+## Next Steps
+
+- [Learn validator operations](/devs/validators/validator-operations) for ongoing validator management
+- [Study governance procedures](/devs/validators) for participating in network decisions
+- [Review system requirements](/devs/validators/nop-requirements) for infrastructure planning
+- [Explore full node setup](/devs/validators/run-full-node) for comprehensive validator deployment

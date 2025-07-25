@@ -1,163 +1,357 @@
 # Chain Parameters
 
-> A glossary and description of chain-level parameters
+## What You'll Learn
+- Complete glossary of all chain-level parameters that control network behavior
+- Understanding of mint module parameters that govern token inflation and supply
+- Overview of Allora-specific parameters for network operations and economics
+- How parameter values affect network performance, security, and participant incentives
 
-## Mint Module and Token Inflation Parameters
+## Overview
 
-#### inflation_rate_change
+> **A glossary and description of chain-level parameters**
 
-The maximum permitted annual change in inflation rate. The mint module will throw an error if the inflation rate exceeds this value.
+**Chain parameters are configurable values that control various aspects of the Allora Network's behavior and economics.** These parameters can be adjusted through governance proposals to optimize network performance, security, and user experience.
 
-Default Value: 357.3582624
+### Why Chain Parameters Matter
 
-#### inflation_max
+**Network Configuration**:
+- **Economic tuning**: Fine-tune incentive structures and reward distributions
+- **Performance optimization**: Adjust timing and resource allocation for optimal efficiency
+- **Security enhancement**: Configure parameters to maintain network security and integrity
+- **Governance control**: Enable community-driven adjustments to network behavior
 
-The maximum inflation rate. The mint module will throw an error if the inflation rate exceeds this value.
+**Dynamic Management**:
+- **Adaptability**: Modify network behavior without code changes
+- **Community governance**: Allow token holders to influence network direction
+- **Economic balance**: Maintain sustainable tokenomics and participant incentives
+- **Risk management**: Adjust parameters to address emerging challenges and opportunities
 
-Default Value: 357.3582624
+## Token Economics and Inflation
 
-#### inflation_min
+### Mint Module and Token Inflation Parameters
 
-The minimum permitted inflation rate. The mint module will throw an error if the inflation rate goes below this value
+#### Core Inflation Controls
 
-Default Value: 0
+##### inflation_rate_change
+**The maximum permitted annual change in inflation rate.** The mint module will throw an error if the inflation rate exceeds this value.
 
-#### goal_bonded
+**Default Value:** 357.3582624
 
-The goal used to target the percentage of bonded staking cosmos validators.
+**Parameter Purpose**:
+- **Rate stability**: Prevent dramatic inflation fluctuations that could destabilize economics
+- **Predictable supply**: Provide predictability for long-term economic planning
+- **Governance safety**: Protect against potentially harmful governance proposals
+- **Economic modeling**: Enable accurate forecasting of token supply changes
 
-Default Value: 0.67
+##### inflation_max
+**The maximum inflation rate.** The mint module will throw an error if the inflation rate exceeds this value.
 
-#### blocks_per_year
+**Default Value:** 357.3582624
 
-The amount of blocks that the inflation schedule believes will happen each year.
+**Economic Impact**:
+- **Supply ceiling**: Set upper bound on token inflation to protect value
+- **Investment confidence**: Provide certainty about maximum dilution rates
+- **Network bootstrapping**: Allow higher initial inflation for network growth
+- **Long-term sustainability**: Balance growth incentives with token value preservation
 
-Default Value: 6311520
+##### inflation_min
+**The minimum permitted inflation rate.** The mint module will throw an error if the inflation rate goes below this value.
 
-#### max_supply
+**Default Value:** 0
 
-The capped amount of tokens that will ever be allowed to exist.
+**Minimum Rate Benefits**:
+- **Reward continuity**: Ensure ongoing rewards for network participants
+- **Economic floor**: Prevent deflationary spirals that could harm participation
+- **Incentive maintenance**: Keep minimum incentives for validators and participants
+- **Network security**: Maintain baseline rewards for network security providers
 
-Default Value: 1 Billion Allo \* 1e18 (for base unit uAllo): 1e28 uAllo
+#### Staking and Economics
 
-#### halving_interval
+##### goal_bonded
+**The goal used to target the percentage of bonded staking cosmos validators.**
 
-The number of blocks at which to halve the inflation rate of newly minted tokens, like Bitcoin's emissions schedule:
+**Default Value:** 0.67
 
-Default Value: 25246080
+**Target Bonding Strategy**:
+- **Security optimization**: Encourage adequate stake bonding for network security
+- **Liquidity balance**: Maintain balance between staked and liquid tokens
+- **Inflation adjustment**: Influence inflation rates based on staking participation
+- **Economic equilibrium**: Target optimal staking ratio for network health
 
-#### current_block_provision
+##### blocks_per_year
+**The amount of blocks that the inflation schedule believes will happen each year.**
 
-Number of tokens that will be minted every block during a halving interval. This chain parameter controls the first value set for the first block. Afterwards, each halvening this value will be divided by two.
+**Default Value:** 6311520
 
-Default Value: 2831000000000000000000
+**Block Timing Importance**:
+- **Inflation calculation**: Basis for calculating annual inflation and reward distribution
+- **Economic planning**: Enable accurate economic modeling and projections
+- **Reward scheduling**: Determine timing and frequency of reward distributions
+- **Network performance**: Align inflation calculations with actual network performance
 
-## Allora Specific Parameters
+#### Supply Management
 
-#### reward_cadence
+##### max_supply
+**The capped amount of tokens that will ever be allowed to exist.**
 
-The duration of a reward epoch in blocks. Every `reward_cadence` seconds, rewards are recomputed within `EndBlock`.
+**Default Value:** 1 Billion Allo * 1e18 (for base unit uAllo): 1e28 uAllo
 
-Default Value: 600 blocks
+**Supply Cap Benefits**:
+- **Scarcity assurance**: Guarantee finite token supply for long-term value
+- **Economic predictability**: Provide certainty about maximum token dilution
+- **Investment appeal**: Create scarcity dynamics that may support token value
+- **Inflation control**: Eventually eliminate inflation as supply cap is approached
 
-Shorter epochs can lead to more frequent reward updates and responsiveness. This is advantageous for rapidly reacting to changes in the network (eg new topics, models, incentives, etc) and make the rewards available earlier. However small values they also have an impact on network efficiency.
+##### halving_interval
+**The number of blocks at which to halve the inflation rate of newly minted tokens, like Bitcoin's emissions schedule:**
 
-#### min_topic_unmet_demand
+**Default Value:** 25246080
 
-The minimum unmet demand on a topic to consider it active, and thus enter rounds of inference solicitation and weight adjustment.
+**Halving Schedule Impact**:
+- **Predictable reduction**: Systematic decrease in inflation over time
+- **Bitcoin model**: Proven emissions schedule that balances growth and scarcity
+- **Long-term planning**: Enable participants to plan for known inflation changes
+- **Economic sustainability**: Gradually reduce inflation for sustainable tokenomics
 
-Default Value: 100 allo
+##### current_block_provision
+**Number of tokens that will be minted every block during a halving interval.** This chain parameter controls the first value set for the first block. Afterwards, each halvening this value will be divided by two.
 
-The value provides a minimum amount of demand in order to trigger inference and weight adjustment rounds, to protect the network against activity of little to no added value. It is also kept small enough to not represent a barrier of entry for participation.
+**Default Value:** 2831000000000000000000
 
-#### max_topics_per_block
+**Block Reward Structure**:
+- **Consistent rewards**: Predictable rewards per block for participants
+- **Halving mechanism**: Automatic reduction aligned with halving schedule
+- **Bootstrap incentives**: Higher initial rewards to bootstrap network participation
+- **Economic transition**: Smooth transition between halving periods
 
-Maximum number of active topics to run inference and weight adjustment rounds for on each block.
+## Network Operations
 
-Default Value: 2048 topics
+### Allora Specific Parameters
 
-This value is high enough to allow a reasonable number of active topics to coexist, while also protecting the network against too much activity per block, preventing congestion and ensuring a more predictable block processing time.
+#### Core Network Timing
 
-#### min_request_unmet_demand
+##### reward_cadence
+**The duration of a reward epoch in blocks.** Every `reward_cadence` seconds, rewards are recomputed within `EndBlock`.
 
-Threshold under which the inference requests will be deleted or prevented from being created.
+**Default Value:** 600 blocks
 
-Default Value: 1 allo
+**Shorter epochs can lead to more frequent reward updates and responsiveness.** This is advantageous for rapidly reacting to changes in the network (eg new topics, models, incentives, etc) and make the rewards available earlier. However small values they also have an impact on network efficiency.
 
-The purpose is to allow to prevent unnecessary processing of requests with minimal impact, keeping the state of the chain tidy, while at the same time be conservative with partially exhausted inference requests.
+**Cadence Strategy**:
+- **Responsive rewards**: Quick adaptation to network changes and performance
+- **Computational efficiency**: Balance responsiveness with network resource usage
+- **Participant engagement**: Frequent updates maintain participant interest and motivation
+- **Network optimization**: Tune for optimal balance of responsiveness and efficiency
 
-#### max_missing_inference_percent
+#### Activity Thresholds
 
-The percentage of inferences rounds missed by a worker, over which the worker gets penalized.
+##### min_topic_unmet_demand
+**The minimum unmet demand on a topic to consider it active, and thus enter rounds of inference solicitation and weight adjustment.**
 
-Default Value: 20 %
+**Default Value:** 100 allo
 
-Penalizing workers for missing inferences encourages reliability and accountability in the AI inference process. However, setting this value too low may lead to frequent penalties, potentially discouraging worker participation. A value that strikes a balance between both has been set.
+**The value provides a minimum amount of demand in order to trigger inference and weight adjustment rounds, to protect the network against activity of little to no added value.** It is also kept small enough to not represent a barrier of entry for participation.
 
-#### required_minimum_stake
+**Demand Threshold Benefits**:
+- **Quality control**: Ensure topics have meaningful demand before resource allocation
+- **Resource efficiency**: Prevent waste on low-value activities
+- **Accessibility**: Keep threshold low enough for legitimate participation
+- **Network focus**: Direct resources toward high-value inference opportunities
 
-Sets the minimum stake to be considered as a reputer in good standing. If a reputer has less than this stake, than their contribution to reputation scoring will be ignored, and they will not receive any rewards from the system.
+##### max_topics_per_block
+**Maximum number of active topics to run inference and weight adjustment rounds for on each block.**
 
-Default Value: 100 allo
+**Default Value:** 2048 topics
 
-Setting a minimum stake helps ensure that participants have a vested interest in the network's success and are not simply sybils, enhancing security and commitment, while at the same time not being too high so that it may limit the accessibility of the network and discourage potential legitimate participants.
+**This value is high enough to allow a reasonable number of active topics to coexist, while also protecting the network against too much activity per block, preventing congestion and ensuring a more predictable block processing time.**
 
-#### remove_stake_delay_window
+**Throughput Management**:
+- **Scalability**: Support large numbers of active topics simultaneously
+- **Performance protection**: Prevent network congestion from excessive activity
+- **Predictable timing**: Ensure consistent block processing times
+- **Resource allocation**: Balance topic participation with network efficiency
 
-Sets the duration, in seconds, during which a staker's tokens remain staked after initiating the unstaking process. This protects against flash-type attacks.
+##### min_request_unmet_demand
+**Threshold under which the inference requests will be deleted or prevented from being created.**
 
-Default Value: 172800  (1 day)
+**Default Value:** 1 allo
 
-A fair delay in unstaking, which can ensure stability in the network by preventing sudden fluctuations in staked tokens and discourage malicious actors, while keeping it low enough so it is not very inconvenient to users who want to unstake their tokens promptly.
+**The purpose is to allow to prevent unnecessary processing of requests with minimal impact, keeping the state of the chain tidy, while at the same time be conservative with partially exhausted inference requests.**
 
-#### min_request_cadence
+**Request Management**:
+- **State efficiency**: Keep blockchain state clean and manageable
+- **Resource conservation**: Prevent processing of minimal-value requests
+- **Conservative approach**: Protect legitimate requests from premature deletion
+- **Network tidiness**: Maintain organized and efficient chain state
 
-Sets the minimum allowed time interval, in seconds, between consecutive AI calls from an inference request.
+#### Performance and Quality Control
 
-Default Value: 10 seconds
+##### max_missing_inference_percent
+**The percentage of inferences rounds missed by a worker, over which the worker gets penalized.**
 
-Imposing a minimum cadence ensures a reasonable pacing of inference requests, preventing potential abuse or unnecessary strain on the network. Adjusted based on the expected frequency of AI inference requests and the network's capacity, balanced between responsiveness and resource efficiency. 
+**Default Value:** 20%
 
-#### min_weight_cadence
+**Penalizing workers for missing inferences encourages reliability and accountability in the AI inference process.** However, setting this value too low may lead to frequent penalties, potentially discouraging worker participation. A value that strikes a balance between both has been set.
 
-Sets the minimum allowed time interval, in seconds, between consecutive calls for topic weight adjustment.
+**Reliability Incentives**:
+- **Accountability**: Encourage consistent worker performance and participation
+- **Quality assurance**: Maintain high standards for inference delivery
+- **Balanced penalties**: Avoid excessive penalties that discourage participation
+- **Network reliability**: Ensure dependable inference availability for consumers
 
-Default Value: 3600 seconds (1 hour)
+##### required_minimum_stake
+**Sets the minimum stake to be considered as a reputer in good standing.** If a reputer has less than this stake, than their contribution to reputation scoring will be ignored, and they will not receive any rewards from the system.
 
-Imposing a minimum cadence ensures a reasonable pacing of loss-calculation, preventing potential abuse or unnecessary strain on the network. That being said, it need not occur too frequently, because weights accrue over many inferences anyway, and these calls are relatively expensive involving off-chain communication.
+**Default Value:** 100 allo
 
-#### max_inference_request_validity
+**Setting a minimum stake helps ensure that participants have a vested interest in the network's success and are not simply sybils, enhancing security and commitment, while at the same time not being too high so that it may limit the accessibility of the network and discourage potential legitimate participants.**
 
-Sets the maximum allowable time, in seconds, for an AI inference request to remain valid before expiration.
+**Stake Requirements Strategy**:
+- **Sybil resistance**: Prevent fake accounts and malicious actors through economic commitment
+- **Quality incentives**: Ensure reputers have skin in the game for honest evaluation
+- **Accessibility balance**: Keep requirements reasonable for legitimate participants
+- **Network security**: Enhance overall network security through economic incentives
 
-Default Value: 29030400 seconds (1year)
+#### Timing and Cadence Controls
 
-Setting a maximum validity time ensures that AI inference requests are processed within a reasonable timeframe, preventing outdated requests, while at the same time allowing inference requests to be planned and executed at the designed cadence within a generous timeframe, especially where time-dependent effects (e.g. seasonal effects) can happen.
+##### remove_stake_delay_window
+**Sets the duration, in seconds, during which a staker's tokens remain staked after initiating the unstaking process.** This protects against flash-type attacks.
 
-#### max_request_cadence
+**Default Value:** 172800 (1 day)
 
-Sets the maximum allowable time, in seconds, for an AI inference request to remain valid before expiration.
+**A fair delay in unstaking, which can ensure stability in the network by preventing sudden fluctuations in staked tokens and discourage malicious actors, while keeping it low enough so it is not very inconvenient to users who want to unstake their tokens promptly.**
 
-Default Value: 29030400 seconds (1 year)
+**Unstaking Delay Benefits**:
+- **Attack prevention**: Protect against rapid stake manipulation attacks
+- **Network stability**: Prevent sudden stake withdrawals that could destabilize security
+- **User convenience**: Balance security with reasonable withdrawal timeframes
+- **Economic stability**: Maintain predictable stake levels for network planning
 
-A shorter validity period ensures that AI inference requests are designed to be processed more quickly and with up-to-date information. However, because lowering this value may lead to the rejection of legitimate requests if they take longer to process, the maximum allowed equals the max inference request, which is a conservative and flexible decision to allow inference requests creators for maximal planning ahead.
+##### min_request_cadence
+**Sets the minimum allowed time interval, in seconds, between consecutive AI calls from an inference request.**
+
+**Default Value:** 10 seconds
+
+**Imposing a minimum cadence ensures a reasonable pacing of inference requests, preventing potential abuse or unnecessary strain on the network.** Adjusted based on the expected frequency of AI inference requests and the network's capacity, balanced between responsiveness and resource efficiency.
+
+**Request Pacing Strategy**:
+- **Abuse prevention**: Prevent rapid-fire requests that could overwhelm the network
+- **Resource management**: Ensure efficient use of network computational resources
+- **Quality maintenance**: Allow adequate time for quality inference generation
+- **Network health**: Balance responsiveness with sustainable resource usage
+
+##### min_weight_cadence
+**Sets the minimum allowed time interval, in seconds, between consecutive calls for topic weight adjustment.**
+
+**Default Value:** 3600 seconds (1 hour)
+
+**Imposing a minimum cadence ensures a reasonable pacing of loss-calculation, preventing potential abuse or unnecessary strain on the network.** That being said, it need not occur too frequently, because weights accrue over many inferences anyway, and these calls are relatively expensive involving off-chain communication.
+
+**Weight Adjustment Timing**:
+- **Computational efficiency**: Prevent expensive calculations from occurring too frequently
+- **Network optimization**: Balance accuracy with computational cost
+- **Abuse prevention**: Prevent manipulation through rapid weight adjustments
+- **Economic efficiency**: Optimize off-chain communication costs
+
+#### Request Management
+
+##### max_inference_request_validity
+**Sets the maximum allowable time, in seconds, for an AI inference request to remain valid before expiration.**
+
+**Default Value:** 29030400 seconds (1 year)
+
+**Setting a maximum validity time ensures that AI inference requests are processed within a reasonable timeframe, preventing outdated requests, while at the same time allowing inference requests to be planned and executed at the designed cadence within a generous timeframe, especially where time-dependent effects (e.g. seasonal effects) can happen.**
+
+**Request Validity Benefits**:
+- **Data freshness**: Ensure inferences are based on reasonably current requests
+- **Planning flexibility**: Allow long-term planning for seasonal or cyclical patterns
+- **Resource management**: Prevent indefinite accumulation of old requests
+- **Quality assurance**: Balance timeliness with planning requirements
+
+##### max_request_cadence
+**Sets the maximum allowable time, in seconds, for an AI inference request to remain valid before expiration.**
+
+**Default Value:** 29030400 seconds (1 year)
+
+**A shorter validity period ensures that AI inference requests are designed to be processed more quickly and with up-to-date information.** However, because lowering this value may lead to the rejection of legitimate requests if they take longer to process, the maximum allowed equals the max inference request, which is a conservative and flexible decision to allow inference requests creators for maximal planning ahead.
+
+**Maximum Cadence Strategy**:
+- **Conservative approach**: Avoid rejecting legitimate long-term requests
+- **Flexibility**: Allow various request patterns and timing strategies
+- **Planning support**: Enable long-term inference planning and scheduling
+- **Balance**: Compromise between freshness and planning flexibility
+
+## Economic Distribution
+
+### Reward Allocation
 
 #### percent_rewards_reputers_workers
+**Cosmos validators, Allora Reputers, and Allora Workers all deserve to be paid out rewards from token inflation as well as collected transaction fees for using the Allora network.** In Allora, we have two [payment flows](/devs/reference/module-accounts) for paying out rewards. Cosmos validators use the standard cosmos-sdk staking flows to get their rewards, and reputers and workers separately get their rewards from the Allora specific algorithm and code. This parameter controls the ratio of rewards between cosmos validators on one side, and reputers and workers on the other.
 
-Cosmos validators, Allora Reputers, and Allora Workers all deserve to be paid out rewards from token inflation as well as collected transaction fees for using the Allora network. In Allora, we have two [payment flows](/devs/reference/module-accounts) for paying out rewards. Cosmos validators use the standard cosmos-sdk staking flows to get their rewards, and reputers and workers separately get their rewards from the Allora specific algorithm and code. This parameter controls the ratio of rewards between cosmos validators on one side, and reputers and workers on the other.
+**Default Value:** 50%
 
-Default Value: 50%
+**A higher percentage would pay more transaction fees to reputers and workers, at the expense of giving less rewards to cosmos validators. A lower percentage value would give more rewards to cosmos validators, but pay out less rewards to reputers and workers for their services to the network.**
 
-A higher percentage would pay more transaction fees to reputers and workers, at the expense of giving less rewards to cosmos validators. A lower percentage value would give more rewards to cosmos validators, but pay out less rewards to reputers and workers for their services to the network.
+**Reward Distribution Strategy**:
+- **Balanced incentives**: Fair distribution between different types of network participants
+- **Economic alignment**: Align rewards with value provided to the network
+- **Governance control**: Allow community to adjust distribution based on network needs
+- **Dual-layer rewards**: Separate but coordinated reward systems for different roles
+
+## Technical Parameters
+
+### System Limits and Safety
 
 #### epsilon_safe_div
+**A small tolerance quantity used to cap division by zero.**
 
-A small tolerance quantity used to cap division by zero.
+**Default Value:** 0.0000001
 
-Default Value: 0.0000001
+**Mathematical Safety**:
+- **Numerical stability**: Prevent division by zero errors in calculations
+- **System reliability**: Ensure robust mathematical operations
+- **Edge case handling**: Manage extreme values that could cause system failures
+- **Precision balance**: Small enough to maintain accuracy, large enough to prevent errors
 
 #### max_string_length
+**The maximum length of a string to allow to store on the chain.** For example, used in limiting metadata for the creation of new topics.
 
-The maximum length of a string to allow to store on the chain. For example, used in limiting metadata for the creation of new topics.
+**Default Value:** 255
 
-Default Value: 255
+**Data Management**:
+- **Storage efficiency**: Prevent excessive on-chain data storage
+- **Performance optimization**: Maintain fast transaction processing
+- **Abuse prevention**: Prevent spam through large string submissions
+- **Resource conservation**: Optimize blockchain storage usage
+
+## Parameter Governance
+
+### Modification Process
+
+**Governance-Controlled Changes**:
+- **Proposal submission**: Any token holder can propose parameter changes
+- **Community discussion**: Public debate and analysis of proposed changes
+- **Voting process**: Token holders vote on parameter modification proposals
+- **Implementation**: Approved changes are automatically implemented by the network
+
+### Best Practices
+
+**Parameter Adjustment Guidelines**:
+- **Gradual changes**: Make incremental adjustments to avoid disruption
+- **Data-driven decisions**: Base changes on network performance data and analysis
+- **Community input**: Seek broad community feedback before proposing changes
+- **Impact assessment**: Carefully analyze potential effects of parameter changes
+
+## Prerequisites
+
+- **Blockchain economics**: Understanding of tokenomics and incentive mechanisms
+- **Network operations**: Knowledge of blockchain network functionality and performance
+- **Governance systems**: Familiarity with decentralized governance and voting processes
+- **Technical parameters**: Ability to understand technical specifications and their implications
+
+## Next Steps
+
+- [Explore mint parameters](/devs/reference/params/mint) for detailed inflation control mechanisms
+- [Study staking parameters](/devs/reference/params/stake) for network participation rules
+- [Review consensus parameters](/devs/reference/params/consensus) for network operation details
+- [Learn about module accounts](/devs/reference/module-accounts) for understanding token flow and distribution
