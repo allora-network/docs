@@ -12,21 +12,24 @@ function AiButton() {
   };
 
   return (
-    <div style={{ maxWidth: "800px", margin: "0 auto", padding: "20px" }}>
+    <>
       {/* Render the "Ask AI" button if the chat is not shown */}
       {!showChat && (
         <button
           onClick={toggleChat}
           style={{
+            position: "fixed",
+            bottom: "20px",
+            right: "20px",
             padding: "10px 20px",
             fontSize: "16px",
             cursor: "pointer",
-            marginBottom: "20px",
             backgroundColor: "#007bff", // Blue background
             color: "#fff", // White text
             border: "none", // Remove default border
             borderRadius: "5px", // Rounded corners
             transition: "background-color 0.3s ease", // Smooth hover effect
+            zIndex: 1000, // Ensure it stays on top
           }}
           onMouseOver={(e) => (e.target.style.backgroundColor = "#0056b3")} // Darker blue on hover
           onMouseOut={(e) => (e.target.style.backgroundColor = "#007bff")} // Revert on mouse out
@@ -35,8 +38,17 @@ function AiButton() {
         </button>
       )}
       {/* Render the ChatComponent when showChat is true, passing the onClose prop */}
-      {showChat && <ChatComponent onClose={toggleChat} />}
-    </div>
+      {showChat && (
+        <div style={{ 
+          position: "fixed", 
+          bottom: "20px", 
+          right: "20px", 
+          zIndex: 1000 
+        }}>
+          <ChatComponent onClose={toggleChat} />
+        </div>
+      )}
+    </>
   );
 }
 

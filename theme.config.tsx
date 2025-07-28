@@ -237,7 +237,7 @@ const config: DocsThemeConfig = {
   },
   sidebar: {
     autoCollapse: true,
-    defaultMenuCollapseLevel: 2,
+    defaultMenuCollapseLevel: 1,
     titleComponent: ({ title, type }) => {
       if (type === 'separator') {
         const isFirst = title === 'DOCUMENTATION'
