@@ -81,7 +81,7 @@ For simplicity, we will use Zero-shot forecasting, which refers to the ability o
 **Our worker will provide inferences on the BTC 24h Prediction, which is Topic `4` on Allora Testnet.**
 
 > **Note:**
-> To deploy on the Allora Network, you will need to [pick the topic ID](/devs/get-started/existing-topics) you wish to generate inference for, or [create a new topic](/devs/topic-creators/how-to-create-topic).
+> To deploy on the Allora Network, you will need to [pick the topic ID](/devs/get-started/network-interaction#available-topics) you wish to generate inference for, or [create a new topic](/devs/topic-creators/how-to-create-topic).
 
 **Topic Strategy**:
 - **Market selection**: Choose high-value, liquid markets for maximum network impact
@@ -147,8 +147,8 @@ cd basic-coin-prediction-node
 
 ##### `wallet` Sub-object
 
-1. **`nodeRpc`**: The [RPC URL](/devs/get-started/setup-wallet#rpc-url-and-chain-id) for the corresponding network the node will be deployed on
-2. **`addressKeyName`**: The name you gave your wallet key when [setting up your wallet](/devs/get-started/setup-wallet)
+1. **`nodeRpc`**: The [RPC URL](/devs/get-started/quick-start#network-configuration) for the corresponding network the node will be deployed on
+2. **`addressKeyName`**: The name you gave your wallet key when [setting up your wallet](/devs/get-started/quick-start#create-your-wallet)
 3. **`addressRestoreMnemonic`**: The mnemonic that was outputted when setting up a new key
 
 **Wallet Security**:
@@ -457,5 +457,5 @@ git+https://github.com/amazon-science/chronos-forecasting.git
 - [Explore price prediction worker walkthrough](/devs/workers/walkthroughs/walkthrough-price-prediction-worker) for alternative implementation approaches
 - [Learn about worker data querying](/devs/workers/query-worker-data) for performance monitoring
 - [Study worker requirements](/devs/workers/requirements) for infrastructure optimization
-- [Review existing topics](/devs/get-started/existing-topics) for additional market opportunities
+- [Review existing topics](/devs/get-started/network-interaction#available-topics) for additional market opportunities
 

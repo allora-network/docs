@@ -1,34 +1,14 @@
 {
   "overview": {
-    "title": "Overview",
-    "href": "/devs/get-started/overview"
+    "title": "Quick Start",
+    "href": "/devs/get-started/quick-start"
   },
   "setup-wallet": {
-    "title": "Setup Wallet",
-    "href": "/devs/get-started/setup-wallet"
+    "title": "Network Interaction", 
+    "href": "/devs/get-started/network-interaction"
   },
-  "installation": {
-    "title": "Installation",
-    "href": "/devs/get-started/cli"
-  },
-  "basic-usage": {
-    "title": "Basic Usage",
-    "href": "/devs/get-started/basic-usage"
-  },
-  "managing-gas": {
-    "title": "Managing Gas",
-    "href": "/devs/get-started/managing-gas"
-  },
-  "existing-topics": {
-    "title": "Existing Topics",
-    "href": "/devs/get-started/existing-topics"
-  },
-  "query-network-data": {
-    "title": "How to Query Network Data using allorad",
-    "href": "/devs/get-started/query-network-data"
-  },
-  "model-forge": {
-    "title": "Model Forge Quickstart",
+  "cli": {
+    "title": "Model Forge Competition",
     "href": "/devs/get-started/model-forge"
   }
 } 

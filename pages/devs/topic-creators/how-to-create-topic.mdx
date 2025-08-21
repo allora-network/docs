@@ -32,8 +32,8 @@ Developers can make topics for arbitrary categories of inferences so long as the
 
 ## Prerequisites
 
-1. **A wallet with sufficient funds** to at least cover gas. Use [the faucet](/devs/get-started/setup-wallet) to get funds.
-2. **[Allorad CLI tool](/devs/get-started/cli#installing-allorad)**: Command-line interface for network interactions.
+1. **A wallet with sufficient funds** to at least cover gas. Use [the faucet](/devs/get-started/quick-start#get-testnet-funds) to get funds.
+2. **[Allorad CLI tool](/devs/get-started/quick-start#install-the-allora-cli)**: Command-line interface for network interactions.
 
 ## Understanding Topic Creation
 
@@ -92,7 +92,7 @@ type MsgCreateNewTopic struct {
 
 ### Command Line Implementation
 
-Using the [`allorad` CLI](/devs/get-started/cli#installing-allorad) to create a topic:
+Using the [`allorad` CLI](/devs/get-started/quick-start#install-the-allora-cli) to create a topic:
 
 ```shell bash
 allorad tx emissions create-topic \
@@ -114,7 +114,7 @@ allorad tx emissions create-topic \
   --chain-id <CHAIN_ID>
 ```
 
-**Parameter Substitution**: Be sure to swap out [`RPC_URL`](/devs/get-started/setup-wallet#rpc-url-and-chain-id), `YOUR_ADDRESS`, [`CHAIN_ID`](/devs/get-started/setup-wallet#rpc-url-and-chain-id) and all other arguments as appropriate with the desired values.
+**Parameter Substitution**: Be sure to swap out [`RPC_URL`](/devs/get-started/quick-start#network-configuration), `YOUR_ADDRESS`, [`CHAIN_ID`](/devs/get-started/quick-start#network-configuration) and all other arguments as appropriate with the desired values.
 
 ## Parameter Details
 
