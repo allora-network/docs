@@ -1,25 +1,53 @@
 # How to Create a Topic
 
-> Inferences for the same domain are aggregated into the same topic
+## What You'll Learn
+- Understanding topics as Schelling points for prediction aggregation
+- Complete topic creation process using allorad CLI commands
+- Topic parameter configuration and their practical implications
+- How to fund topics to ensure active participation and rewards
 
-## What is a Topic?
+## Overview
 
-Topics are [Schelling points](https://en.wikipedia.org/wiki/Focal_point_(game_theory)) where disparate-but-alike data scientists and domain experts aggregate their predictions. For example, we might create a topic for predicting the future price of ETH. There, all experts with any talent in predicting the future price of ETH will submit their inferences. Topics vary by domain and parameterization, defining how these inferences are collected and valued.
+**Topics are [Schelling points](https://en.wikipedia.org/wiki/Focal_point_(game_theory)) where disparate-but-alike data scientists and domain experts aggregate their predictions.**
+
+### What Makes Topics Special?
+
+Topics serve as coordination mechanisms:
+- **Aggregation points**: Collect predictions from multiple experts in the same domain
+- **Quality assurance**: Ensure predictions are relevant and comparable
+- **Reward mechanisms**: Enable fair compensation for accurate predictions
+- **Network organization**: Structure the network around specific prediction categories
+
+### Topic Examples
+
+For example, we might create a topic for predicting the future price of ETH. There, all experts with any talent in predicting the future price of ETH will submit their inferences. Topics vary by domain and parameterization, defining how these inferences are collected and valued.
+
+**Why Create Topics?**
 
 Developers can make topics for arbitrary categories of inferences so long as they complete these steps:
+- **Customization**: Define specific prediction parameters for your use case
+- **Network participation**: Enable experts to contribute their domain knowledge
+- **Data access**: Create reliable prediction feeds for applications
+- **Innovation**: Experiment with new prediction methodologies and reward structures
 
-## Prerequisites:
+## Prerequisites
 
-1. A wallet with sufficient funds to at least cover gas. Use [the faucet](/devs/get-started/setup-wallet) to get funds. 
-2. [Allorad CLI tool](/devs/get-started/cli#installing-allorad)
+1. **A wallet with sufficient funds** to at least cover gas. Use [the faucet](/devs/get-started/quick-start#get-testnet-funds) to get funds.
+2. **[Allorad CLI tool](/devs/get-started/quick-start#install-the-allora-cli)**: Command-line interface for network interactions.
 
-## Explainer Video
+## Understanding Topic Creation
+
+### Educational Resources
+
+#### Explainer Video
 
 Please see the video below to get a full deep-dive on the different parameters that make up a topic:
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/WfM3Nrkgh6Y?si=Syap6TMjU7usLwVH" title="How to create a Topic" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
-## Tx Functions
+### Command Structure
+
+#### Tx Functions
 
 These functions write to the appchain. Add the **Command** value into your query to retrieve the expected data.
 
@@ -27,7 +55,9 @@ These functions write to the appchain. Add the **Command** value into your query
 allorad tx emissions [Command]
 ```
 
-## Creating Your First Topic
+## Topic Creation Process
+
+### Creating Your First Topic
 
 The transaction for creating a topic has the following structure:
 
@@ -60,7 +90,9 @@ type MsgCreateNewTopic struct {
 }
 ```
 
-Using the [`allorad` CLI](/devs/get-started/cli#installing-allorad) to create a topic:
+### Command Line Implementation
+
+Using the [`allorad` CLI](/devs/get-started/quick-start#install-the-allora-cli) to create a topic:
 
 ```shell bash
 allorad tx emissions create-topic \
@@ -82,33 +114,121 @@ allorad tx emissions create-topic \
   --chain-id <CHAIN_ID>
 ```
 
-Be sure to swap out [`RPC_URL`](/devs/get-started/setup-wallet#rpc-url-and-chain-id), `YOUR_ADDRESS`, [`CHAIN_ID`](/devs/get-started/setup-wallet#rpc-url-and-chain-id) and all other arguments as appropriate with the desired values.
+**Parameter Substitution**: Be sure to swap out [`RPC_URL`](/devs/get-started/quick-start#network-configuration), `YOUR_ADDRESS`, [`CHAIN_ID`](/devs/get-started/quick-start#network-configuration) and all other arguments as appropriate with the desired values.
 
-### Notes
+## Parameter Details
 
-An explanation in more detail of some of these fields. 
+### Core Configuration
 
-- `Metadata` is a descriptive field to let users know what this topic is about and/or any specific indication about how it is expected to work.
-- `allowNegative` determines whether the loss function output can be negative.
-  - If **true**, the reputer submits raw losses.
-  - If **false**, the reputer submits logs of losses.
+#### Basic Information
 
----
+**`Creator`**: Address of the wallet that will own the topic
+- Must be your wallet address
+- Owner has administrative control over the topic
 
-## Fund a Topic
+**`Metadata`**: Information about the topic
+- Descriptive field to let users know what this topic is about
+- Should include specific indication about how it is expected to work
+- Human-readable description for network participants
 
+**`LossMethod`**: The method used for loss calculations
+- Determines how prediction accuracy is measured
+- Common values: "mse" (Mean Squared Error)
+
+#### Timing Parameters
+
+**`EpochLength`**: The frequency (in blocks) of inference calculations
+- Must be greater than 0
+- Defines how often new predictions are requested
+- Shorter epochs = more frequent predictions
+
+**`GroundTruthLag`**: The time it takes for the ground truth to become available
+- Cannot be negative
+- Time between prediction and when actual results are known
+- Essential for determining prediction accuracy
+
+**`WorkerSubmissionWindow`**: The time window within a given epoch that worker nodes can submit an inference
+- Defines submission deadline within each epoch
+- Balances timeliness with participation opportunity
+
+#### Quality Control
+
+**`PNorm`**: Raising this parameter raises how much high-quality inferences are favored over lower-quality inferences
+- Must be between 2.5 and 4.5
+- Higher values favor accuracy over participation
+
+**`AlphaRegret`**: Raising this parameter lowers how much workers' historical performances influence their current reward distribution
+- Must be between 0 and 1
+- Controls how much past performance affects current rewards
+
+**`AllowNegative`**: Indicates if the loss function's output can be negative
+- **If false**: The reputer submits logs of losses
+- **If true**: The reputer submits raw losses
+- Affects how loss calculations are processed
+
+#### Advanced Parameters
+
+**`Epsilon`**: The numerical precision at which the network should distinguish differences in the logarithm of the loss
+- Controls precision in loss calculations
+- Affects reward distribution sensitivity
+
+**Quantile Parameters**: Control active participant selection
+- **`ActiveInfererQuantile`**: Proportion of workers selected for active participation
+- **`ActiveForecasterQuantile`**: Proportion of forecasters selected
+- **`ActiveReputerQuantile`**: Proportion of reputers selected
+- All typically set to 0.25 (25%) for balanced participation
+
+## Topic Funding
+
+### Fund a Topic
+
+**Topic Funding Details**:
 - **RPC Method:** `FundTopic`
 - **Command:** `fund-topic [sender] [topic_id] [amount] [extra_data]`
 - **Description:** Sends funds to a specific topic to be used for paying for inferences or other topic-related activities.
-- **Positional Arguments:**
-    - `sender`: The address of the sender providing the funds.
-    - `topic_id`: The identifier of the topic to receive the funds.
-    - `amount`: The amount of funds being sent to the topic.
-    - `extra_data`: Additional data or metadata associated with the funding transaction.
 
-### Use Case:
+**Positional Arguments**:
+- **`sender`**: The address of the sender providing the funds.
+- **`topic_id`**: The identifier of the topic to receive the funds.
+- **`amount`**: The amount of funds being sent to the topic.
+- **`extra_data`**: Additional data or metadata associated with the funding transaction.
+
+#### Use Case
+
 **Why use it?**  
 - This command is used to fund a topic, ensuring there are sufficient funds available to reward workers, forecasters, or other participants submitting inferences or engaging with the topic.
 
-**Example Scenario:**  
+**Example Scenario**:  
 - As a network administrator or topic creator, you want to add funds to a topic to ensure that workers and forecasters are compensated for their contributions.
+
+**Funding Strategy**:
+- Fund topics based on expected participation levels
+- Monitor funding levels to ensure continuous operation
+- Consider funding multiple topics for diversified prediction coverage
+
+## Best Practices
+
+### Parameter Selection
+
+**For Price Predictions**:
+- Short EpochLength (5-60 minutes) for high-frequency trading data
+- Longer GroundTruthLag for assets with delayed price discovery
+- Higher PNorm values to emphasize accuracy
+
+**For Event Predictions**:
+- Longer EpochLength matching event timelines
+- GroundTruthLag based on when results become available
+- Consider AllowNegative=true for binary outcomes
+
+### Topic Management
+
+**Ongoing Maintenance**:
+- Monitor topic activity and adjust funding as needed
+- Review participant performance and topic competitiveness
+- Consider parameter adjustments based on network behavior
+
+## Next Steps
+
+- [Understand topic lifecycle](/devs/topic-creators/topic-life-cycle) for ongoing management
+- [Learn to query topic data](/devs/topic-creators/query-topic-data) for monitoring
+- [Explore worker deployment](/devs/workers/deploy-worker/using-docker) to participate in your topics

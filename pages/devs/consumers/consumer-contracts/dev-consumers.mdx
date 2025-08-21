@@ -1,12 +1,34 @@
 # Getting Started with Consumers Contracts
 
+## What You'll Learn
+- How to develop smart contracts that consume Allora Network inferences
+- Two main patterns for using inference data in your contracts
+- Setting up consumer contracts with proper verification
+
+## Overview
+
 > Sample code snippets to help you get started using inferences from Allora topics
 
-Consumer contracts are essential for bringing Allora Network prices on-chain. You can find the code repository containing example consumer contracts [here](https://github.com/allora-network/allora-consumer). Consumer contracts verify that the data is correctly formatted, and signed by a valid signer.
+**Consumer contracts are essential for bringing Allora Network prices on-chain.** You can find the code repository containing example consumer contracts [here](https://github.com/allora-network/allora-consumer). Consumer contracts verify that the data is correctly formatted, and signed by a valid signer.
+
+### Why Use Consumer Contracts?
+
+Consumer contracts provide:
+- **Data verification**: Ensures inference data is correctly formatted and signed
+- **On-chain integration**: Brings Allora Network predictions directly into your smart contracts
+- **Security**: Cryptographic verification of all inference data
+
+## Prerequisites
+
+- Solidity development experience (version 0.8.13+)
+- Understanding of smart contract interfaces
+- Experience with OpenZeppelin contracts
 
 ## Consuming Allora Inferences
 
 Below is a complete example of a contract that brings inference data on-chain for use in a protocol, and verifies the data against an Allora Consumer contract. This example code can be found [here](https://github.com/allora-network/allora-consumer/blob/main/src/examples/AlloraConsumerBringPredictionOnChainExample.sol).
+
+### Complete Contract Example
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -105,5 +127,54 @@ contract AlloraConsumerBringPredictionOnChainExample is Ownable2Step {
         alloraConsumer = alloraConsumer_;
     }
 }
-
 ```
+
+## Understanding the Contract
+
+### Key Components
+
+**Contract Setup**:
+- **Consumer Address**: Points to Sepolia testnet consumer at `0x4341a3F0a350C2428184a727BAb86e16D4ba7018`
+- **Inheritance**: Uses `Ownable2Step` for secure ownership management
+- **Imports**: Required interfaces for Allora consumer interaction
+
+**Two Usage Patterns**:
+
+1. **Using Existing Stored Values** (`callProtocolFunctionWithExistingValue`):
+   - Reads inference data already stored in the consumer contract
+   - Checks that data is not stale (less than 1 hour old)
+   - More gas efficient for repeated reads
+
+2. **Real-time Verification** (`callProtocolFunctionWithAlloraTopicInference`):
+   - Verifies fresh inference data with cryptographic signatures
+   - Uses the latest available inference data
+   - More secure but higher gas cost
+
+### Function Breakdown
+
+**`callProtocolFunctionWithExistingValue`**:
+- Gets stored topic value from consumer contract
+- Validates data freshness (1 hour limit)
+- Passes verified data to your protocol logic
+
+**`callProtocolFunctionWithAlloraTopicInference`**:
+- Verifies signed inference data on-chain
+- Extracts inference value and confidence intervals
+- Passes verified data to your protocol logic
+
+**`setAlloraConsumerContract`**:
+- Admin function to update consumer contract address
+- Uses `onlyOwner` modifier for security
+
+## Implementation Steps
+
+1. **Deploy the Contract**: Deploy with the correct consumer address for your network
+2. **Configure Consumer**: Set the consumer contract address if needed
+3. **Choose Integration Pattern**: Use stored values for efficiency or real-time verification for maximum freshness
+4. **Implement Protocol Logic**: Add your specific business logic in `_protocolFunctionRequiringPredictionValue`
+
+## Next Steps
+
+- [Complete walkthrough of using topic inferences](/devs/consumers/walkthrough-use-topic-inference)
+- [Deploy consumer contracts](/devs/consumers/consumer-contracts/deploy-consumer)
+- [Explore existing consumer implementations](/devs/consumers/existing-consumers)

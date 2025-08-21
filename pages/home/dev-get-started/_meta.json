@@ -1,0 +1,14 @@
+{
+  "overview": {
+    "title": "Quick Start",
+    "href": "/devs/get-started/quick-start"
+  },
+  "setup-wallet": {
+    "title": "Network Interaction", 
+    "href": "/devs/get-started/network-interaction"
+  },
+  "cli": {
+    "title": "Model Forge Competition",
+    "href": "/devs/get-started/model-forge"
+  }
+} 

@@ -1,18 +1,19 @@
 {
   "home": {
-    "title": "Home",
+    "title": "Getting Started",
     "type": "page"
   },
   "devs": {
     "title": "Developers",
-    "type": "page"
-  },
-  "community": {
-    "title": "Community",
-    "type": "page"
+    "type": "page",
+    "href": "/devs/get-started/quick-start"
   },
   "marketplace": {
-    "title": "Marketplace",
+    "title": "SDK & Integrations",
+    "type": "page"
+  },
+  "release-notes": {
+    "title": "Release Notes",
     "type": "page"
   }
 }

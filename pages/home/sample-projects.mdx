@@ -1,0 +1,78 @@
+import { Cards, Card, Callout } from 'nextra/components'
+
+# Browse Sample Projects
+
+Explore these sample projects to get started with building on the Allora network. These examples demonstrate different approaches to creating worker nodes and implementing prediction models.
+
+## Official Sample Projects
+
+<Cards>
+  <Card 
+    title="Basic Coin Prediction Node"
+    href="https://github.com/allora-network/basic-coin-prediction-node"
+  >
+    An official Allora network worker node example that provides price predictions using a basic linear regression model. This repository demonstrates the complete setup including worker, inference, and updater components.
+    
+    **Features:**
+    - Complete Docker-compose setup
+    - Multiple ML models (LinearRegression, SVR, KernelRidge, BayesianRidge)
+    - Support for ETH, SOL, BTC, BNB, ARB tokens
+    - Automated data fetching and model updates
+    - Integration with Binance and CoinGecko APIs
+  </Card>
+  <Card 
+    title="Allora Model Development Kit (MDK)"
+    href="https://github.com/allora-network/allora-mdk"
+  >
+    The official Allora Model Development Kit provides a comprehensive framework for building, training, and deploying AI models on the Allora network. Perfect for developers who want to create custom prediction models.
+    
+    **Features:**
+    - Multiple regression strategies (ARIMA, LSTM, etc.)
+    - Tiingo data integration for real-time market data
+    - FastAPI endpoints for inference serving
+    - Automated model training and packaging
+    - Docker deployment support
+    - Makefile for easy development workflow
+  </Card>
+</Cards>
+
+## Community Spotlight
+
+<Cards>
+  <Card 
+    title="Allora Worker Node Base"
+    href="https://github.com/t-hossein/Allora-Worker-Node-Base"
+  >
+    A community-contributed base template for building Allora worker nodes. This project provides a clean starting point for developers who want to implement their own prediction models.
+    
+    **Features:**
+    - Simplified base structure
+    - Easy customization for different models
+    - Docker-based deployment
+    - Clear documentation for getting started
+    - Community-maintained and supported
+  </Card>
+</Cards>
+
+## Getting Started
+
+<Callout type="info">
+Before deploying any worker node, make sure you have:
+- Set up your wallet with the required tokens
+- Obtained faucet funds for your worker
+- Configured your environment variables properly
+</Callout>
+
+### Quick Start Steps
+
+1. **Choose a Template**: Select either the official basic coin prediction node or the community base template
+2. **Clone the Repository**: Download the code to your local environment
+3. **Configure Environment**: Set up your `.env` file with API keys and configuration
+4. **Initialize Worker**: Run the setup script to create your Allora keys
+5. **Deploy**: Use Docker Compose to start your worker node
+
+### Need Help?
+
+- Check out our [Worker Documentation](/devs/workers) for detailed guides
+- Join our [community discussions](https://discord.gg/allora) for support
+- Explore more [developer resources](/devs/get-started/quick-start) 

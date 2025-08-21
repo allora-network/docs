@@ -1,0 +1,188 @@
+import { Callout, Tabs } from 'nextra/components'
+
+# Network Interaction
+
+Learn how to interact with Allora Network: query data, manage transactions, and work with prediction topics.
+
+## Gas Management
+
+Allora uses an **EIP-1559-like fee structure**. Always use this transaction format:
+
+```bash
+allorad tx emissions [command] \
+  --from <account-name> \
+  --node <rpc-url> \
+  --chain-id allora-testnet-1 \
+  --keyring-backend test \
+  --gas 130206 \
+  --gas-adjustment 1.2 \
+  --gas-prices 10uallo
+```
+
+<Callout type="info">
+**Key differences from other Cosmos chains:**
+- Use `--gas-prices 10uallo` (not `--fees`)
+- Use specific `--gas` amount (not `--gas auto`)
+</Callout>
+
+**`fees Xuallo` becomes `gas-prices 10uallo`**
+
+## Available Topics
+
+Current prediction topics on Allora Testnet:
+
+| Topic ID | Metadata | Default Arg |
+|----------|----------|-------------|
+| 1 | ETH 10min Prediction | ETH |
+| 2 | ETH 24h Prediction | ETH |
+| 3 | BTC 10min Prediction | BTC |
+| 4 | BTC 24h Prediction | BTC |
+| 5 | SOL 10min Prediction | SOL |
+| 6 | SOL 24h Prediction | SOL |
+| 7 | ETH 20min Prediction | ETH |
+| 8 | BNB 20min Prediction | BNB |
+| 9 | ARB 20min Prediction | ARB |
+| 10 | Memecoin 1h Prediction | TOKEN_FROM_API |
+| 11 | US Presidential Election 2024 - Winning Party | R |
+| 13 | ETH 5min Prediction | ETH |
+| 14 | BTC 5min Prediction | BTC |
+| 15 | ETH 5min Volatility Prediction | ETH |
+| 17 | ETH 8h Prediction | ETH |
+| 18 | BTC 8h Prediction | BTC |
+| 37 | SOL/USD - 5min Price Prediction | SOL |
+| 38 | SOL/USD - 8h Price Prediction | SOL |
+| 41 | ETH/USD - 8h Price Prediction | ETH |
+| 42 | BTC/USD - 8h Price Prediction | BTC |
+| 47 | 5 min BTC Price Prediction | BTC |
+| 50 | 6h BTC Volatility Prediction | BTC |
+| 56 | 1 hour BERA/USD Log-Return Prediction | BERA |
+| 58 | 8 hour SOL/USD Log-Return Prediction | SOL |
+| 60 | 24 hour XAU/USD Log-Return Prediction | XAU |
+| 61 | 1 day BTC/USD Log-Return Prediction | BTC |
+| 62 | 1 day SOL/USD Log-Return Prediction | SOL |
+| 63 | 1 day ETH/USD Log-Return Prediction | ETH |
+
+<Callout type="warning">
+Topic ordering varies between deployments. Always verify topic details before use.
+</Callout>
+
+## Querying Network Data
+
+Use these commands to retrieve network information:
+
+<Tabs items={['Topic Data', 'Network Inferences', 'Rewards', 'Parameters']}>
+
+<Tabs.Tab>
+**Get topic details:**
+```bash
+allorad query emissions topic <topic-id> \
+  --node https://allora-rpc.testnet.allora.network/
+```
+
+**Example:**
+```bash
+allorad query emissions topic 1 \
+  --node https://allora-rpc.testnet.allora.network/
+```
+</Tabs.Tab>
+
+<Tabs.Tab>
+**Get latest network predictions:**
+```bash
+allorad query emissions latest-available-network-inferences <topic-id> \
+  --node https://allora-rpc.testnet.allora.network/
+```
+
+**Use case:** Retrieve complete network-wide predictions when all data is available.
+
+**Example:**
+```bash
+allorad query emissions latest-available-network-inferences 1 \
+  --node https://allora-rpc.testnet.allora.network/
+```
+</Tabs.Tab>
+
+<Tabs.Tab>
+**Get total reward pool:**
+```bash
+allorad query emissions total-rewards \
+  --node https://allora-rpc.testnet.allora.network/
+```
+
+**Use case:** Check total rewards available for distribution in current block.
+</Tabs.Tab>
+
+<Tabs.Tab>
+**Get network parameters:**
+```bash
+allorad query emissions params \
+  --node https://allora-rpc.testnet.allora.network/
+```
+
+**Use case:** View current network configuration and module settings.
+</Tabs.Tab>
+
+</Tabs>
+
+## Common Operations  
+
+### Query an Inference
+
+```bash
+# Get latest prediction for ETH (topic 1)
+allorad query emissions latest-available-network-inferences 1 \
+  --node https://allora-rpc.testnet.allora.network/
+```
+
+### Delegate Stake to Reputer
+
+```bash
+allorad tx emissions delegate-stake <reputer-address> <amount>uallo \
+  --from <your-key-name> \
+  --node https://allora-rpc.testnet.allora.network/ \
+  --chain-id allora-testnet-1 \
+  --gas 130206 \
+  --gas-adjustment 1.2 \
+  --gas-prices 10uallo
+```
+
+### Check Your Balance
+
+```bash
+allorad query bank balances <your-address> \
+  --node https://allora-rpc.testnet.allora.network/
+```
+
+## Network Endpoints
+
+**Testnet:**
+- **RPC:** `https://allora-rpc.testnet.allora.network/`
+- **Alternative RPC:** `https://rpc.ankr.com/allora_testnet`
+- **Chain ID:** `allora-testnet-1`
+
+## Best Practices
+
+- **Always specify gas explicitly** - Don't use `--gas auto`
+- **Use consistent gas prices** - `10uallo` is recommended
+- **Verify topic IDs** - Topics may vary between networks
+- **Check network status** - Ensure RPC endpoints are accessible
+- **Monitor gas usage** - Adjust gas amounts based on transaction complexity
+
+## Troubleshooting
+
+**Transaction Failed:**
+- Check gas settings (use explicit `--gas` and `--gas-prices`)
+- Verify sufficient wallet balance
+- Confirm correct chain ID and RPC URL
+
+**Query Timeout:**
+- Try alternative RPC endpoint
+- Check network connectivity
+- Verify topic ID exists
+
+## Next Steps
+
+- **Deploy a Worker:** [Worker Documentation](/devs/workers)
+- **Build Consumers:** [Consumer Guides](/devs/consumers)  
+- **Validate Network:** [Validator Setup](/devs/validators)
+- **Join Competition:** [Model Forge](/devs/get-started/model-forge) 

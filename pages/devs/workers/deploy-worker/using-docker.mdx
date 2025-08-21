@@ -2,19 +2,33 @@ import { Callout } from 'nextra/components'
 
 # Build and Deploy a Worker Node using Docker
 
-This document outlines a setup where the worker node is supported by an inference server. Communication occurs through an endpoint, allowing the worker to request inferences from the server.
+## What You'll Learn
+- How to deploy worker nodes using Docker containers
+- Setting up inference servers that communicate with worker nodes
+- Complete workflow from configuration to network registration
 
-To build this setup, please follow these steps:
+## Overview
+
+**This document outlines a setup where the worker node is supported by an inference server.** Communication occurs through an endpoint, allowing the worker to request inferences from the server.
+
+### Architecture Overview
+
+The Docker deployment consists of:
+- **Worker Node**: Connects to Allora Network and submits inferences
+- **Inference Server**: Hosts your AI model and provides predictions
+- **API Gateway**: Handles communication between components
 
 ## Prerequisites
 
 Ensure you have the following installed on your machine:
 
-- Git
-- Go (version 1.16 or later)
-- Docker
+- **Git**: For cloning repositories
+- **Go**: Version 1.16 or later for building the worker node
+- **Docker**: For containerizing and running services
 
-## Clone the `allora-offchain-node` Repository
+## Setup Process
+
+### Step 1: Clone the Repository
 
 Download the `allora-offchain-node` git repo:
 
@@ -23,16 +37,18 @@ git clone https://github.com/allora-network/allora-offchain-node
 cd allora-offchain-node
 ```
 
-## Configure Your Environment
+### Step 2: Configure Your Environment
 
 1. Copy `config.example.json` and name the copy `config.json`.
 2. Open `config.json` and **update** the necessary fields inside the `wallet` sub-object and `worker` config with your specific values:
 
-### `wallet` Sub-object
+#### Wallet Configuration
 
-1. `nodeRpc`: The [RPC URL](/devs/get-started/setup-wallet#rpc-url-and-chain-id) for the corresponding network the node will be deployed on
-2. `addressKeyName`: The name you gave your wallet key when [setting up your wallet](/devs/get-started/setup-wallet)
-3. `addressRestoreMnemonic`: The mnemonic that was outputted when setting up a new key
+**`wallet` Sub-object**:
+
+1. **`nodeRpc`**: The [RPC URL](/devs/get-started/quick-start#network-configuration) for the corresponding network the node will be deployed on
+2. **`addressKeyName`**: The name you gave your wallet key when [setting up your wallet](/devs/get-started/quick-start#create-your-wallet)
+3. **`addressRestoreMnemonic`**: The mnemonic that was outputted when setting up a new key
 
 {/* <Callout type="info">
 `addressKeyName` and `addressRestoreMnemonic` are optional parameters. If you did not previously generate keys, keys will be generated for you when [running the node](/devs/workers/deploy-worker/using-docker#generate-keys-and-export-variables).
@@ -40,12 +56,14 @@ cd allora-offchain-node
 If you have existing keys that you wish to use, you will need to provide these variables.
 </Callout> */}
 
-### `worker` Config
+#### Worker Configuration
 
-1. `topicId`: The specific topic ID you created the worker for. 
-2. `InferenceEndpoint`: The endpoint exposed by your worker node to provide inferences to the network.
-3. `Token`: The token for the specific topic you are providing inferences for. The token needs to be exposed in the inference server endpoint for retrieval.
-  - The `Token` variable is specific to the endpoint you expose in your `main.py` file. It is not related to any topic parameter.
+**`worker` Config**:
+
+1. **`topicId`**: The specific topic ID you created the worker for. 
+2. **`InferenceEndpoint`**: The endpoint exposed by your worker node to provide inferences to the network.
+3. **`Token`**: The token for the specific topic you are providing inferences for. The token needs to be exposed in the inference server endpoint for retrieval.
+   - The `Token` variable is specific to the endpoint you expose in your `main.py` file. It is not related to any topic parameter.
 
 <Callout type="warning">
 The `worker` config is an array of sub-objects, each representing a different topic ID. This structure allows you to manage multiple topic IDs, each within its own sub-object.
@@ -76,13 +94,13 @@ To deploy a worker that provides inferences for multiple topics, you can duplica
 ```
 </Callout>
 
-### Reputer Config
+#### Reputer Configuration (Optional)
 
-The `config.example.json` file that was copied and edited in the previous steps also contains a JSON object for configuring and deploying a [reputer](/devs/reputers/reputers). To ignore the reputer and only deploy a worker, delete the reputer sub-object from the `config.json` file.
+**Reputer Config**: The `config.example.json` file that was copied and edited in the previous steps also contains a JSON object for configuring and deploying a [reputer](/devs/reputers/reputers). To ignore the reputer and only deploy a worker, delete the reputer sub-object from the `config.json` file.
 
-## Create the Inference Server
+### Step 3: Create the Inference Server
 
-### Prepare the API Gateway
+#### Prepare the API Gateway
 
 Ensure you have an API gateway or server that can accept API requests to call your model. 
 
@@ -92,22 +110,23 @@ The model in `allora-offchain-node` is barebones and outputs a random integer. F
 A full breakdown of the components needed to build the model is available [here](/devs/workers/walkthroughs/walkthrough-price-prediction-worker).
 </Callout>
 
-### Server Responsibilities
+#### Server Responsibilities
 
+The inference server must:
 - Accept API requests from `main.go`.
 - Respond with the corresponding inference obtained from the model.
 
-### Inference Relay
+#### Inference Relay
 
 Below is a sample structure of what your `main.go`, `main.py` and Dockerfile will look like.
 
-#### `main.go`
+**`main.go`**:
 
 `allora-offchain-node` comes preconfigured with a `main.go` file inside the [`adapter/api-worker-reputer` folder](https://github.com/allora-network/allora-offchain-node/blob/dev/adapter/api-worker-reputer/main.go).
 
 The `main.go` file fetches the responses outputted from the Inference Endpoint based on the `InferenceEndpoint` and `Token` provided in the section above.
 
-#### `main.py`
+**`main.py`**:
 
 `allora-offchain-node` comes preconfigured with a Flask application that uses a `main.py` file to expose the Inference Endpoint. 
 
@@ -134,9 +153,7 @@ if __name__ == '__main__':
   A full breakdown of the components needed to build the model is available [here](/devs/workers/walkthroughs/walkthrough-price-prediction-worker).
 </Callout>
 
-
-
-#### `Dockerfile`
+**`Dockerfile`**:
 
 A sample Dockerfile has been created in `allora-offchain-node` that can be used to deploy your model on port 8000.
 
@@ -162,7 +179,7 @@ CMD ["python", "main.py"]
 
 Now that the node is configured, let's deploy and register it to the network. To run the node, follow these steps:
 
-### Export Variables
+### Step 1: Export Variables
 
 Execute the following command from the root directory:
 
@@ -185,11 +202,11 @@ before proceeding.
 
 </Callout>
 
-### Request from Faucet
+### Step 2: Request from Faucet
 
 Copy your Allora address and request some tokens from the [Allora Testnet Faucet](https://faucet.testnet.allora.network/) to register your worker in the next step successfully.
 
-### Deploy the Node
+### Step 3: Deploy the Node
 
 ```
 docker compose up --build
@@ -197,11 +214,17 @@ docker compose up --build
 
 Both the offchain node and the source services will be started. They will communicate through endpoints attached to the internal DNS.
 
+## Verification
+
+### Check Node Status
+
 If your node is working correctly, you should see it actively checking for the active worker nonce:
 
 ```bash
 offchain_node    | {"level":"debug","topicId":1,"time":1723043600,"message":"Checking for latest open worker nonce on topic"}
 ```
+
+### Successful Registration
 
 A **successful** response from your Worker should display:
 
@@ -209,12 +232,18 @@ A **successful** response from your Worker should display:
 {"level":"debug","msg":"Send Worker Data to chain","txHash":<tx-hash>,"time":<timestamp>,"message":"Success"}
 ```
 
-Congratulations! You've successfully deployed and registered your node on Allora.
+**Congratulations! You've successfully deployed and registered your node on Allora.**
 
-### Testing
+### Testing Your Setup
 
 You can test your local inference server by performing a `GET` request on `http://localhost:8000/inference/<token>`.
 
 ```bash
 curl http://localhost:8000/inference/<token>
 ```
+
+## Next Steps
+
+- [Learn about worker walkthroughs for specific models](/devs/workers/walkthroughs/walkthrough-price-prediction-worker)
+- [Explore alternative deployment methods](/devs/workers/deploy-worker/build-and-deploy-worker-with-node-runners)
+- [Monitor your worker performance](/devs/workers/query-worker-data)

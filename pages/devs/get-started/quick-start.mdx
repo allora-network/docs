@@ -1,0 +1,87 @@
+import { Callout, Steps } from 'nextra/components'
+
+# Quick Start
+
+Get up and running with Allora Network in under 5 minutes. This guide covers everything you need to start building on Allora's decentralized AI network.
+
+## What is Allora?
+
+Allora is a decentralized network where AI models compete and collaborate to deliver superior predictions. Build inference workers, consume predictions, or validate network integrity.
+
+**Key Participants:**
+- **Workers** - Run AI models and submit predictions  
+- **Consumers** - Integrate predictions into applications
+- **Reputers** - Validate prediction accuracy
+- **Validators** - Secure the network infrastructure
+
+<Steps>
+
+### Install the Allora CLI
+
+The `allorad` CLI is your primary tool for interacting with Allora Network.
+
+**Prerequisites:** [Install Go](https://golang.org/doc/install) (required for allorad)
+
+```bash
+curl -sSL https://raw.githubusercontent.com/allora-network/allora-chain/main/install.sh | bash -s -- v0.8.0
+```
+
+**Verify installation:**
+```bash
+allorad version
+```
+
+### Create Your Wallet
+
+```bash
+# Create new wallet
+allorad keys add <your-key-name>
+
+# Or recover existing wallet  
+allorad keys add <your-key-name> --recover
+```
+
+<Callout type="warning">
+**Save your mnemonic phrase securely!** You'll need it to recover your wallet.
+</Callout>
+
+### Get Testnet Funds
+
+1. **Get funds:** Visit [Allora Faucet](https://faucet.testnet.allora.network/)
+2. **Enter your wallet address** (from the previous step)
+3. **Verify funds:** Check your balance at [Allora Explorer](https://explorer.testnet.allora.network/)
+
+### Network Configuration
+
+**Testnet Details:**
+- **RPC URL:** `https://allora-rpc.testnet.allora.network/`
+- **Chain ID:** `allora-testnet-1`
+- **Faucet:** https://faucet.testnet.allora.network/
+- **Explorer:** https://explorer.testnet.allora.network/
+
+</Steps>
+
+## Quick Test
+
+Verify your setup by querying network information:
+
+```bash
+# Check network status
+allorad status --node https://allora-rpc.testnet.allora.network/
+
+# View existing topics
+allorad query emissions topic 1 --node https://allora-rpc.testnet.allora.network/
+```
+
+## Next Steps
+
+- **Build Applications:** Learn [Network Interaction](/devs/get-started/network-interaction) 
+- **Deploy Workers:** Explore [Worker Documentation](/devs/workers)
+- **Consume Data:** Check out [Consumer Guides](/devs/consumers)
+- **Join Competition:** Try [Model Forge Competition](/devs/get-started/model-forge)
+
+## Need Help?
+
+- **Documentation:** Explore specific participant guides
+- **Community:** Join our [Discord](https://discord.gg/allora) for support
+- **Issues:** Report bugs on [GitHub](https://github.com/allora-network) 

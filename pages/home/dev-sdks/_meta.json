@@ -1,0 +1,14 @@
+{
+  "overview": {
+    "title": "Overview",
+    "href": "/devs/sdk/overview"
+  },
+  "allora-sdk-ts": {
+    "title": "TypeScript SDK",
+    "href": "/devs/sdk/allora-sdk-ts"
+  },
+  "allora-sdk-py": {
+    "title": "Python SDK",
+    "href": "/devs/sdk/allora-sdk-py"
+  }
+} 

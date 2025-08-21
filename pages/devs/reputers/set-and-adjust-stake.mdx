@@ -1,153 +1,287 @@
 # Set and Adjust Stake
 
-> We define stake, motivate its use, and demonstrate how it can be adjusted
+## What You'll Learn
+- Understanding how stake works for reputers and its role in network security
+- Complete guide to adding, removing, and canceling stake operations
+- Delegation management including staking to reputers and claiming rewards
+- Strategic considerations for optimal stake allocation and risk management
 
-## How Stake works for Reputers
+## Overview
 
-[Stake](/home/key-terms#stake) is used to signal confidence. A reputer earns more rewards based on their accuracy comparative to consensus (the other reputers providing data for a topic) and stake.
+**We define stake, motivate its use, and demonstrate how it can be adjusted.**
 
-Stake also protects Allora from malicious behavior, such as sybil attacks. We require all types of nodes to register on the chain before they can earn any rewards. Registering requires staking at least a minimum amount of ALLO. As a result, creating an army of malicious nodes would quickly become prohibitively expensive.
+### How Stake works for Reputers
+
+**[Stake](/home/key-terms#stake) is used to signal confidence.** A reputer earns more rewards based on their accuracy comparative to consensus (the other reputers providing data for a topic) and stake.
+
+### Why Stake Matters
+
+**Stake also protects Allora from malicious behavior, such as sybil attacks.** We require all types of nodes to register on the chain before they can earn any rewards. Registering requires staking at least a minimum amount of ALLO. As a result, creating an army of malicious nodes would quickly become prohibitively expensive.
+
+**Stake Functions**:
+- **Confidence signaling**: Higher stake indicates stronger commitment to accuracy
+- **Reward calculation**: Stake influences reward distribution based on performance
+- **Security mechanism**: Prevents spam and malicious behavior through economic cost
+- **Network governance**: Stake provides voting power in network decisions
 
 ## Prerequisites
 
-- [`allorad` CLI](/devs/get-started/cli)
+- **[`allorad` CLI](/devs/get-started/quick-start#install-the-allora-cli)**: Command-line interface for network interactions
+- **Funded wallet**: Sufficient ALLO tokens for staking operations
+- **Understanding of topics**: Knowledge of which topics to participate in
+- **Risk assessment**: Evaluation of stake amounts and delegation strategies
 
-## Tx Functions
+## Command Structure
+
+### Tx Functions
 
 These functions read from the appchain only and do not write. Add the **Command** value into your query to retrieve the expected data.
 
+**Base Transaction Format**:
 ```bash
 allorad tx emissions [Command] --node <RPC_URL>
 ```
 
-## Add Stake to Self 
+**Important Notes**:
+- All stake operations require gas fees
+- Stake changes may have unbonding periods
+- Always verify transaction success before proceeding
 
+## Self-Stake Management
+
+### Add Stake to Self 
+
+**Transaction Details**:
 - **RPC Method:** `AddStake`
 - **Command:** `add-stake [sender] [topic_id] [amount]`
 - **Description:** Adds stake to the sender for a specific topic.
-- **Positional Arguments:**
-    - `sender`: The address of the sender adding stake.
-    - `topic_id`: The identifier of the topic.
-    - `amount`: The amount of stake to be added.
 
-### Use Case:
+**Positional Arguments**:
+- **`sender`**: The address of the sender adding stake.
+- **`topic_id`**: The identifier of the topic.
+- **`amount`**: The amount of stake to be added.
+
+#### Use Case
+
 **Why use it?**  
 - This command is used when a reputer or worker wants to increase their stake in a specific topic, increasing their influence or authority.
 
 **Example Scenario:**  
 - As a reputer, you want to increase your stake in a specific topic to gain more influence and improve your reputation scores.
 
----
+**Strategic Considerations**:
+- Higher stake increases potential rewards but also increases risk
+- Consider topic competitiveness when determining stake amounts
+- Monitor network performance to time stake additions optimally
 
-## Remove Stake from Self
+### Remove Stake from Self
 
+**Transaction Details**:
 - **RPC Method:** `RemoveStake`
 - **Command:** `remove-stake [sender] [topic_id] [amount]`
 - **Description:** Removes stake from the sender (a reputer) in a specific topic.
-- **Positional Arguments:**
-    - `sender`: The address of the sender removing stake (reputer).
-    - `topic_id`: The identifier of the topic.
-    - `amount`: The amount of stake to be removed.
 
-### Use Case:
+**Positional Arguments**:
+- **`sender`**: The address of the sender removing stake (reputer).
+- **`topic_id`**: The identifier of the topic.
+- **`amount`**: The amount of stake to be removed.
+
+#### Use Case
+
 **Why use it?**  
 - This command is used by reputers to reduce their stake in a topic, either for liquidity purposes or when their role in the topic has changed.
 
 **Example Scenario:**  
 - A reputer wants to reduce their stake in a topic after completing their contributions and being satisfied with the rewards.
 
----
+**Important Considerations**:
+- Stake removal may have unbonding periods
+- Reduced stake means lower potential rewards
+- Consider market conditions before removing stake
 
-## Cancel Pending Stake Removal (Reputer)
+### Cancel Pending Stake Removal (Reputer)
 
+**Transaction Details**:
 - **RPC Method:** `CancelRemoveStake`
 - **Command:** `cancel-remove-stake [sender] [topic_id]`
 - **Description:** Cancels the removal of stake that is pending for the sender (a reputer) in a topic.
-- **Positional Arguments:**
-    - `sender`: The address of the sender canceling the stake removal (reputer).
-    - `topic_id`: The identifier of the topic.
 
-### Use Case:
+**Positional Arguments**:
+- **`sender`**: The address of the sender canceling the stake removal (reputer).
+- **`topic_id`**: The identifier of the topic.
+
+#### Use Case
+
 **Why use it?**  
 - This command allows reputers to cancel a stake removal request if they change their mind and wish to keep their stake in the topic.
 
 **Example Scenario:**  
 - A reputer wants to cancel their stake removal request because they decide to maintain their position in the topic for an additional epoch.
 
----
+**Practical Applications**:
+- Market condition changes that make continued participation attractive
+- Improved topic performance that warrants continued involvement
+- Strategic repositioning based on network developments
 
-## Delegate Stake to a Reputer
+## Delegation Operations
 
+### Delegate Stake to a Reputer
+
+**Transaction Details**:
 - **RPC Method:** `DelegateStake`
 - **Command:** `delegate-stake [sender] [topic_id] [reputer] [amount]`
 - **Description:** Delegates stake from the sender to a specific reputer for a topic.
-- **Positional Arguments:**
-    - `sender`: The address of the sender (delegator).
-    - `topic_id`: The identifier of the topic.
-    - `reputer`: The address of the reputer receiving the delegated stake.
-    - `amount`: The amount of stake to be delegated.
 
-### Use Case:
+**Positional Arguments**:
+- **`sender`**: The address of the sender (delegator).
+- **`topic_id`**: The identifier of the topic.
+- **`reputer`**: The address of the reputer receiving the delegated stake.
+- **`amount`**: The amount of stake to be delegated.
+
+#### Use Case
+
 **Why use it?**  
 - This command is used by delegators to delegate their stake to a reputer, giving the reputer more authority and influence within a specific topic.
 
 **Example Scenario:**  
 - As a delegator, you want to support a reputer you trust by delegating your tokens to them for a particular topic.
 
----
+**Delegation Strategy**:
+- **Due diligence**: Research reputer performance and reliability
+- **Diversification**: Consider spreading delegations across multiple reputers
+- **Performance monitoring**: Track delegated reputer effectiveness regularly
+- **Risk management**: Balance potential rewards with delegation risks
 
-## Remove Delegated Stake from a Reputer
+### Remove Delegated Stake from a Reputer
 
+**Transaction Details**:
 - **RPC Method:** `RemoveDelegateStake`
 - **Command:** `remove-delegate-stake [sender] [topic_id] [reputer] [amount]`
 - **Description:** Removes delegated stake from a reputer for a topic.
-- **Positional Arguments:**
-    - `sender`: The address of the sender (delegator).
-    - `topic_id`: The identifier of the topic.
-    - `reputer`: The address of the reputer whose delegated stake is being removed.
-    - `amount`: The amount of stake to be removed.
 
-### Use Case:
+**Positional Arguments**:
+- **`sender`**: The address of the sender (delegator).
+- **`topic_id`**: The identifier of the topic.
+- **`reputer`**: The address of the reputer whose delegated stake is being removed.
+- **`amount`**: The amount of stake to be removed.
+
+#### Use Case
+
 **Why use it?**  
 - This command is used when a delegator wants to withdraw or reduce the stake they have delegated to a reputer in a topic.
 
 **Example Scenario:**  
 - A delegator wants to reduce their stake delegated to a reputer after reassessing the reputer's performance in a topic.
 
----
+**Considerations for Removal**:
+- Monitor reputer performance before removing stake
+- Consider alternative reputers for reallocation
+- Account for unbonding periods in liquidity planning
 
-## Cancel Pending Delegated Stake Removal
+### Cancel Pending Delegated Stake Removal
 
+**Transaction Details**:
 - **RPC Method:** `CancelRemoveDelegateStake`
 - **Command:** `cancel-remove-delegate-stake [sender] [topic_id] [reputer]`
 - **Description:** Cancels the removal of delegated stake for a delegator staking on a reputer in a topic.
-- **Positional Arguments:**
-    - `sender`: The address of the sender (delegator).
-    - `topic_id`: The identifier of the topic.
-    - `reputer`: The address of the reputer whose delegated stake removal is being canceled.
 
-### Use Case:
+**Positional Arguments**:
+- **`sender`**: The address of the sender (delegator).
+- **`topic_id`**: The identifier of the topic.
+- **`reputer`**: The address of the reputer whose delegated stake removal is being canceled.
+
+#### Use Case
+
 **Why use it?**  
 - This command allows delegators to cancel a delegated stake removal request if they change their mind and want to keep their stake with the reputer.
 
 **Example Scenario:**  
 - A delegator decides to cancel their pending stake removal and continue supporting the reputer in the topic.
 
----
+**When to Cancel**:
+- Improved reputer performance during unbonding period
+- Changed market conditions that favor continued delegation
+- Strategic reallocation decisions that no longer apply
 
-## Claim Rewards for Delegated Stake
+## Reward Management
 
+### Claim Rewards for Delegated Stake
+
+**Transaction Details**:
 - **RPC Method:** `RewardDelegateStake`
 - **Command:** `reward-delegate-stake [sender] [topic_id] [reputer]`
 - **Description:** Claims the rewards for a delegator who has delegated stake to a reputer in a specific topic.
-- **Positional Arguments:**
-    - `sender`: The address of the sender (delegator).
-    - `topic_id`: The identifier of the topic.
-    - `reputer`: The address of the reputer to whom the stake was delegated.
 
-### Use Case:
+**Positional Arguments**:
+- **`sender`**: The address of the sender (delegator).
+- **`topic_id`**: The identifier of the topic.
+- **`reputer`**: The address of the reputer to whom the stake was delegated.
+
+#### Use Case
+
 **Why use it?**  
 - This command is used by delegators to claim their rewards based on the performance of the reputer they delegated stake to.
 
 **Example Scenario:**  
 - A delegator wants to claim their rewards for a topic after their reputer has successfully contributed to the topic's outcomes.
+
+**Reward Optimization**:
+- **Timing**: Claim rewards regularly to compound returns
+- **Reinvestment**: Consider restaking rewards for increased future returns
+- **Performance tracking**: Monitor reward rates to assess delegation effectiveness
+- **Tax considerations**: Keep records of reward claims for reporting purposes
+
+## Best Practices
+
+### Stake Management Strategy
+
+**Risk Assessment**:
+- **Start small**: Begin with modest stake amounts to understand dynamics
+- **Diversify**: Spread stakes across multiple topics and reputers
+- **Monitor performance**: Track reputer effectiveness and adjust accordingly
+- **Stay informed**: Keep up with network updates and parameter changes
+
+### Delegation Guidelines
+
+**Reputer Selection Criteria**:
+- **Performance history**: Review past accuracy and consistency
+- **Activity level**: Ensure regular participation and responsiveness
+- **Stake commitment**: Look for reputers with significant self-stake
+- **Communication**: Prefer reputers who communicate with delegators
+
+### Operational Considerations
+
+**Transaction Management**:
+- **Gas costs**: Factor transaction fees into stake calculations
+- **Timing**: Consider network congestion when submitting transactions
+- **Confirmation**: Always verify transaction success before proceeding
+- **Record keeping**: Maintain detailed records of all stake operations
+
+## Common Workflows
+
+### New Reputer Setup
+
+1. **Initial stake**: Use `add-stake` to establish minimum required stake
+2. **Performance building**: Focus on accuracy to attract delegators
+3. **Stake optimization**: Gradually increase stake based on performance
+4. **Community building**: Engage with potential delegators
+
+### Delegator Portfolio Management
+
+1. **Research**: Analyze reputer performance across topics
+2. **Initial delegation**: Use `delegate-stake` for promising reputers
+3. **Monitoring**: Track performance and adjust delegations
+4. **Reward claiming**: Regularly use `reward-delegate-stake` for returns
+
+### Risk Management
+
+1. **Performance monitoring**: Regularly assess reputer effectiveness
+2. **Stake adjustment**: Use removal commands when necessary
+3. **Diversification**: Maintain balanced portfolio across reputers
+4. **Emergency procedures**: Know how to quickly cancel operations if needed
+
+## Next Steps
+
+- [Learn to query reputer data](/devs/reputers/query-reputer-data) for performance monitoring
+- [Understand reputer deployment](/devs/reputers/reputers) to become a network participant
+- [Explore reputer economics](/home/layers/consensus/reputers) for advanced strategies

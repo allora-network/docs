@@ -1,314 +1,479 @@
 # How to Query Topic Data using `allorad`
 
+## What You'll Learn
+- Essential commands for querying topic information, status, and configuration
+- How to analyze topic stakes, revenues, and participant activity
+- Understanding topic weights, reward nonces, and performance metrics
+- Advanced querying techniques for historical data and network analysis
 
-To query network-level data on the Allora chain using the `allorad` CLI, you need to interact with various RPC methods designed to return aggregate or holistic information about specific topics.
+## Overview
+
+**To query network-level data on the Allora chain using the `allorad` CLI, you need to interact with various RPC methods designed to return aggregate or holistic information about specific topics.**
+
+### Why Query Topic Data?
+
+Topic data queries enable:
+- **Topic management**: Monitor topic status, activity, and configuration
+- **Performance analysis**: Track topic weight, revenue, and participant behavior
+- **Strategic planning**: Make informed decisions about topic participation
+- **Network research**: Analyze network-wide patterns and trends
 
 ## Prerequisites
 
-- [`allorad` CLI](/devs/get-started/cli)
+- **[`allorad` CLI](/devs/get-started/quick-start#install-the-allora-cli)**: Command-line interface for Allora Network
+- **Basic topic understanding**: Familiarity with topic concepts and lifecycle
+- **Network access**: Connectivity to Allora Network RPC endpoints
+- **Topic IDs**: Knowledge of specific topics you want to analyze
 
-## Query Functions
+## Query Command Structure
 
 These functions read from the appchain only and do not write. Add the **Command** value into your query to retrieve the expected data.
 
+**Base Query Format**:
 ```bash
 allorad q emissions [Command] --node <RPC_URL>
 ```
 
+**Command Components**:
+- **`allorad q emissions`**: Base structure for emissions module queries
+- **`[Command]`**: Specific function to execute (detailed below)
+- **`--node <RPC_URL>`**: RPC endpoint for network connection
+
+## Basic Topic Information Commands
+
 ### Get Topic by Topic ID
 
+**Query Details**:
 - **RPC Method:** `GetTopic`
 - **Command:** `topic [topic_id]`
 - **Description:** Retrieves information about a specific topic by its ID.
-- **Positional Arguments:**
-    - `topic_id`: The identifier of the topic.
 
-#### Use Case:
+**Positional Arguments**:
+- **`topic_id`**: The identifier of the topic.
+
+#### Use Case
+
 **Why use it?**  
 - Use this command to query details about a particular topic.
 
 **Example Scenario:**  
 - You want to check the metadata and settings for a specific topic in the network.
 
----
+**Practical Applications**:
+- Topic configuration review
+- Parameter verification before participation
+- Topic metadata analysis
 
 ### Check if Topic Exists
 
+**Query Details**:
 - **RPC Method:** `TopicExists`
 - **Command:** `topic-exists [topic_id]`
 - **Description:** Checks if a topic exists at the given ID. Returns `true` if the topic exists, `false` otherwise.
-- **Positional Arguments:**
-    - `topic_id`: The identifier of the topic.
 
-#### Use Case:
+**Positional Arguments**:
+- **`topic_id`**: The identifier of the topic.
+
+#### Use Case
+
 **Why use it?**  
 - Use this command to verify whether a topic has been created or is active in the network.
 
 **Example Scenario:**  
 - Before interacting with a topic, you want to confirm that it exists in the system.
 
----
+**Practical Applications**:
+- Input validation for other operations
+- Topic discovery and verification
+- Error prevention in automated systems
 
 ### Check if Topic is Active
 
+**Query Details**:
 - **RPC Method:** `IsTopicActive`
 - **Command:** `is-topic-active [topic_id]`
 - **Description:** Checks whether a specific topic is currently active. Returns `true` if the topic is active, `false` otherwise.
-- **Positional Arguments:**
-    - `topic_id`: The identifier of the topic.
 
-#### Use Case:
+**Positional Arguments**:
+- **`topic_id`**: The identifier of the topic.
+
+#### Use Case
+
 **Why use it?**  
 - This command helps determine if a topic is active and available for participation.
 
 **Example Scenario:**  
 - Before submitting any data, you want to confirm that the topic is active and accepting inputs.
 
----
+**Practical Applications**:
+- Participation eligibility verification
+- Topic lifecycle monitoring
+- Resource allocation decisions
 
 ### Get Next Topic ID
 
+**Query Details**:
 - **RPC Method:** `GetNextTopicId`
 - **Command:** `next-topic-id`
 - **Description:** Returns the ID of the next available topic that can be created.
 
-#### Use Case:
+#### Use Case
+
 **Why use it?**  
 - Use this command to determine the next available topic ID when creating a new topic.
 
 **Example Scenario:**  
 - Before creating a new topic, you may want to check what the next topic ID will be.
 
----
+**Practical Applications**:
+- Topic creation planning
+- ID reservation strategies
+- Network growth tracking
+
+## Stake Analysis Commands
 
 ### Get Reputer Stake in Topic
 
+**Query Details**:
 - **RPC Method:** `GetReputerStakeInTopic`
 - **Command:** `stake-in-topic-reputer [address] [topic_id]`
 - **Description:** Retrieves the stake a reputer has in a specific topic, including any stake that has been delegated to them.
-- **Positional Arguments:**
-    - `address`: The address of the reputer.
-    - `topic_id`: The identifier of the topic.
 
-#### Use Case:
+**Positional Arguments**:
+- **`address`**: The address of the reputer.
+- **`topic_id`**: The identifier of the topic.
+
+#### Use Case
+
 **Why use it?**  
 - Use this command to check the total stake a reputer holds in a specific topic.
 
 **Example Scenario:**  
 - You want to verify how much stake a particular reputer has in a specific topic.
 
----
+**Practical Applications**:
+- Reputer influence assessment
+- Delegation decision support
+- Network authority analysis
 
 ### Get Total Stake Delegated to Reputer in a Topic
 
+**Query Details**:
 - **RPC Method:** `GetDelegateStakeInTopicInReputer`
 - **Command:** `stake-total-delegated-in-topic-reputer [reputer_address] [topic_id]`
 - **Description:** Retrieves the total stake that has been delegated to a reputer in a specific topic.
-- **Positional Arguments:**
-    - `reputer_address`: The address of the reputer.
-    - `topic_id`: The identifier of the topic.
 
-#### Use Case:
+**Positional Arguments**:
+- **`reputer_address`**: The address of the reputer.
+- **`topic_id`**: The identifier of the topic.
+
+#### Use Case
+
 **Why use it?**  
 - Use this command to see how much stake has been delegated to a reputer in a topic.
 
 **Example Scenario:**  
 - You want to check the total delegated stake assigned to a specific reputer.
 
----
+**Practical Applications**:
+- Delegation saturation analysis
+- Reputer popularity metrics
+- Community confidence assessment
 
 ### Get Delegate Stake Placement in Topic
 
+**Query Details**:
 - **RPC Method:** `GetDelegateStakePlacement`
 - **Command:** `delegate-stake-placement [topic_id] [delegator] [target]`
 - **Description:** Retrieves the amount of tokens delegated to a specific reputer by a given delegator for a topic.
-- **Positional Arguments:**
-    - `topic_id`: The identifier of the topic.
-    - `delegator`: The address of the delegator.
-    - `target`: The address of the target reputer.
 
-#### Use Case:
+**Positional Arguments**:
+- **`topic_id`**: The identifier of the topic.
+- **`delegator`**: The address of the delegator.
+- **`target`**: The address of the target reputer.
+
+#### Use Case
+
 **Why use it?**  
 - This command allows delegators to track how much stake they have assigned to a reputer for a topic.
 
 **Example Scenario:**  
 - You want to know how much stake you have delegated to a particular reputer in a specific topic.
 
----
+**Practical Applications**:
+- Personal delegation tracking
+- Portfolio management
+- Stake allocation verification
 
 ### Get Delegate Stake Removal in a Topic
 
+**Query Details**:
 - **RPC Method:** `GetDelegateStakeRemoval`
 - **Command:** `delegate-stake-removal [block_height] [topic_id] [delegator] [reputer]`
 - **Description:** Retrieves the current state of a pending delegate stake removal in a topic.
-- **Positional Arguments:**
-    - `block_height`: The block height at which the removal is pending.
-    - `topic_id`: The identifier of the topic.
-    - `delegator`: The address of the delegator.
-    - `reputer`: The address of the reputer.
 
-#### Use Case:
+**Positional Arguments**:
+- **`block_height`**: The block height at which the removal is pending.
+- **`topic_id`**: The identifier of the topic.
+- **`delegator`**: The address of the delegator.
+- **`reputer`**: The address of the reputer.
+
+#### Use Case
+
 **Why use it?**  
 - Use this command to check the status of pending delegated stake removals in a topic.
 
 **Example Scenario:**  
 - You want to know whether your request to remove delegated stake is still pending.
 
----
+**Practical Applications**:
+- Unstaking process monitoring
+- Liquidity planning
+- Operation status tracking
 
 ### Get Total Stake in Topic
 
+**Query Details**:
 - **RPC Method:** `GetTopicStake`
 - **Command:** `topic-stake [topic_id]`
 - **Description:** Retrieves the total amount of stake, including delegate stake, in a specific topic.
-- **Positional Arguments:**
-    - `topic_id`: The identifier of the topic.
 
-#### Use Case:
+**Positional Arguments**:
+- **`topic_id`**: The identifier of the topic.
+
+#### Use Case
+
 **Why use it?**  
 - Use this command to check the total stake in a topic, including both direct and delegated stakes.
 
 **Example Scenario:**  
 - You want to know the overall stake in a topic before participating or delegating more tokens.
 
----
+**Practical Applications**:
+- Topic competitiveness assessment
+- Security level evaluation
+- Investment opportunity analysis
+
+## Performance and Revenue Commands
 
 ### Get Latest Available Network Inferences for a Topic
 
+**Query Details**:
 - **RPC Method:** `GetLatestAvailableNetworkInferences`
 - **Command:** `latest-available-network-inferences [topic_id]`
 - **Description:** Retrieves the latest network inference for a given topic, but only if all necessary information to compute the inference is present.
-- **Positional Arguments:**
-    - `topic_id`: The identifier of the topic.
 
-#### Use Case:
+**Positional Arguments**:
+- **`topic_id`**: The identifier of the topic.
+
+#### Use Case
+
 **Why use it?**  
 - This command is useful for getting the most recent network-wide inference for a topic when all necessary data has been collected.
 
 **Example Scenario:**  
 - You want to retrieve the latest ETH price prediction, but only if all the data from workers and forecasters has been collected.
 
----
+**Practical Applications**:
+- Real-time inference monitoring
+- Data completeness verification
+- Consumer application integration
 
 ### Get Topic Reward Nonce
 
+**Query Details**:
 - **RPC Method:** `GetTopicRewardNonce`
 - **Command:** `topic-reward-nonce [topic_id]`
 - **Description:** Retrieves the reward nonce used to calculate rewards for a specific topic.
-- **Positional Arguments:**
-    - `topic_id`: The identifier of the topic.
 
-#### Use Case:
+**Positional Arguments**:
+- **`topic_id`**: The identifier of the topic.
+
+#### Use Case
+
 **Why use it?**  
 - Use this command to understand the reward cycle for a particular topic, as it provides the nonce used to calculate rewards.
 
 **Example Scenario:**  
 - You want to check the reward nonce for a topic before submitting contributions.
 
----
+**Practical Applications**:
+- Reward cycle tracking
+- Participation timing optimization
+- Network synchronization verification
 
 ### Get Topic Fee Revenue
 
+**Query Details**:
 - **RPC Method:** `GetTopicFeeRevenue`
 - **Command:** `topic-fee-revenue [topic_id]`
 - **Description:** Retrieves the effective fee revenue for a topic, which represents the total fees collected by the topic less an exponential decay of the fees over time.
-- **Positional Arguments:**
-    - `topic_id`: The identifier of the topic.
 
-#### Use Case:
+**Positional Arguments**:
+- **`topic_id`**: The identifier of the topic.
+
+#### Use Case
+
 **Why use it?**  
 - This command provides insights into the fee revenue for a topic and how that impacts its overall weight and performance.
 
 **Example Scenario:**  
 - You want to check the total fee revenue generated by a topic before adjusting its parameters or interacting further.
 
----
+**Practical Applications**:
+- Economic viability assessment
+- Topic weight calculation
+- Revenue trend analysis
 
 ### Get Previous Topic Weight
 
+**Query Details**:
 - **RPC Method:** `GetPreviousTopicWeight`
 - **Command:** `previous-topic-weight [topic_id]`
 - **Description:** Retrieves the previous weight of a topic, which can be used to estimate future or past topic performance.
-- **Positional Arguments:**
-    - `topic_id`: The identifier of the topic.
 
-#### Use Case:
+**Positional Arguments**:
+- **`topic_id`**: The identifier of the topic.
+
+#### Use Case
+
 **Why use it?**  
 - Use this command to analyze the historical weight of a topic, which can help predict its future influence.
 
 **Example Scenario:**  
 - You want to assess the past performance of a topic before participating in it again.
 
----
+**Practical Applications**:
+- Historical performance analysis
+- Weight trend tracking
+- Competitiveness forecasting
+
+## Historical Analysis Commands
 
 ### Get Active Topics at Block
 
+**Query Details**:
 - **RPC Method:** `GetActiveTopicsAtBlock`
 - **Command:** `active-topics-at-block [block_height]`
 - **Description:** Retrieves all active topics at a specific block height.
-- **Positional Arguments:**
-    - `block_height`: The block height at which to retrieve the active topics.
 
-#### Use Case:
+**Positional Arguments**:
+- **`block_height`**: The block height at which to retrieve the active topics.
+
+#### Use Case
+
 **Why use it?**  
 - Use this command to identify all topics that are active at a given block.
 
 **Example Scenario:**  
 - You want to see which topics were active during a specific block height to compare performance or contributions.
 
----
+**Practical Applications**:
+- Historical network state analysis
+- Topic lifecycle research
+- Comparative performance studies
 
 ### Get Topic Inferences at Block
 
+**Query Details**:
 - **RPC Method:** `GetInferencesAtBlock`
 - **Command:** `inferences-at-block [topic_id] [block_height]`
 - **Description:** Retrieves all inferences produced for a topic at a given block height.
-- **Positional Arguments:**
-    - `topic_id`: The identifier of the topic.
-    - `block_height`: The block height for which to retrieve the inferences.
 
-#### Use Case:
+**Positional Arguments**:
+- **`topic_id`**: The identifier of the topic.
+- **`block_height`**: The block height for which to retrieve the inferences.
+
+#### Use Case
+
 **Why use it?**  
 - Use this command to get all inferences made for a topic at a specific block height.
 
 **Example Scenario:**  
 - You want to analyze the inferences produced at a specific block for performance review or reward calculation.
 
----
+**Practical Applications**:
+- Historical inference analysis
+- Performance verification
+- Reward calculation auditing
 
 ### Get Topic Forecast Scores Until Block
 
+**Query Details**:
 - **RPC Method:** `GetForecastScoresUntilBlock`
 - **Command:** `forecast-scores-until-block [topic_id] [block_height]`
 - **Description:** Retrieves all forecast scores for a topic until a specific block height, limited by `MaxSamplesToScaleScores`.
-- **Positional Arguments:**
-    - `topic_id`: The identifier of the topic.
-    - `block_height`: The block height for which to retrieve the forecast scores.
 
-#### Use Case:
+**Positional Arguments**:
+- **`topic_id`**: The identifier of the topic.
+- **`block_height`**: The block height for which to retrieve the forecast scores.
+
+#### Use Case
+
 **Why use it?**  
 - Use this command to track forecaster performance over time in a topic by looking at forecast scores until a specific block height.
 
 **Example Scenario:**  
 - You want to evaluate the forecast scores for a topic until a particular block to assess forecaster accuracy.
 
----
+**Practical Applications**:
+- Forecaster performance evaluation
+- Long-term trend analysis
+- Accuracy improvement tracking
 
 ### Get Reputer Scores at Block
 
+**Query Details**:
 - **RPC Method:** `GetReputersScoresAtBlock`
 - **Command:** `reputer-scores-at-block [topic_id] [block_height]`
 - **Description:** Retrieves all reputer scores for a topic at a specific block height.
-- **Positional Arguments:**
-    - `topic_id`: The identifier of the topic.
-    - `block_height`: The block height for which to retrieve the reputer scores.
 
-#### Use Case:
+**Positional Arguments**:
+- **`topic_id`**: The identifier of the topic.
+- **`block_height`**: The block height for which to retrieve the reputer scores.
+
+#### Use Case
+
 **Why use it?**  
 - Use this command to evaluate how reputers performed at a specific block height.
 
 **Example Scenario:**  
 - You want to analyze reputer performance at a particular block to understand how their contributions impacted the topic.
 
----
+**Practical Applications**:
+- Reputer performance evaluation
+- Historical accuracy assessment
+- Network quality analysis
+
+## Common Analysis Workflows
+
+### Topic Due Diligence
+
+**Assessment Process**:
+1. **Verify existence**: Use `topic-exists` to confirm topic is available
+2. **Check activity**: Use `is-topic-active` to ensure participation eligibility
+3. **Analyze stakes**: Use stake commands to understand participant commitment
+4. **Review performance**: Use inference and score commands for quality assessment
+
+### Investment Analysis
+
+**Research Workflow**:
+1. **Economic evaluation**: Use `topic-fee-revenue` to assess revenue potential
+2. **Weight analysis**: Use `previous-topic-weight` to understand competitiveness
+3. **Participant analysis**: Use stake queries to evaluate community engagement
+4. **Historical performance**: Use block-specific queries for trend analysis
+
+### Network Research
+
+**Study Applications**:
+- Compare topic performance across different time periods
+- Analyze stake distribution patterns and concentration
+- Study forecaster and reputer accuracy trends
+- Identify high-performing topics for model development
+
+## Next Steps
+
+- [Learn how to create topics](/devs/topic-creators/how-to-create-topic) with optimal parameters
+- [Understand topic lifecycle](/devs/topic-creators/topic-life-cycle) for better management
+- [Explore worker deployment](/devs/workers/deploy-worker/using-docker) to participate in topics
 

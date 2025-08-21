@@ -1,129 +1,225 @@
 # How to Query Worker Data using `allorad`
 
-Below is a list of commands to understand how to pull information about workers via [`allorad`](/devs/get-started/cli#installing-allorad):
+## What You'll Learn
+- Essential commands for querying worker data and performance metrics
+- How to check worker registration status and retrieve inference history  
+- Understanding worker scores, regret calculations, and network participation
+- Troubleshooting worker issues using diagnostic queries
+
+## Overview
+
+**Below is a list of commands to understand how to pull information about workers via [`allorad`](/devs/get-started/quick-start#install-the-allora-cli):**
+
+### Why Query Worker Data?
+
+Worker data queries help you:
+- **Monitor performance**: Track your worker's scores and inference accuracy
+- **Troubleshoot issues**: Diagnose registration problems or missed rewards
+- **Optimize operations**: Understand how your worker impacts network outcomes
+- **Validate setup**: Confirm proper registration and active participation
 
 ## Prerequisites
 
-- [`allorad` CLI](/devs/get-started/cli)
-- A basic understanding of the Allora Network
+- **[`allorad` CLI](/devs/get-started/quick-start#install-the-allora-cli)**: Command-line interface for Allora Network
+- **A basic understanding of the Allora Network**: Familiarity with workers, topics, and inference concepts
+- **Access to RPC endpoints**: Network connectivity to query blockchain data
+- **Worker addresses**: Know the specific worker addresses you want to query
 
-## Query Functions
+## Query Command Structure
 
 These functions read from the appchain only and do not write. Add the **Command** value into your query to retrieve the expected data.
 
+**Base Query Format**:
 ```bash
 allorad q emissions [Command] --node <RPC_URL>
 ```
 
-## Check if Worker is Registered in a Topic
+**Command Components**:
+- **`allorad q emissions`**: Base query structure for emissions module
+- **`[Command]`**: Specific function to execute (see individual commands below)
+- **`--node <RPC_URL>`**: RPC endpoint for network connection
 
+## Worker Registration Commands
+
+### Check if Worker is Registered in a Topic
+
+**Query Details**:
 - **RPC Method:** `IsWorkerRegisteredInTopicId`
 - **Command:** `is-worker-registered [topic_id] [address]`
 - **Description:** Checks whether a worker is registered in a specific topic. It returns `true` if the worker is registered in the given topic, and `false` otherwise.
-- **Positional Arguments:**
-    - `topic_id`: The identifier of the topic where you want to check the worker’s registration status.
-    - `address`: The address of the worker you want to check.
 
-### Use Case:
+**Positional Arguments:**
+- **`topic_id`**: The identifier of the topic where you want to check the worker's registration status.
+- **`address`**: The address of the worker you want to check.
+
+#### Use Case
+
 **Why use it?**  
 - This command is essential if you want to verify whether a worker is properly registered in a specific topic before submitting inferences or participating in a topic's operations.
 
 **Example Scenario:**  
 - Before deploying a worker to submit inferences on a particular topic, you can confirm that the worker is registered to that topic to ensure proper functionality and avoid errors.
 
----
+**Practical Applications**:
+- Pre-deployment validation
+- Troubleshooting inference submission failures
+- Verifying topic participation eligibility
 
-## Get Worker Inferences Scores at Block
+## Performance Analysis Commands
 
+### Get Worker Inferences Scores at Block
+
+**Query Details**:
 - **RPC Method:** `GetWorkerInferenceScoresAtBlock`
 - **Command:** `inference-scores [topic_id] [block_height]`
 - **Description:** Return scores for a worker at a block height.
-    - Scores determine how [worker rewards](/home/layers/consensus/workers) are paid out.
+  - Scores determine how [worker rewards](/home/layers/consensus/workers) are paid out.
 
-- **Positional Arguments:**
-  - `topic_id` Identifier of the topic whose information will be returned.
-  - `block_height` Block height to query.
+**Positional Arguments**:
+- **`topic_id`**: Identifier of the topic whose information will be returned.
+- **`block_height`**: Block height to query.
 
-### Use Case
+#### Use Case
+
 **Why use it?**  
 - You may want to verify if a worker has received a high score at a specific block, particularly if you're troubleshooting worker rewards or performance discrepancies.
    
 **Example Scenario:**  
 - If you believe your worker's reward for a particular topic is inaccurate, use this command to view how it was scored at a specific block.
 
----
+**Practical Applications**:
+- Reward verification and dispute resolution
+- Performance trend analysis over time
+- Score correlation with inference accuracy
 
-## Get Latest Worker Inference By Topic ID
+## Inference Data Commands
 
+### Get Latest Worker Inference By Topic ID
+
+**Query Details**:
 - **RPC Method:** `GetWorkerLatestInferenceByTopicId`
 - **Command:** `worker-latest-inference [topic_id] [worker_address]`
 - **Description:** Gets the latest inference for a given worker and topic.
 
-- **Positional Arguments:**
-  - `topic_id` Identifier of the topic whose information will be returned
-  - `worker_address` Given worker to query on
+**Positional Arguments**:
+- **`topic_id`**: Identifier of the topic whose information will be returned
+- **`worker_address`**: Given worker to query on
 
-### Use Case
+#### Use Case
+
 **Why use it?**
 - This command is useful if you want to check whether a worker is actively submitting inferences for a topic and how recent those inferences are.
 
 **Example Scenario:**
 - A worker has missed rewards, and you want to verify if their latest inference was successfully submitted on time for a given topic.
 
----
+**Practical Applications**:
+- Verify active participation in topics
+- Check inference submission timing
+- Troubleshoot missed reward scenarios
 
-## Get Worker Node Info
+## Worker Information Commands
 
+### Get Worker Node Info
+
+**Query Details**:
 - **RPC Method:** `GetWorkerNodeInfo`
 - **Command:** `worker-info [address]`
 - **Description:** Get node info for a specified worker node.
   - Returns the **owner address** of the worker node.
   - Returns the **worker node address** being queried.
 
-- **Positional Arguments:**
-  - `address` The address of the worker node whose information will be retrieved.
+**Positional Arguments**:
+- **`address`**: The address of the worker node whose information will be retrieved.
 
-### Use Case
+#### Use Case
+
 **Why use it?**
 - This command is helpful for checking the current status of a worker node, especially if you are managing multiple nodes and want to verify the ownership or troubleshoot node configuration.
 
 **Example Scenario:**
-- You want to ensure the node you’ve set up is operating under the correct owner and is correctly registered on the network.
+- You want to ensure the node you've set up is operating under the correct owner and is correctly registered on the network.
 
----
+**Practical Applications**:
+- Multi-node management and verification
+- Ownership validation for security purposes
+- Node configuration troubleshooting
 
-## Get Naive Inferer Network Regret
+## Advanced Analytics Commands
 
+### Get Naive Inferer Network Regret
+
+**Query Details**:
 - **RPC Method:** `GetNaiveInfererNetworkRegret`
 - **Command:** `naive-inferer-network-regret [topic_id] [inferer]`
 - **Description:** Returns the network regret associated with including an inferer's naive inference in a batch for a given topic. If no specific regret is calculated, the command defaults to the topic's `InitialRegret` value.
-- **Positional Arguments:**
-    - `topic_id`: The identifier of the topic for which the regret will be calculated.
-    - `inferer`: The address of the inferer whose naive inference is being evaluated.
 
-### Use Case:
+**Positional Arguments**:
+- **`topic_id`**: The identifier of the topic for which the regret will be calculated.
+- **`inferer`**: The address of the inferer whose naive inference is being evaluated.
+
+#### Use Case
+
 **Why use it?**  
-- Use this command to assess the [regret](/home/key-terms#regrets) associated with incorporating an inferer’s naive inference into a batch. Useful for analyzing how poorly an inference may perform within the context of the network’s aggregate inference for a topic.
+- Use this command to assess the [regret](/home/key-terms#regrets) associated with incorporating an inferer's naive inference into a batch. Useful for analyzing how poorly an inference may perform within the context of the network's aggregate inference for a topic.
 
 **Example Scenario:**  
 - If you want to understand how an inferer's baseline performance impacts the network outcome, this command helps quantify that penalty.
 
----
+**Practical Applications**:
+- Performance impact analysis
+- Inference quality assessment
+- Network contribution measurement
 
-## Get One-Out Inferer-Inferer Network Regret
+### Get One-Out Inferer-Inferer Network Regret
 
+**Query Details**:
 - **RPC Method:** `GetOneOutInfererInfererNetworkRegret`
 - **Command:** `one-out-inferer-inferer-network-regret [topic_id] [one_out_inferer] [inferer]`
-- **Description:** Returns the network regret when the implied outcome of the `one_out_inferer` is included in a batch alongside the `inferer`. If no specific regret value exists, it defaults to the topic’s `InitialRegret`.
-- **Positional Arguments:**
-    - `topic_id`: The identifier of the topic for which the regret will be calculated.
-    - `one_out_inferer`: The address of the inferer whose implied inference is being evaluated.
-    - `inferer`: The address of the inferer to compare against.
+- **Description:** Returns the network regret when the implied outcome of the `one_out_inferer` is included in a batch alongside the `inferer`. If no specific regret value exists, it defaults to the topic's `InitialRegret`.
 
-### Use Case:
+**Positional Arguments**:
+- **`topic_id`**: The identifier of the topic for which the regret will be calculated.
+- **`one_out_inferer`**: The address of the inferer whose implied inference is being evaluated.
+- **`inferer`**: The address of the inferer to compare against.
+
+#### Use Case
+
 **Why use it?**  
 - This command is useful when comparing how two inferers impact the network when their inferences are processed together. It helps identify the potential penalty on network performance when adding a specific inferer to a batch.
 
 **Example Scenario:**
 - You might want to compare the impact of two inferers to see how their joint performance influences the overall network regret. This is particularly useful for optimizing inference strategies.
+
+**Practical Applications**:
+- Comparative performance analysis
+- Multi-worker impact assessment
+- Inference strategy optimization
+
+## Common Use Cases
+
+### Troubleshooting Workflow
+
+1. **Check Registration**: Use `is-worker-registered` to verify topic participation
+2. **Verify Latest Inference**: Use `worker-latest-inference` to confirm recent submissions
+3. **Analyze Performance**: Use `inference-scores` to review reward calculations
+4. **Assess Impact**: Use regret commands to understand network contribution
+
+### Performance Monitoring
+
+- **Regular Health Checks**: Monitor inference submission frequency and timing
+- **Score Tracking**: Track performance scores across different blocks and topics
+- **Regret Analysis**: Understand how your worker affects overall network accuracy
+
+### Multi-Worker Management
+
+- **Ownership Verification**: Use `worker-info` to confirm node ownership
+- **Performance Comparison**: Compare regret values between different workers
+- **Resource Optimization**: Identify top-performing workers for resource allocation
+
+## Next Steps
+
+- [Learn about worker performance optimization](/devs/workers/query-ema-score)
+- [Explore worker deployment strategies](/devs/workers/deploy-worker/using-docker)
+- [Understand worker reward mechanisms](/home/layers/consensus/workers)
 
