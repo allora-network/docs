@@ -1,0 +1,451 @@
+# Build and Deploy a Worker Node With Alibaba Cloud
+
+This guide provides detailed instructions on how to deploy an Allora Worker Node on Alibaba Cloud infrastructure. 
+
+## Overview
+
+Deploying Allora Worker Nodes on Alibaba Cloud enables you to participate in the Allora Network by leveraging reliable and scalable cloud infrastructure. This guide walks you through the complete setup process, from server configuration to running your first worker node.
+
+## Prerequisites
+
+Before you begin, ensure you have:
+- An Alibaba Cloud account
+- Access to [Allora Forge](https://forge.allora.network) (you must apply before running a worker)
+- An Allora wallet with testnet tokens
+
+## 1. Purchase an Alibaba Cloud Server
+
+For running an Allora Worker Node, we recommend the following configuration:
+
+- **CPU**: 2 Core
+- **RAM**: 4 GB
+- **Storage**: 40 GB ESSD
+- **Bandwidth**: 5 Mbps
+- **Operating System**: Ubuntu 24.04
+
+![Alibaba Cloud Server Configuration](/alibaba/picture1.jpg)
+
+## 2. Install Docker
+
+Follow these steps to install Docker on your Alibaba Cloud server:
+
+### Update System Packages
+
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+
+### Install Golang
+
+```bash
+sudo apt install golang-go -y
+```
+
+### Install Required Packages
+
+```bash
+apt-get install ca-certificates curl gnupg lsb-release -y
+```
+
+### Add Docker GPG Key
+
+Using Alibaba Cloud mirror for faster downloads in China regions:
+
+```bash
+curl -fsSL http://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | sudo apt-key add -
+```
+
+### Add Docker Repository
+
+```bash
+add-apt-repository "deb [arch=amd64] http://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable"
+```
+
+### Install Docker Components
+
+```bash
+apt-get install docker-ce docker-ce-cli containerd.io -y
+```
+
+### Start Docker
+
+```bash
+systemctl start docker
+```
+
+### Enable Docker to Start on Boot
+
+```bash
+systemctl enable docker
+```
+
+### Verify Docker Installation
+
+```bash
+docker version
+```
+
+If you see output similar to the image below, Docker has been installed successfully:
+
+![Docker Version Output](/alibaba/picture2.jpg)
+
+## 3. Download and Configure allorad
+
+Allora Network provides convenient precompiled binaries. At the time of writing, the current version is v0.12.1.
+
+### Download allorad
+
+```bash
+wget https://github.com/allora-network/allora-chain/releases/download/v0.12.1/allora-chain_0.12.1_linux_amd64
+```
+
+For the latest version, check the [allora-chain releases page](https://github.com/allora-network/allora-chain/releases).
+
+### Install allorad
+
+Rename the binary, move it to an executable path, and grant permissions:
+
+```bash
+mv allora-chain_0.12.1_linux_amd64 allorad
+mv allorad /usr/local/bin
+chmod a+x /usr/local/bin/allorad
+```
+
+### Verify Installation
+
+```bash
+allorad version
+```
+
+If it shows `0.12.1`, the installation is complete, and a `.allorad` folder will be created in the root directory.
+
+![allorad Version Output](/alibaba/picture3.jpg)
+
+## 4. Configure the Allora Worker Node
+
+This guide uses the [basic-coin-prediction-node](https://github.com/allora-network/basic-coin-prediction-node) repository as an example.
+
+### Clone the Repository
+
+```bash
+git clone https://github.com/allora-network/basic-coin-prediction-node.git
+cd basic-coin-prediction-node
+```
+
+![Cloning the Repository](/alibaba/picture4.jpg)
+
+### Configure Environment Variables
+
+Rename `.env.example` to `.env`:
+
+```bash
+cp .env.example .env
+```
+
+This file contains sensitive environment variables. If you're fetching data directly in your Python file (e.g., using ccxt), you may not need to modify this file.
+
+### Configure Worker Settings
+
+Rename `config.example.json` to `config.json`:
+
+```bash
+cp config.example.json config.json
+```
+
+Edit `config.json` with your wallet information and worker configuration. Here's a complete example:
+
+```json
+{
+    "wallet": {
+        "chainId": "allora-testnet-1",
+        "addressKeyName": "<Your Wallet Name>",
+        "addressRestoreMnemonic": "<Your Wallet Mnemonic>",
+        "alloraHomeDir": "",
+        "gasAdjustment": 2,
+        "gasPrices": "100",
+        "gasPriceUpdateInterval": 5,
+        "simulateGasFromStart": true,
+        "GasPerByte": 1,
+        "BaseGas": 200000,
+        "maxFees": 300000000,
+        "nodeRpcs": [
+            "https://allora-rpc.monallo.ai", 
+            "https://allora-rpc.testnet.allora.network/"
+        ],
+        "nodegRpcs": [
+            "allora-grpc.monallo.ai:443",
+            "allora-grpc.testnet.allora.network:443",
+            "testnet-allora.lavenderfive.com:443"
+        ],
+        "maxRetries": 8,
+        "retryDelay": 3,
+        "accountSequenceRetryDelay": 5,
+        "launchRoutineDelay": 5,
+        "submitTx": true,
+        "blockDurationEstimated": 5,
+        "windowCorrectionFactor": 0.8,
+        "timeoutRPCSecondsQuery": 60,
+        "timeoutRPCSecondsTx": 300,
+        "timeoutRPCSecondsRegistration": 300,
+        "timeoutHTTPConnection": 10
+    },
+    "worker": [
+        {
+            "topicId": 62,
+            "inferenceEntrypointName": "apiAdapter",
+            "loopSeconds": 5,
+            "parameters": {
+                "InferenceEndpoint": "http://inference:8000/inference/{Token}",
+                "Token": "SOL-USDT"
+            }
+        }
+    ]
+}
+```
+
+**Important Configuration Notes:**
+- Replace `<Your Wallet Name>` with your wallet name
+- Replace `<Your Wallet Mnemonic>` with your wallet's recovery phrase
+- Adjust `topicId` to match the topic you're participating in
+- Modify the `Token` parameter to match your target trading pair
+
+### Update Docker Image Version
+
+In `docker-compose.yml`, update the offchain node image version:
+
+Change from:
+```yml
+image: alloranetwork/allora-offchain-node:v0.6.0
+```
+
+To:
+```yml
+image: alloranetwork/allora-offchain-node:v0.12.0
+```
+
+**Note:** It's acceptable if the minor version differs slightly from your allorad version.
+
+### Customize the Inference Model
+
+The `app.py` file is the core of the worker node project. This example provides a basic machine learning model template that you can customize for your predictions.
+
+<details>
+<summary>Click to view the example app.py code</summary>
+
+```python
+# -*- coding: utf-8 -*-
+
+import time                    # Built-in library, used for periodic loops and waiting (sleep)
+import math                    # Built-in library, used for logarithmic calculations
+import threading               # Built-in library, uses threads for scheduled tasks
+import requests                # HTTP request library, used to call OKX REST API
+import pickle                  # Used for model serialization (save/load)
+import json                    # Used to handle JSON data format
+from flask import Flask, Response, request  # Flask: used to provide a web interface
+import numpy as np             # Numerical computation library
+import statsmodels.api as sm   # OLS regression model library (for least squares training)
+
+# Global configuration (modifiable):
+TOKEN = "SOL-USDT"             # Product code, e.g., "SOL-USDT" (trading pair), can be changed
+API_BASE = "https://www.okx.com"  # Base address of OKX API
+MODEL_PATH = "ols_model.pkl"   # Local path to save the trained model file
+UPDATE_INTERVAL = 300          # Interval for scheduled updates (seconds), here 5 minutes = 300 seconds
+DATA_POINTS = 180              # Number of past days of daily data to fetch
+
+app = Flask(__name__)          # Create Flask application instance
+
+def getData():
+    """
+    Fetch past DATA_POINTS days of 1-day candlestick data (including closing prices).
+    Uses OKX `/api/v5/market/candles` endpoint (allows up to 300 entries at a time).
+    Returns a list of tuples (timestamp, closing price) sorted in ascending order (UTC).
+    """
+    # Calculate limit
+    limit = DATA_POINTS if DATA_POINTS <= 300 else 300
+    # Request parameters
+    params = {
+        "instId": TOKEN,
+        "bar": "1D",
+        "limit": str(limit)
+    }
+    # Send GET request
+    resp = requests.get(f"{API_BASE}/api/v5/market/candles", params=params, timeout=10)
+    resp.raise_for_status()  # Raise exception on error
+    resp_json = resp.json()
+    if resp_json.get("code") != "0":
+        raise RuntimeError(f"OKX returned error: {resp_json.get('msg')}")
+    # data = [ [ts, o, h, l, c, ...], ... ], where ts is the open time in milliseconds
+    data = resp_json["data"]
+    # Convert to ascending order and extract [ts, closing price]
+    result = sorted([(int(item[0]) // 1000, float(item[4])) for item in data], key=lambda x: x[0])
+    return result
+
+def compute_log_returns(series):
+    """
+    Accepts a list of tuples (ts, price) sorted in ascending order by ts.
+    Calculates daily log returns ln(p_{t+1} / p_t).
+    Returns a numpy array X (features) and a target vector y:
+      X = [[price_t, ts_t], …] excluding the last day;
+      y = [ln(price_{t+1}/price_t), …] corresponding to each X[i].
+    """
+    n = len(series)
+    if n < 2:
+        raise ValueError("Not enough data points to compute log-return")
+    prices = np.array([p for (_, p) in series], dtype=float)
+    timestamps = np.array([t for (t, _) in series], dtype=float)
+    log_returns = np.log(prices[1:] / prices[:-1])
+    # Features can include only price, or also timestamp to capture trends
+    X = np.column_stack((prices[:-1], timestamps[:-1]))
+    y = log_returns
+    return X, y
+
+def update_loop():
+    """
+    Background thread function: every UPDATE_INTERVAL seconds,
+    automatically calls update_task().
+    """
+    while True:
+        try:
+            update_task()
+        except Exception as e:
+            # Do not stop thread on error, just print it
+            print("update_task error:", e)
+        time.sleep(UPDATE_INTERVAL)
+
+def update_task():
+    """
+    Main update logic:
+    1. Fetch past DATA_POINTS daily data;
+    2. Compute log-returns;
+    3. Fit an OLS least squares model;
+    4. Save the model to a local file.
+    """
+    series = getData()
+    X, y = compute_log_returns(series)
+    # Add intercept term
+    X_with_const = sm.add_constant(X)
+    model = sm.OLS(y, X_with_const).fit()
+    with open(MODEL_PATH, "wb") as f:
+        pickle.dump(model, f)
+    # No return after training, model saved successfully
+    print("Model trained and saved.")
+
+@app.route("/inference/<string:token>")
+def generate_inference(token):
+    """
+    Route `/inference/<token>`:
+    Checks if the token matches the global TOKEN (case-insensitive).
+    Then fetches the latest two days' prices using getData,
+    uses the saved model to predict the next log-return,
+    and computes the predicted price as c_t * exp(pred_return).
+    Responds with JSON containing the predicted log-return and predicted price.
+    """
+    if token.upper() != TOKEN.upper():
+        # Token mismatch, return 400
+        return Response(json.dumps({"error": "Token not supported"}), status=400, mimetype="application/json")
+    # Load the trained model
+    try:
+        with open(MODEL_PATH, "rb") as f:
+            model = pickle.load(f)
+    except FileNotFoundError:
+        return Response(json.dumps({"error": "Model not trained yet"}), status=500, mimetype="application/json")
+    # Get the latest two daily data points
+    series = getData()
+    if len(series) < 2:
+        # Not enough data for prediction
+        return Response(json.dumps({"error": "Not enough data for inference"}), status=500, mimetype="application/json")
+    # Latest ts, price
+    ts_current, price_current = series[-2]  # Second last entry is the "current" parameters
+    ts_next, price_next = series[-1]       # Last entry is the "actual next day" price
+    # Prepare feature vector
+    X_pred = np.array([[price_current, ts_current]])
+    X_pred_with_const = sm.add_constant(X_pred, has_constant="add")
+    pred_log_return = float(model.predict(X_pred_with_const)[0])
+
+    return Response(str(pred_log_return), status=200, mimetype="application/json")
+
+@app.route("/update")
+def http_update():
+    """
+    Another endpoint `/update`: manually/externally triggers an update task (train model) once.
+    Returns "0" for success, "1" for failure.
+    """
+    try:
+        update_task()
+        return "0"
+    except Exception as e:
+        print("Manual update error:", e)
+        return "1"
+
+if __name__ == "__main__":
+    # When the script is run directly, train the model once first
+    update_task()
+    # Then start a background thread to continuously update
+    thread = threading.Thread(target=update_loop, daemon=True)
+    thread.start()
+    # Start Flask web service
+    app.run(host="0.0.0.0", port=8000)
+```
+
+</details>
+
+This example demonstrates:
+- Fetching historical price data from OKX API
+- Training an OLS regression model on log returns
+- Providing predictions via a Flask API endpoint
+- Automatic model retraining at regular intervals
+
+You can customize this code to implement your own prediction strategies and data sources.
+
+## 5. Deploy the Worker Node
+
+### Pull Docker Images
+
+```bash
+docker compose pull
+```
+
+![Pulling Docker Images](/alibaba/picture5.jpg)
+
+### Initialize Configuration
+
+```bash
+chmod +x init.config
+./init.config
+```
+
+### Start the Worker Node
+
+```bash
+docker compose up --build
+```
+
+Wait for the topic registration to complete, and then the worker will begin submitting predictions to the Allora chain.
+
+![Worker Node Running](/alibaba/picture6.jpg)
+
+## Next Steps
+
+Once your worker node is running successfully:
+
+1. Monitor your node's performance in the [Allora Forge dashboard](https://forge.allora.network)
+2. Check your inference submissions on the Allora Network explorer
+3. Optimize your model based on performance metrics
+4. Consider deploying multiple workers for different topics
+
+## Troubleshooting
+
+### Common Issues
+
+- **Docker permission errors**: Ensure your user is in the docker group: `sudo usermod -aG docker $USER`
+- **Network connectivity**: Verify that your Alibaba Cloud security group allows outbound HTTPS traffic
+- **RPC connection issues**: Try alternative RPC endpoints from the config.json example above
+- **Gas estimation errors**: Adjust `gasAdjustment` and `maxFees` parameters if transactions fail
+
+## Additional Resources
+
+- [Allora Network Documentation](https://docs.allora.network)
+- [Allora Forge Platform](https://forge.allora.network)
+- [Basic Coin Prediction Node Repository](https://github.com/allora-network/basic-coin-prediction-node)
+- [Allora Chain Releases](https://github.com/allora-network/allora-chain/releases)
+
