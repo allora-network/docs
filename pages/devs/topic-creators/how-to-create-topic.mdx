@@ -1,65 +1,23 @@
 # How to Create a Topic
 
-## What You'll Learn
-- Understanding topics as Schelling points for prediction aggregation
-- Complete topic creation process using allorad CLI commands
-- Topic parameter configuration and their practical implications
-- How to fund topics to ensure active participation and rewards
-
 ## Overview
 
-**Topics are [Schelling points](https://en.wikipedia.org/wiki/Focal_point_(game_theory)) where disparate-but-alike data scientists and domain experts aggregate their predictions.**
+Topics are [Schelling points](https://en.wikipedia.org/wiki/Focal_point_(game_theory)) where workers submit predictions on specific questions (e.g., "What will ETH price be in 24 hours?"). The network aggregates these predictions through consensus mechanisms and rewards workers based on accuracy.
 
-### What Makes Topics Special?
-
-Topics serve as coordination mechanisms:
-- **Aggregation points**: Collect predictions from multiple experts in the same domain
-- **Quality assurance**: Ensure predictions are relevant and comparable
-- **Reward mechanisms**: Enable fair compensation for accurate predictions
-- **Network organization**: Structure the network around specific prediction categories
-
-### Topic Examples
-
-For example, we might create a topic for predicting the future price of ETH. There, all experts with any talent in predicting the future price of ETH will submit their inferences. Topics vary by domain and parameterization, defining how these inferences are collected and valued.
-
-**Why Create Topics?**
-
-Developers can make topics for arbitrary categories of inferences so long as they complete these steps:
-- **Customization**: Define specific prediction parameters for your use case
-- **Network participation**: Enable experts to contribute their domain knowledge
-- **Data access**: Create reliable prediction feeds for applications
-- **Innovation**: Experiment with new prediction methodologies and reward structures
+Create topics to define new categories of predictions the network can provide. Topics specify what to predict, how often, how accuracy is measured, and how rewards are distributed.
 
 ## Prerequisites
 
-1. **A wallet with sufficient funds** to at least cover gas. Use [the faucet](/devs/get-started/quick-start#get-testnet-funds) to get funds.
-2. **[Allorad CLI tool](/devs/get-started/quick-start#install-the-allora-cli)**: Command-line interface for network interactions.
+1. Wallet with sufficient funds for gas. Use [the faucet](/devs/get-started/quick-start#get-testnet-funds) for testnet tokens.
+2. [Allorad CLI tool](/devs/get-started/quick-start#install-the-allora-cli) installed and configured.
 
-## Understanding Topic Creation
-
-### Educational Resources
-
-#### Explainer Video
-
-Please see the video below to get a full deep-dive on the different parameters that make up a topic:
+## Video Tutorial
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/WfM3Nrkgh6Y?si=Syap6TMjU7usLwVH" title="How to create a Topic" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
-### Command Structure
+## Topic Structure
 
-#### Tx Functions
-
-These functions write to the appchain. Add the **Command** value into your query to retrieve the expected data.
-
-```bash
-allorad tx emissions [Command]
-```
-
-## Topic Creation Process
-
-### Creating Your First Topic
-
-The transaction for creating a topic has the following structure:
+Topics are created with `MsgCreateNewTopic`:
 
 ```go
 type MsgCreateNewTopic struct {
@@ -67,7 +25,7 @@ type MsgCreateNewTopic struct {
   Creator          string   `json:"creator,omitempty"`
   // Information about the topic
   Metadata         string   `json:"metadata,omitempty"`
-  // The method used for loss calculations 
+  // The method used for loss calculations
   LossMethod       string   `json:"loss_method,omitempty"`
   // The frequency (in blocks) of inference calculations (Must be greater than 0)
   EpochLength      int64    `json:"epoch_length,omitempty"`
@@ -90,145 +48,132 @@ type MsgCreateNewTopic struct {
 }
 ```
 
-### Command Line Implementation
-
-Using the [`allorad` CLI](/devs/get-started/quick-start#install-the-allora-cli) to create a topic:
+## Create Topic Command
 
 ```shell bash
 allorad tx emissions create-topic \
   allo13tr5nx74zjdh7ya8kgyuu0hweppnnx8d4ux7pj \    # Creator address
-  "ETH prediction in 24h" \                                         # Metadata
-  "mse" \                                         # LossMethod
-  3600 \                                          # EpochLength
-  0 \                                             # GroundTruthLag
-  3 \                                             # WorkerSubmissionWindow
-  3 \                                             # PNorm 
-  1 \                                             # AlphaRegret 
-  true \                                          # AllowNegative
-  0.001 \                                         # Epsilon
-  0.1 \                                           # MeritSortitionAlpha
-  0.25 \                                           # ActiveInfererQuantile
-  0.25 \                                           # ActiveForecasterQuantile
-  0.25 \                                           # ActiveReputerQuantile
+  "ETH prediction in 24h" \                          # Metadata
+  "mse" \                                            # LossMethod
+  3600 \                                             # EpochLength
+  0 \                                                # GroundTruthLag
+  3 \                                                # WorkerSubmissionWindow
+  3 \                                                # PNorm
+  1 \                                                # AlphaRegret
+  true \                                             # AllowNegative
+  0.001 \                                            # Epsilon
+  0.1 \                                              # MeritSortitionAlpha
+  0.25 \                                             # ActiveInfererQuantile
+  0.25 \                                             # ActiveForecasterQuantile
+  0.25 \                                             # ActiveReputerQuantile
   --node <RPC_URL>
   --chain-id <CHAIN_ID>
 ```
 
-**Parameter Substitution**: Be sure to swap out [`RPC_URL`](/devs/get-started/quick-start#network-configuration), `YOUR_ADDRESS`, [`CHAIN_ID`](/devs/get-started/quick-start#network-configuration) and all other arguments as appropriate with the desired values.
+Replace [`RPC_URL`](/devs/get-started/quick-start#network-configuration), creator address, and [`CHAIN_ID`](/devs/get-started/quick-start#network-configuration) with your values.
 
-## Parameter Details
+## Parameter Reference
 
-### Core Configuration
+### Basic Configuration
 
-#### Basic Information
+**`Creator`**: Your wallet address. Topic owner with administrative control.
 
-**`Creator`**: Address of the wallet that will own the topic
-- Must be your wallet address
-- Owner has administrative control over the topic
+**`Metadata`**: Human-readable description of what the topic predicts. Include specifics about the prediction target and methodology.
 
-**`Metadata`**: Information about the topic
-- Descriptive field to let users know what this topic is about
-- Should include specific indication about how it is expected to work
-- Human-readable description for network participants
+**`LossMethod`**: How prediction accuracy is measured. Common value: `"mse"` (Mean Squared Error).
 
-**`LossMethod`**: The method used for loss calculations
-- Determines how prediction accuracy is measured
-- Common values: "mse" (Mean Squared Error)
+### Timing Parameters
 
-#### Timing Parameters
-
-**`EpochLength`**: The frequency (in blocks) of inference calculations
-- Must be greater than 0
-- Defines how often new predictions are requested
+**`EpochLength`**: How often new predictions are requested, measured in blocks. Must be > 0.
 - Shorter epochs = more frequent predictions
+- Consider block time when setting (e.g., 3600 blocks ≈ 1 hour if block time is 1 second)
 
-**`GroundTruthLag`**: The time it takes for the ground truth to become available
-- Cannot be negative
-- Time between prediction and when actual results are known
-- Essential for determining prediction accuracy
+**`GroundTruthLag`**: Blocks between prediction and when ground truth becomes available. Cannot be negative.
+- For price predictions: Time until authoritative price data is available
+- For event predictions: Time until outcome is known
 
-**`WorkerSubmissionWindow`**: The time window within a given epoch that worker nodes can submit an inference
-- Defines submission deadline within each epoch
+**`WorkerSubmissionWindow`**: Blocks within each epoch that workers can submit inferences.
 - Balances timeliness with participation opportunity
+- Too short: workers may miss deadline
+- Too long: reduces prediction freshness
 
-#### Quality Control
+### Consensus Parameters
 
-**`PNorm`**: Raising this parameter raises how much high-quality inferences are favored over lower-quality inferences
-- Must be between 2.5 and 4.5
-- Higher values favor accuracy over participation
+**`PNorm`**: Controls how much high-quality inferences are favored over lower-quality ones. Range: 2.5-4.5.
+- Higher values increase the weight given to more accurate workers
+- Lower values distribute rewards more evenly across workers
 
-**`AlphaRegret`**: Raising this parameter lowers how much workers' historical performances influence their current reward distribution
-- Must be between 0 and 1
-- Controls how much past performance affects current rewards
+**`AlphaRegret`**: Controls how much historical performance influences current rewards. Range: 0-1.
+- Higher values = less influence from past performance, more weight on recent accuracy
+- Lower values = more weight on long-term track record
 
-**`AllowNegative`**: Indicates if the loss function's output can be negative
-- **If false**: The reputer submits logs of losses
-- **If true**: The reputer submits raw losses
-- Affects how loss calculations are processed
+**`AllowNegative`**: Whether loss function output can be negative.
+- `false`: Reputers submit log(loss) values
+- `true`: Reputers submit raw loss values
+- Depends on your loss function's output range
 
-#### Advanced Parameters
+### Precision and Participation
 
-**`Epsilon`**: The numerical precision at which the network should distinguish differences in the logarithm of the loss
-- Controls precision in loss calculations
-- Affects reward distribution sensitivity
+**`Epsilon`**: Numerical precision for distinguishing differences in log-loss calculations.
+- Smaller values = finer distinctions between similar losses
+- Affects how sensitively rewards respond to accuracy differences
 
-**Quantile Parameters**: Control active participant selection
-- **`ActiveInfererQuantile`**: Proportion of workers selected for active participation
+**`MeritSortitionAlpha`**: Weight given to merit in participant selection. Typical value: 0.1.
+
+**Active Participant Quantiles**: Proportion of each participant type selected for activity:
+- **`ActiveInfererQuantile`**: Proportion of workers selected
 - **`ActiveForecasterQuantile`**: Proportion of forecasters selected
 - **`ActiveReputerQuantile`**: Proportion of reputers selected
-- All typically set to 0.25 (25%) for balanced participation
+- Typical value: 0.25 (25%) for all three
+
+These quantiles determine how many participants are chosen to actively contribute in each epoch, balancing network load with decentralization.
 
 ## Topic Funding
 
-### Fund a Topic
+Topics require funding to pay participant rewards. Use the `fund-topic` command:
 
-**Topic Funding Details**:
-- **RPC Method:** `FundTopic`
-- **Command:** `fund-topic [sender] [topic_id] [amount] [extra_data]`
-- **Description:** Sends funds to a specific topic to be used for paying for inferences or other topic-related activities.
+```bash
+allorad tx emissions fund-topic \
+  [sender_address] \
+  [topic_id] \
+  [amount] \
+  [extra_data] \
+  --node <RPC_URL> \
+  --chain-id <CHAIN_ID>
+```
 
-**Positional Arguments**:
-- **`sender`**: The address of the sender providing the funds.
-- **`topic_id`**: The identifier of the topic to receive the funds.
-- **`amount`**: The amount of funds being sent to the topic.
-- **`extra_data`**: Additional data or metadata associated with the funding transaction.
+**Parameters:**
+- `sender`: Your wallet address providing funds
+- `topic_id`: Topic identifier (returned when topic is created)
+- `amount`: Funds to add to topic (in network tokens)
+- `extra_data`: Optional metadata
 
-#### Use Case
+Monitor topic funding levels to ensure continuous operation. Topics without sufficient funding may stop rewarding participants.
 
-**Why use it?**  
-- This command is used to fund a topic, ensuring there are sufficient funds available to reward workers, forecasters, or other participants submitting inferences or engaging with the topic.
+## Configuration Examples
 
-**Example Scenario**:  
-- As a network administrator or topic creator, you want to add funds to a topic to ensure that workers and forecasters are compensated for their contributions.
+### High-Frequency Price Prediction
 
-**Funding Strategy**:
-- Fund topics based on expected participation levels
-- Monitor funding levels to ensure continuous operation
-- Consider funding multiple topics for diversified prediction coverage
+```bash
+EpochLength: 300              # 5 minutes
+GroundTruthLag: 0             # Immediate price data
+WorkerSubmissionWindow: 60    # 1 minute to submit
+PNorm: 3.5                    # Emphasize accuracy
+AlphaRegret: 0.8              # Weight recent performance
+```
 
-## Best Practices
+### Daily Event Prediction
 
-### Parameter Selection
-
-**For Price Predictions**:
-- Short EpochLength (5-60 minutes) for high-frequency trading data
-- Longer GroundTruthLag for assets with delayed price discovery
-- Higher PNorm values to emphasize accuracy
-
-**For Event Predictions**:
-- Longer EpochLength matching event timelines
-- GroundTruthLag based on when results become available
-- Consider AllowNegative=true for binary outcomes
-
-### Topic Management
-
-**Ongoing Maintenance**:
-- Monitor topic activity and adjust funding as needed
-- Review participant performance and topic competitiveness
-- Consider parameter adjustments based on network behavior
+```bash
+EpochLength: 86400            # 24 hours
+GroundTruthLag: 86400         # Results available next day
+WorkerSubmissionWindow: 3600  # 1 hour to submit
+PNorm: 3.0                    # Balanced accuracy weighting
+AlphaRegret: 0.3              # Consider historical performance
+```
 
 ## Next Steps
 
-- [Understand topic lifecycle](/devs/topic-creators/topic-life-cycle) for ongoing management
-- [Learn to query topic data](/devs/topic-creators/query-topic-data) for monitoring
-- [Explore worker deployment](/devs/workers/deploy-worker/using-docker) to participate in your topics
+[Understand topic lifecycle](/devs/topic-creators/topic-life-cycle) for ongoing management and [query topic data](/devs/topic-creators/query-topic-data) to monitor activity.
+
+[Deploy a worker](/devs/workers/deploy-worker/using-docker) to start submitting predictions to your topic.

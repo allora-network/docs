@@ -2,171 +2,76 @@ import { Callout } from 'nextra/components'
 
 # Walkthrough: Build and Deploy Price Prediction Worker Node
 
-## What You'll Learn
-- Complete process to build and deploy a price prediction worker node for Ethereum
-- Comprehensive environment configuration with multiple data providers and ML models
-- Understanding of multi-topic worker deployment and configuration management
-- Real-world deployment steps from setup to successful network registration
-
 ## Overview
 
-> **How to build a node that predicts the future price of Ether**
-
-**This walkthrough provides a complete guide for building a worker node that specializes in cryptocurrency price prediction.** You'll learn to configure multiple data sources, machine learning models, and deployment strategies for optimal network participation.
-
-### Why Price Prediction Workers Matter
-
-**Market Value**:
-- **High demand**: Price predictions are among the most requested inferences on prediction networks
-- **Economic utility**: Critical information for traders, DeFi protocols, and financial applications
-- **Network growth**: Popular topics attract more participants and increase network activity
-- **Revenue potential**: High-value predictions can command premium rewards
-
-**Technical Benefits**:
-- **Proven models**: Well-established machine learning approaches for time-series forecasting
-- **Data availability**: Multiple reliable data sources for training and validation
-- **Scalable architecture**: Framework supports multiple tokens and timeframes
-- **Community support**: Active community developing and sharing prediction strategies
+This guide walks through deploying a worker node that predicts cryptocurrency prices (ETH, BTC, SOL, etc.) using machine learning models. You'll configure data sources, select ML models, and deploy via Docker.
 
 ## Prerequisites
 
-**Before you start, ensure you have:**
-
-1. **Make sure you have checked the documentation on how to [build and deploy a worker node using Docker](/devs/workers/deploy-worker/using-docker).**
-2. **Clone the [basic-coin-prediction-node](https://github.com/allora-network/basic-coin-prediction-node) repository.** It will serve as the base sample for your quick setup.
+1. Review [worker deployment with Docker](/devs/workers/deploy-worker/using-docker) documentation
+2. Clone the [basic-coin-prediction-node](https://github.com/allora-network/basic-coin-prediction-node) repository:
 
 ```bash
 git clone https://github.com/allora-network/basic-coin-prediction-node
 cd basic-coin-prediction-node
 ```
 
-### Setup Benefits
+## Video Tutorial
 
-**Repository Advantages**:
-- **Production ready**: Battle-tested codebase with proven performance
-- **Multi-model support**: Various machine learning algorithms pre-configured
-- **Data provider flexibility**: Support for multiple data sources and APIs
-- **Docker integration**: Containerized deployment for consistent environments
-
-## Educational Resources
-
-### Explainer Video
-
-**Please see the video below to get a full deep-dive on how to deploy a price-prediction worker:**
-
-<iframe 
-  width="560" 
-  height="315" 
-  src="https://www.youtube.com/embed/CAGU_zFz708?si=oBxhk6M5lNKV0Vl6" 
-  title="How to build a Unique Model" 
-  frameborder="0" 
-  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+<iframe
+  width="560"
+  height="315"
+  src="https://www.youtube.com/embed/CAGU_zFz708?si=oBxhk6M5lNKV0Vl6"
+  title="How to build a Unique Model"
+  frameborder="0"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
   allowfullscreen>
 </iframe>
 
-**Video Learning Benefits**:
-- **Visual demonstration**: Step-by-step walkthrough of the entire deployment process
-- **Best practices**: Expert recommendations for optimal worker configuration
-- **Troubleshooting**: Common issues and their solutions demonstrated in real-time
-- **Advanced techniques**: Tips for improving model performance and network rewards
+## Configuration
 
-## Configuration Management
+### Environment Variables (.env)
 
-### Configure Your Environment
+Configure your `.env` file with the following parameters:
 
-**Proper configuration is critical for optimal worker performance.** The system supports multiple configuration approaches for maximum flexibility.
+#### TOKEN
+Cryptocurrency to predict. Options: `ETH`, `SOL`, `BTC`, `BNB`, `ARB`
 
-#### Environment Variables (.env File Configuration)
+> **Note**: For Binance, any token works. For Coingecko, add the token's `coin_id` to the [token map](https://github.com/allora-network/basic-coin-prediction-node/blob/70cf49d0a2317769d883ae882c146efbb915f5c0/updater.py#L107). See [Coingecko docs](https://docs.coingecko.com/reference/simple-price) and [coin list](https://docs.google.com/spreadsheets/d/1wTTuxXt8n9q7C4NDXqQpI3wpKu1_5bGVmP9Xz0XGSyU/edit?gid=0#gid=0).
 
-**When setting up your environment, please follow the guidelines below for configuring your `.env` file:**
+#### TRAINING_DAYS
+Days of historical data for training. Must be ≥ 1.
+- 1-7 days: Captures recent volatility
+- 7-30 days: Balanced historical context
+- 30+ days: Long-term pattern recognition
 
-##### Core Configuration Parameters
+#### TIMEFRAME
+Data granularity (e.g., `10min`, `1h`, `1d`).
 
-###### TOKEN Selection
-**`TOKEN`: Specifies the cryptocurrency token to use. Must be one of the following:**
-- **`'ETH'` (Ethereum)**
-- **`'SOL'` (Solana)**
-- **`'BTC'` (Bitcoin)**
-- **`'BNB'` (Binance Coin)**
-- **`'ARB'` (Arbitrum)**
+For Coingecko, avoid downsampling by following these minimums:
+- `TIMEFRAME >= 30min` if `TRAINING_DAYS <= 2`
+- `TIMEFRAME >= 4h` if `TRAINING_DAYS <= 30`
+- `TIMEFRAME >= 4d` if `TRAINING_DAYS >= 31`
 
-> **Note**: If you are using Binance as the data provider, any token can be used. However, if you are using Coingecko, you should add its `coin_id` in the [token map](https://github.com/allora-network/basic-coin-prediction-node/blob/70cf49d0a2317769d883ae882c146efbb915f5c0/updater.py#L107). Find more information [here](https://docs.coingecko.com/reference/simple-price) and the list [here](https://docs.google.com/spreadsheets/d/1wTTuxXt8n9q7C4NDXqQpI3wpKu1_5bGVmP9Xz0XGSyU/edit?gid=0#gid=0).
+#### MODEL
+ML model for prediction. Options:
+- `LinearRegression`: Fast, linear relationships
+- `SVR`: Non-linear patterns, handles outliers
+- `KernelRidge`: Balanced complexity
+- `BayesianRidge`: Provides uncertainty estimates
 
-**Token Selection Strategy**:
-- **Market liquidity**: Choose tokens with high liquidity for better price data
-- **Data availability**: Ensure your data provider supports the chosen token
-- **Competition analysis**: Research existing workers for competitive positioning
-- **Network demand**: Select tokens with strong demand for predictions
+Add custom models in [model.py](https://github.com/allora-network/basic-coin-prediction-node/blob/main/model.py#L133).
 
-###### Training Configuration
-**`TRAINING_DAYS`: Represents the number of days of historical data to use for training. Must be an integer greater than or equal to 1.**
+#### DATA_PROVIDER
+Data source. Options: `Binance` or `Coingecko`
 
-**Training Period Strategy**:
-- **Short periods (1-7 days)**: Better for capturing recent trends and market volatility
-- **Medium periods (7-30 days)**: Balance between trend capture and noise reduction
-- **Long periods (30+ days)**: Better for stable, long-term pattern recognition
-- **Market conditions**: Adjust based on current market volatility and stability
+#### REGION
+For Binance only. Options: `EU` or `US`
 
-###### Timeframe Configuration
-**`TIMEFRAME`: Defines the timeframe of the data used in the format like `10min` (minutes), `1h` (hours), `1d` (days), etc.**
+#### CG_API_KEY
+Your Coingecko API key (required if `DATA_PROVIDER=coingecko`)
 
-**For Coingecko, the data granularity (candle's body) is automatic. To avoid downsampling when using Coingecko:**
-- **Use a `TIMEFRAME` of `>= 30min` if `TRAINING_DAYS` is `<= 2`.**
-- **Use a `TIMEFRAME` of `>= 4h` if `TRAINING_DAYS` is `<= 30`.**
-- **Use a `TIMEFRAME` of `>= 4d` if `TRAINING_DAYS` is `>= 31`.**
-
-**Timeframe Selection Benefits**:
-- **Higher frequency**: Better for short-term predictions and rapid market changes
-- **Lower frequency**: Reduced noise and better for longer-term trend analysis
-- **Data alignment**: Proper timeframe selection prevents data quality issues
-- **Performance optimization**: Appropriate granularity improves model accuracy
-
-##### Machine Learning Configuration
-
-###### Model Selection
-**`MODEL`: Specifies the machine learning model to use. Must be one of the following:**
-- **`'LinearRegression'`**
-- **`'SVR'` (Support Vector Regression)**
-- **`'KernelRidge'`**
-- **`'BayesianRidge'`**
-
-> You can easily add support for other models by adding them to the configuration [here](https://github.com/allora-network/basic-coin-prediction-node/blob/main/model.py#L133).
-
-**Model Selection Strategy**:
-- **LinearRegression**: Fast, interpretable, good for linear relationships
-- **SVR**: Powerful for non-linear patterns, handles outliers well
-- **KernelRidge**: Good balance between complexity and performance
-- **BayesianRidge**: Provides uncertainty estimates, robust to overfitting
-
-##### Data Provider Configuration
-
-###### Provider Settings
-**`REGION`: Defines the region for the Binance API. Must be `'EU'` or `'US'`.**
-
-**`DATA_PROVIDER`: Specifies the data provider to use. Must be either `'Binance'` or `'Coingecko'`.**
-- **Feel free to add support for other data providers to personalize your model!**
-
-**`CG_API_KEY`: Your Coingecko API key, required if you've set `DATA_PROVIDER` to `'coingecko'`.**
-
-**Data Provider Comparison**:
-
-**Binance Benefits**:
-- **High frequency data**: More granular data for precise predictions
-- **Low latency**: Real-time data access for timely predictions
-- **Comprehensive coverage**: Wide range of trading pairs and markets
-- **Regional optimization**: Region selection for improved performance
-
-**CoinGecko Benefits**:
-- **Broader coverage**: More cryptocurrencies and historical data
-- **Market data**: Additional market metrics beyond price data
-- **Free tier**: Generous free usage limits for development
-- **Historical depth**: Extensive historical data for backtesting
-
-#### Sample Environment Configuration
-
-##### Sample Configuration (.env file)
-
-**Below is an example configuration for your `.env` file:**
+#### Example .env
 
 ```bash
 TOKEN=ETH
@@ -178,61 +83,32 @@ DATA_PROVIDER=binance
 CG_API_KEY=
 ```
 
-**Configuration Rationale**:
-- **ETH**: High liquidity and demand for Ethereum predictions
-- **30 days**: Good balance of historical context and recent relevance
-- **4h timeframe**: Appropriate granularity for 30-day training period
-- **SVR model**: Robust performance for cryptocurrency price prediction
-- **Binance US**: High-quality data with regional optimization
-
 ### Network Configuration (config.json)
 
-#### JSON Configuration Setup
+1. Copy `config.example.json` to `config.json`
+2. Update the following fields:
 
-1. **Copy `config.example.json` and name the copy `config.json`.**
-2. **Open `config.json` and **update** the necessary fields inside the `wallet` sub-object and `worker` config with your specific values:**
+#### wallet
 
-#### Wallet Configuration
-
-##### `wallet` Sub-object
-
-1. **`nodeRpc`**: The [RPC URL](/devs/get-started/quick-start#network-configuration) for the corresponding network the node will be deployed on
-2. **`addressKeyName`**: The name you gave your wallet key when [setting up your wallet](/devs/get-started/quick-start#create-your-wallet)
-3. **`addressRestoreMnemonic`**: The mnemonic that was outputted when setting up a new key
+- `nodeRpc`: [RPC URL](/devs/get-started/quick-start#network-configuration) for your network
+- `addressKeyName`: Wallet key name from [wallet setup](/devs/get-started/quick-start#create-your-wallet)
+- `addressRestoreMnemonic`: Wallet mnemonic phrase
 
 {/* <Callout type="info">
-`addressKeyName` and `addressRestoreMnemonic` are optional parameters. If you did not previously generate keys, keys will be generated for you when [running the node](/devs/workers/deploy-worker/using-docker#generate-keys-and-export-variables).
-
-If you have existing keys that you wish to use, you will need to provide these variables.
+`addressKeyName` and `addressRestoreMnemonic` are optional. Keys will be generated if not provided when [running the node](/devs/workers/deploy-worker/using-docker#generate-keys-and-export-variables).
 </Callout> */}
 
-**Wallet Security Best Practices**:
-- **Secure storage**: Keep mnemonic phrases in secure, offline locations
-- **Access control**: Limit access to wallet configuration files
-- **Backup procedures**: Maintain multiple secure backups of wallet information
-- **Key rotation**: Consider periodic key updates for enhanced security
+#### worker
 
-#### Worker Configuration
+Array of topic configurations. Each topic requires:
 
-##### `worker` Config
-
-1. **`topicId`**: The specific topic ID you created the worker for.
-2. **`InferenceEndpoint`**: The endpoint exposed by your worker node to provide inferences to the network.
-3. **`Token`**: The token for the specific topic you are providing inferences for. The token needs to be exposed in the inference server endpoint for retrieval.
-   - The `Token` variable is specific to the endpoint you expose in your `main.py` file. It is not related to any topic parameter.
-
-**Worker Configuration Strategy**:
-- **Topic alignment**: Ensure worker configuration matches chosen prediction market
-- **Endpoint design**: Create clear, RESTful endpoints for inference delivery
-- **Token consistency**: Maintain consistent token naming across configurations
-- **Performance optimization**: Configure parameters for optimal inference delivery
-
-##### Multi-Topic Support
+- `topicId`: Topic ID for this worker
+- `InferenceEndpoint`: Endpoint exposing inferences (e.g., `http://localhost:8000/inference/{Token}`)
+- `Token`: Token identifier matching your endpoint implementation
 
 <Callout type="warning">
-The `worker` config is an array of sub-objects, each representing a different topic ID. This structure allows you to manage multiple topic IDs, each within its own sub-object.
+The `worker` array supports multiple topics. Duplicate and modify the configuration for each additional topic:
 
-To deploy a worker that provides inferences for multiple topics, you can duplicate the existing sub-object and add it to the `worker` array. Update the `topicId`, `InferenceEndpoint` and `Token` fields with the appropriate values for each new topic:
 ```json
 "worker": [
       {
@@ -244,172 +120,84 @@ To deploy a worker that provides inferences for multiple topics, you can duplica
           "Token": "ETH"
         }
       },
-      // worker providing inferences for topic ID 2
       {
-        "topicId": 2, 
+        "topicId": 2,
         "inferenceEntrypointName": "api-worker-reputer",
         "loopSeconds": 5,
         "parameters": {
-          "InferenceEndpoint": "http://localhost:8000/inference/{Token}", // the specific endpoint providing inferences
-          "Token": "ETH" // The token specified in the endpoint
+          "InferenceEndpoint": "http://localhost:8000/inference/{Token}",
+          "Token": "ETH"
         }
       }
     ],
 ```
 </Callout>
 
-**Multi-Topic Benefits**:
-- **Revenue diversification**: Participate in multiple markets for increased rewards
-- **Risk distribution**: Spread operational risk across different prediction categories
-- **Resource efficiency**: Maximize infrastructure utilization across topics
-- **Market opportunity**: Capture value from various prediction markets simultaneously
+## Model Customization
 
-## Model Development
+The `basic-coin-prediction-node` includes a regression model for ETH price prediction on topic 1. Learn to customize it in [the model.py walkthrough](/devs/workers/walkthroughs/walkthrough-price-prediction-worker/modelpy).
 
-### Building a Custom Model
+## Deployment
 
-**`basic-coin-prediction-node` comes preconfigured with a model that uses regression to predict the price of Ethereum, and contribute an inference to topic 1 on Allora.** Learn more about how this model is built from the ground up and how you can customize your model to give a unique inference to the network in the [next section](/devs/workers/walkthroughs/walkthrough-price-prediction-worker/modelpy).
+### Step 1: Export Variables
 
-**Model Customization Benefits**:
-- **Competitive advantage**: Unique models can outperform standard approaches
-- **Specialized knowledge**: Incorporate domain expertise into prediction algorithms
-- **Performance optimization**: Fine-tune models for specific market conditions
-- **Innovation opportunity**: Experiment with cutting-edge AI/ML techniques
-
-**Development Path**:
-- **Understanding foundations**: Learn how the base model works
-- **Incremental improvements**: Make targeted enhancements to existing model
-- **Custom implementations**: Develop entirely new modeling approaches
-- **Performance validation**: Test and validate model improvements thoroughly
-
-## Deployment Process
-
-### Deploy Your Worker Node
-
-**Now that the node is configured, let's deploy and register it to the network. To run the node, follow these steps:**
-
-#### Step 1: Export Variables
-
-**Execute the following command from the root directory:**
+From the root directory:
 
 ```sh
 chmod +x init.config
-./init.config 
+./init.config
 ```
 
-**This command will automatically export the necessary variables from the account created. These variables are used by the offchain node and are bundled with your provided `config.json`, then passed to the node as environment variables.**
+This exports environment variables from your config.json for the offchain node.
 
 <Callout>
-If you need to **make changes** to your `config.json` file after you ran the `init.config` command, rerun:
+If you modify `config.json` after running `init.config`, rerun it before proceeding:
 
 ```sh
 chmod +x init.config
-./init.config 
+./init.config
 ```
-
-before proceeding.
-
 </Callout>
 
-**Variable Export Benefits**:
-- **Environment isolation**: Secure separation of configuration data
-- **Docker integration**: Seamless container environment setup  
-- **Security enhancement**: Prevents credential exposure in command line
-- **Configuration validation**: Ensures all required parameters are present
+### Step 2: Get Testnet Tokens
 
-#### Step 2: Request from Faucet
+Copy your Allora address and request tokens from the [Allora Testnet Faucet](https://faucet.testnet.allora.network/) for worker registration.
 
-**Copy your Allora address and request some tokens from the [Allora Testnet Faucet](https://faucet.testnet.allora.network/) to register your worker in the next step successfully.**
+### Step 3: Deploy
 
-**Funding Requirements**:
-- **Registration fees**: Sufficient tokens for worker registration transactions
-- **Operational buffer**: Extra funds for ongoing network participation
-- **Transaction costs**: Additional tokens for network operation fees
-- **Emergency reserves**: Backup funds for unexpected operational needs
-
-#### Step 3: Deploy the Node
-
-```
+```bash
 docker compose up --build
 ```
 
-**Both the offchain node and the source services will be started. They will communicate through endpoints attached to the internal DNS.**
+This starts the offchain node and inference services. They communicate through internal Docker DNS.
 
-**Deployment Process**:
-- **Container orchestration**: All services start in coordinated fashion
-- **Internal networking**: Secure communication between containers
-- **Service discovery**: Automatic endpoint resolution and connection
-- **Health monitoring**: Built-in checks for service availability
+## Verification
 
-## Verification and Testing
-
-### Monitoring Deployment Success
-
-**If your node is working correctly, you should see it actively checking for the active worker nonce:**
+If deployment succeeds, you'll see the worker checking for active nonces:
 
 ```bash
 offchain_node    | {"level":"debug","topicId":1,"time":1723043600,"message":"Checking for latest open worker nonce on topic"}
 ```
 
-**A **successful** response from your Worker should display:**
+Successful inference submission shows:
 
 ```bash
 {"level":"debug","msg":"Send Worker Data to chain","txHash":<tx-hash>,"time":<timestamp>,"message":"Success"}
 ```
 
-**Congratulations! You've successfully deployed and registered your node on Allora.**
+### Test Locally
 
-**Success Indicators**:
-- **Network connectivity**: Active communication with Allora Network
-- **Transaction confirmation**: Valid transaction hashes in logs
-- **Topic participation**: Worker actively participating in assigned topics
-- **Inference delivery**: Successful delivery of predictions to network
-
-### Testing Your Deployment
-
-#### Local Testing
-
-**You can test your local inference server by performing a `GET` request on `http://localhost:8000/inference/<token>`.**
+Test your inference server:
 
 ```bash
 curl http://localhost:8000/inference/<token>
 ```
 
-**Testing Benefits**:
-- **Endpoint validation**: Confirm inference server is responding correctly
-- **Response verification**: Check prediction format and data quality
-- **Performance testing**: Measure response times and system performance
-- **Debugging support**: Identify issues before network deployment
-
-## Optimization and Maintenance
-
-### Performance Tuning
-
-**Model Optimization**:
-- **Parameter tuning**: Adjust ML model parameters for better accuracy
-- **Feature engineering**: Enhance input features for improved predictions
-- **Ensemble methods**: Combine multiple models for robust predictions
-- **Backtesting**: Validate model performance on historical data
-
-### Operational Excellence
-
-**Monitoring and Maintenance**:
-- **Performance tracking**: Monitor prediction accuracy and network rewards
-- **System health**: Track resource usage and system performance
-- **Error monitoring**: Set up alerts for service failures and issues
-- **Regular updates**: Keep models and infrastructure current
-
-## Prerequisites
-
-- **Machine learning basics**: Understanding of regression models and time-series analysis
-- **Docker proficiency**: Experience with containerization and Docker Compose
-- **API integration**: Knowledge of REST API consumption and data processing
-- **Cryptocurrency markets**: Basic understanding of cryptocurrency trading and markets
+Verify the response format and prediction values.
 
 ## Next Steps
 
-- [Study the model implementation](/devs/workers/walkthroughs/walkthrough-price-prediction-worker/modelpy) for deep customization
-- [Explore worker data querying](/devs/workers/query-worker-data) for performance monitoring
-- [Learn about worker requirements](/devs/workers/requirements) for infrastructure optimization
-- [Review existing topics](/devs/get-started/network-interaction#available-topics) for additional market opportunities
-
+- [Understand model implementation](/devs/workers/walkthroughs/walkthrough-price-prediction-worker/modelpy) for customization
+- [Query worker data](/devs/workers/query-worker-data) to monitor performance
+- [Review worker requirements](/devs/workers/requirements) for optimization
+- [Explore available topics](/devs/get-started/network-interaction#available-topics) for additional markets

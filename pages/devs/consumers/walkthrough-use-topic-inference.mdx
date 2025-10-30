@@ -1,25 +1,11 @@
 # Walkthrough: Using a Topic Inference on-chain
 
-## What You'll Learn
-- Complete workflow for integrating Allora Network inferences into smart contracts
-- How to query the Consumer Inference API for prediction data
-- Step-by-step implementation of on-chain inference verification
-
 ## Overview
 
-**Follow these instructions to bring the most recent inference data on-chain for a given topic.**
-
-This walkthrough shows the complete process:
-- Query inference data from the API
-- Use that data in your smart contract
-- Verify the data on-chain with cryptographic signatures
-
-## Prerequisites
-
-- Smart contract development experience (Solidity)
-- Web3 development knowledge (TypeScript/JavaScript)
-- Access to Allora Consumer API with valid API key
-- Understanding of [consumer contracts](/devs/consumers/consumer-contracts/dev-consumers)
+This guide shows how to use Allora Network inferences in smart contracts:
+1. Query inference data from the Consumer API
+2. Verify the data on-chain with cryptographic signatures
+3. Use verified predictions in your contract logic
 
 ## Complete Example
 
@@ -88,13 +74,13 @@ curl -X 'GET' --url 'https://api.allora.network/v2/allora/consumer/price/ethereu
 }
 ```
 
-**Key Response Fields**:
-- **`signature`**: Cryptographic signature for on-chain verification
-- **`network_inference`**: The main prediction value
-- **`confidence_interval_percentiles`**: Statistical confidence levels
-- **`confidence_interval_values`**: Prediction bounds for risk assessment
-- **`topic_id`**: Identifier for the prediction topic
-- **`timestamp`**: When the inference was generated
+**Key fields**:
+- `signature`: Cryptographic signature for on-chain verification
+- `network_inference`: The main prediction value
+- `confidence_interval_percentiles`: Statistical confidence levels
+- `confidence_interval_values`: Prediction bounds for risk assessment
+- `topic_id`: Identifier for the prediction topic
+- `timestamp`: When the inference was generated
 
 ### Step 3: Create the Smart Contract Transaction
 
@@ -140,23 +126,20 @@ console.info('tx receipt:', result)
 
 ## Important Notes
 
-**Data Format Differences**:
-- The API endpoint uses `snake_case`, while the smart contract uses `camelCase` for attribute names.
-- Ethers.js does not accept `''` for `extraData`. Empty `extraData` should be denoted with `'0x'`.
+**Data Format**:
+- API uses `snake_case`, contracts use `camelCase` for field names
+- Ethers.js requires `'0x'` for empty `extraData`, not `''`
 
-**Field Mapping**:
-- API: `network_inference` → Contract: `networkInference`
-- API: `confidence_interval_percentiles` → Contract: `confidenceIntervalPercentiles`
-- API: `confidence_interval_values` → Contract: `confidenceIntervalValues`
+**Field mapping**:
+- `network_inference` → `networkInference`
+- `confidence_interval_percentiles` → `confidenceIntervalPercentiles`
+- `confidence_interval_values` → `confidenceIntervalValues`
 
-## Source Code References
+## Source Code
 
-**Open Source Resources**:
-- [Open source consumer code](https://github.com/allora-network/allora-consumer/blob/main/src/)
-- [IAlloraConsumer](https://github.com/allora-network/allora-consumer/blob/main/src/interface/IAlloraConsumer.sol), including the structs used for Solidity code.
+- [Consumer contract source](https://github.com/allora-network/allora-consumer/blob/main/src/)
+- [IAlloraConsumer interface](https://github.com/allora-network/allora-consumer/blob/main/src/interface/IAlloraConsumer.sol)
 
 ## Next Steps
 
-- [Learn about consumer contract development](/devs/consumers/consumer-contracts/dev-consumers)
-- [Deploy your own consumer contracts](/devs/consumers/consumer-contracts/deploy-consumer)
-- [Explore alternative data access methods](/devs/consumers/rpc-data-access)
+[Consumer contract development](/devs/consumers/consumer-contracts/dev-consumers) | [Deploy consumer contracts](/devs/consumers/consumer-contracts/deploy-consumer) | [Alternative data access](/devs/consumers/rpc-data-access)

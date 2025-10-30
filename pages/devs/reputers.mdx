@@ -1,168 +1,77 @@
 # Reputers
 
-## What You'll Learn
-- Understanding the critical role of reputers in network quality assurance
-- How reputers source ground truth data and calculate loss functions
-- The staking mechanism and reward structure for reputer participation
-- Complete workflow from ground truth sourcing to consensus-based rewards
-
 ## Overview
 
-**Reputers ensure the accuracy and reliability of worker inferences and the overall integrity of topics.**
+Reputers verify worker predictions by sourcing ground truth data and calculating loss functions. They stake tokens to participate in topics and earn rewards based on how closely their loss calculations align with network consensus.
 
-### Why Reputers Are Essential
+Reputers serve as the quality assurance layer, ensuring workers are rewarded accurately for prediction quality.
 
-**Quality Assurance Functions**:
-- **Accuracy validation**: Verify worker predictions against actual outcomes
-- **Network integrity**: Maintain trust and reliability across all network operations
-- **Consensus building**: Create shared understanding of prediction quality
-- **Incentive alignment**: Ensure workers are rewarded for accurate contributions
-
-## Core Reputer Functions
+## Core Functions
 
 ### 1. Source Ground Truth
 
-**Reputers source the ground truth as specified by the [topic metadata](/devs/topic-creators/how-to-create-topic#creating-your-first-topic).**
+Reputers retrieve ground truth data as specified in [topic metadata](/devs/topic-creators/how-to-create-topic#creating-your-first-topic). For example, for an ETH price prediction topic, reputers fetch the actual ETH price at the specified timestamp from authoritative data sources.
 
-**Ground Truth Process**:
-- **Data retrieval**: Access authoritative sources for actual outcomes
-- **Verification standards**: Ensure data accuracy and authenticity
-- **Timing precision**: Capture ground truth at exactly specified moments
-- **Format consistency**: Structure data according to network standards
-
-**Example Application**:
-For example, they might retrieve the actual price of ETH at a specific moment in time.
-
-**This ground truth is essential for evaluating the accuracy of inferences made by workers.**
-
-**Ground Truth Sources**:
-- **Market data providers**: Reliable financial data feeds and exchanges
-- **Official sources**: Government agencies, central banks, or regulatory bodies
-- **Consensus sources**: Multiple data providers for cross-validation
-- **Real-time feeds**: Live data streams for immediate verification
+Ground truth must be:
+- Retrieved from reliable sources (exchanges, oracles, official APIs)
+- Captured at precisely the time specified by the topic
+- Formatted according to network data standards
 
 ### 2. Calculate Loss
 
-**Reputers calculate the loss of worker inferences and forecast-implied inferences relative to the ground truth.**
+Reputers apply the topic's [loss function](/devs/topic-creators/create-deploy-loss-calculation-function) to each worker's inference against ground truth. For instance, if a topic uses L1-norm loss, reputers calculate the absolute difference between each worker's predicted ETH price and the actual price.
 
-**Loss Calculation Process**:
-- **Function application**: Apply topic-specified loss functions to worker predictions
-- **Accuracy measurement**: Quantify the difference between predictions and reality
-- **Comparative analysis**: Evaluate relative performance across all workers
-- **Data structuring**: Format results for network consensus processing
+They submit a [`ValueBundle` of losses](https://github.com/allora-network/allora-chain/blob/1d56c50c8d0f43446d770cf387dbd43bb3613e8c/x/emissions/proto/emissions/v1/reputer.proto#L28) containing calculated losses for all worker inferences and forecast-implied inferences.
 
-**For instance, if a topic's [loss function](/devs/topic-creators/create-deploy-loss-calculation-function) is an L1-norm, reputers apply this norm to each worker's inference and the actual price of ETH in 10 days.**
+### 3. Stake on Topics
 
-**They then respond with a [`ValueBundle` of losses](https://github.com/allora-network/allora-chain/blob/1d56c50c8d0f43446d770cf387dbd43bb3613e8c/x/emissions/proto/emissions/v1/reputer.proto#L28), detailing the calculated losses for each inference.**
+Reputers [stake tokens](/devs/reputers/set-and-adjust-stake) on topics to participate. Higher stakes provide greater weight in consensus calculations. Reputers can also receive [delegated stake](/devs/reference/allorad#delegate-stake-to-a-reputer-for-a-topic) from other network participants, increasing their influence on topic consensus.
 
-**Technical Implementation**:
-- **Mathematical precision**: Apply loss functions with high numerical accuracy
-- **Batch processing**: Handle multiple worker inferences efficiently
-- **Error handling**: Manage edge cases and invalid data gracefully
-- **Protocol compliance**: Format outputs according to network specifications
+Stake serves two purposes:
+- Provides economic security for the topic
+- Determines influence weight in consensus calculations
 
-### 3. Secure Topics with Stake
+### 4. Earn Rewards
 
-**Reputers secure topics with their [stake](/devs/reputers/set-and-adjust-stake). The more a reputer stakes in a topic, the greater their influence on the consensus of losses.**
+Reputers [receive rewards](/home/layers/consensus/reputers) proportional to how close their reported losses are to the stake-weighted consensus. The network calculates a stake-weighted average of all reported losses per topic per epoch. Reputers whose values are closer to this consensus earn higher rewards.
 
-**Staking Mechanism**:
-- **Economic commitment**: Put financial resources at risk to participate
-- **Influence weighting**: Higher stakes provide greater consensus influence
-- **Security provision**: Financial backing ensures topic reliability
-- **Aligned incentives**: Economic risk encourages accurate evaluations
-
-**Additionally, reputers can be [delegated to](/devs/reference/allorad#delegate-stake-to-a-reputer-for-a-topic), increasing their ability to secure the topic further. This delegated stake enhances the extent to which reputers secure the topic as opposed to the broader chain security.**
-
-**Delegation Benefits**:
-- **Increased capacity**: Handle larger volumes of inferences and topics
-- **Community trust**: Attract delegations from network participants
-- **Enhanced influence**: Greater weight in consensus decisions
-- **Shared responsibility**: Community involvement in topic security
-
-### 4. Receive Rewards
-
-**Reputers [receive rewards](/home/layers/consensus/reputers) based on how close their reported losses are to the consensus. A stake-weighted average of each reported loss is taken among reputers per topic per epoch. The closer a reputer's values are to this average, the more they are rewarded.**
-
-**Reward Mechanism**:
-- **Consensus alignment**: Rewards increase with proximity to network consensus
-- **Stake weighting**: Higher stakes contribute more to consensus calculations
-- **Accuracy incentives**: Better loss calculations result in higher rewards
-- **Continuous evaluation**: Performance assessed across multiple epochs
-
-**This system incentivizes reputers to provide accurate and reliable loss calculations, contributing to the network's overall integrity and reliability.**
-
-**Long-term Benefits**:
-- **Reputation building**: Consistent accuracy enhances network standing
-- **Compound rewards**: Success leads to more delegations and higher stakes
-- **Network health**: Quality evaluations improve overall system reliability
-- **Economic sustainability**: Balanced reward system ensures continued participation
+This incentivizes accurate loss calculations that align with other reputers' independent evaluations.
 
 ## Reputer Workflow
 
-### Complete Process Overview
+1. Monitor active topics requiring evaluation
+2. Retrieve ground truth data from authoritative sources
+3. Apply loss functions to worker inferences
+4. Submit loss calculations to the network
+5. Receive rewards based on consensus proximity
 
-**Step-by-Step Operations**:
-1. **Monitor topics**: Track active topics requiring evaluation
-2. **Gather ground truth**: Collect authoritative data for comparison
-3. **Calculate losses**: Apply mathematical functions to worker predictions
-4. **Submit evaluations**: Report loss calculations to the network
-5. **Participate in consensus**: Contribute to aggregate loss determinations
-6. **Earn rewards**: Receive compensation based on consensus alignment
+## Technical Considerations
 
-### Performance Optimization
+### Data Sources
 
-**Excellence Strategies**:
-- **Data source quality**: Use the most reliable and accurate ground truth sources
-- **Calculation precision**: Implement mathematical functions with high accuracy
-- **Timing optimization**: Submit evaluations promptly within epoch windows
-- **Consensus awareness**: Understand network patterns and participant behavior
+Access to reliable, low-latency ground truth data is critical. For financial topics, use:
+- Exchange APIs for price data
+- Oracle networks for cross-validated data
+- Official sources (central banks, government agencies) for economic indicators
 
-## Getting Started as a Reputer
+### Loss Calculation
 
-### Prerequisites Assessment
+Implement loss functions with high numerical precision. Handle edge cases like:
+- Missing worker inferences
+- Invalid or out-of-range predictions
+- Data format mismatches
+- Timing precision requirements
 
-**Required Capabilities**:
-- **Data access**: Ability to obtain reliable ground truth information
-- **Technical skills**: Understanding of loss functions and mathematical calculations
-- **Financial resources**: Sufficient funds for staking requirements
-- **Network knowledge**: Familiarity with blockchain operations and consensus
+### Stake Management
 
-### Setup and Operations
+Balance stake allocation across topics based on:
+- Available ground truth data reliability
+- Topic activity and worker participation
+- Competition from other reputers
+- Your stake capacity and risk tolerance
 
-**Implementation Steps**:
-- **Stake allocation**: Determine appropriate stake amounts for chosen topics
-- **Infrastructure setup**: Establish reliable data feeds and calculation systems
-- **Monitoring systems**: Implement tracking for topic activity and performance
-- **Community engagement**: Build relationships with potential delegators
+## Deployment
 
-## Strategic Considerations
+[Deploy a reputer node](/devs/reputers/reputers) to begin operations, then [set and adjust stake](/devs/reputers/set-and-adjust-stake) on your chosen topics. [Query reputer data](/devs/reputers/query-reputer-data) to monitor performance and rewards.
 
-### Topic Selection
-
-**Evaluation Criteria**:
-- **Data availability**: Ensure reliable access to ground truth sources
-- **Competition level**: Assess existing reputer participation and stakes
-- **Topic activity**: Consider worker participation and inference volume
-- **Reward potential**: Evaluate economic opportunity relative to stake requirements
-
-### Risk Management
-
-**Operational Safety**:
-- **Stake diversification**: Spread stakes across multiple topics
-- **Performance monitoring**: Track accuracy and consensus alignment
-- **Data validation**: Verify ground truth sources for reliability
-- **Network updates**: Stay informed about protocol changes and improvements
-
-## Prerequisites
-
-- **Technical expertise**: Understanding of mathematical functions and data analysis  
-- **Financial resources**: Adequate funds for staking and operational costs
-- **Data access**: Reliable sources for ground truth information
-- **Network familiarity**: Basic understanding of blockchain consensus and rewards
-
-## Next Steps
-
-- [Learn to deploy a reputer node](/devs/reputers/reputers) for hands-on implementation
-- [Understand stake management](/devs/reputers/set-and-adjust-stake) for optimal participation
-- [Explore reputer data querying](/devs/reputers/query-reputer-data) for performance monitoring
-- [Study the coin prediction reputer example](/devs/reputers/coin-prediction-reputer) for practical guidance
+See the [coin prediction reputer example](/devs/reputers/coin-prediction-reputer) for a practical implementation reference.
