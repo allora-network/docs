@@ -1,0 +1,412 @@
+# Allora Network Integration Guide for Exchanges
+
+This guide provides instructions for cryptocurrency exchanges integrating with the Allora Network blockchain.
+
+## Installation
+
+```bash
+go get github.com/allora-network/allora-sdk-go
+```
+
+## Network Endpoints
+
+### Allora Testnet
+
+For development and testing, use the Allora testnet endpoints:
+
+- **gRPC**: `allora-grpc.testnet.allora.network:443`
+- **REST/LCD**: `https://allora-rpc.testnet.allora.network`
+
+Example client configuration:
+
+```go
+import (
+    "github.com/allora-network/allora-sdk-go/config"
+    allora "github.com/allora-network/allora-sdk-go"
+)
+
+cfg := &config.ClientConfig{
+    Endpoints: []config.EndpointConfig{
+        {
+            URL:      "allora-grpc.testnet.allora.network:443",
+            Protocol: config.ProtocolGRPC,
+        },
+    },
+    RequestTimeout:    30 * time.Second,
+    ConnectionTimeout: 10 * time.Second,
+}
+
+client, err := allora.NewClient(cfg, logger)
+```
+
+### Mainnet Endpoints
+
+**Note**: Mainnet endpoints will be provided when mainnet launches. Contact the Allora team for early access.
+
+## Wallet Management
+
+The Allora SDK provides comprehensive wallet utilities for managing keypairs with the `allo` bech32 address prefix.
+
+### Generating a New Wallet
+
+```go
+import allora "github.com/allora-network/allora-sdk-go"
+
+// Generate a new wallet with a 24-word mnemonic
+wallet, err := allora.GenerateWallet()
+if err != nil {
+    panic(err)
+}
+
+// Access wallet properties
+address := wallet.GetAddress()           // e.g., "allo1..."
+mnemonic := wallet.GetMnemonic()         // 24-word recovery phrase
+privKey := wallet.GetPrivateKeyBytes()   // 32-byte private key
+pubKey := wallet.GetPublicKeyBytes()     // Public key bytes
+```
+
+### Generating Wallets with Different Mnemonic Lengths
+
+```go
+// 12-word mnemonic (128 bits entropy)
+wallet12, _ := allora.GenerateWalletWithMnemonicLength(128)
+
+// 24-word mnemonic (256 bits entropy) - recommended for maximum security
+wallet24, _ := allora.GenerateWalletWithMnemonicLength(256)
+```
+
+### Recovering a Wallet from Mnemonic
+
+```go
+mnemonic := "your twenty four word mnemonic phrase here..."
+hdPath := allora.DefaultHDPath // "m/44'/118'/0'/0/0"
+
+wallet, err := allora.NewWalletFromMnemonic(mnemonic, hdPath)
+if err != nil {
+    panic(err)
+}
+
+address := wallet.GetAddress()
+```
+
+### Importing from Private Key
+
+```go
+// privKeyBytes is a 32-byte secp256k1 private key
+wallet, err := allora.NewWalletFromPrivateKey(privKeyBytes)
+if err != nil {
+    panic(err)
+}
+```
+
+### Generating a Random Private Key
+
+```go
+privKeyBytes, err := allora.GenerateRandomPrivateKey()
+if err != nil {
+    panic(err)
+}
+
+// Create wallet from the generated key
+wallet, err := allora.NewWalletFromPrivateKey(privKeyBytes)
+```
+
+## Address Format
+
+All Allora Network addresses use the `allo` bech32 prefix:
+- **Account addresses**: `allo1...` (42 characters)
+- **Validator operator addresses**: `allovaloper1...`
+- **Consensus addresses**: `allovalcons1...`
+
+Exchanges should only handle account addresses (`allo1...`).
+
+## Signing and Verification
+
+### Signing a Message
+
+```go
+message := []byte("transaction data")
+
+signature, err := wallet.Sign(message)
+if err != nil {
+    panic(err)
+}
+```
+
+### Verifying a Signature
+
+```go
+message := []byte("transaction data")
+signature := []byte{...} // signature bytes
+
+isValid := wallet.VerifySignature(message, signature)
+```
+
+## Security Best Practices
+
+### Key Storage
+- **Never store mnemonics or private keys in plain text**
+- Use hardware security modules (HSMs) for production hot wallets
+- Implement key encryption at rest using industry-standard methods
+- Consider multi-signature schemes for large holdings
+
+### Cold Storage
+- Generate wallets offline for cold storage
+- Store mnemonic phrases in secure, geographically distributed locations
+- Use 24-word mnemonics (256-bit entropy) for enhanced security
+
+### Address Validation
+```go
+import sdk "github.com/cosmos/cosmos-sdk/types"
+
+func ValidateAlloraAddress(address string) error {
+    // Check prefix
+    if !strings.HasPrefix(address, "allo") {
+        return fmt.Errorf("invalid address prefix")
+    }
+
+    // Validate bech32 format
+    _, err := sdk.AccAddressFromBech32(address)
+    return err
+}
+```
+
+## Constants
+
+```go
+const (
+    AlloraBech32Prefix = "allo"      // Address prefix
+    DefaultBIP44CoinType = 118       // Cosmos standard coin type
+    DefaultHDPath = "m/44'/118'/0'/0/0"  // Default derivation path
+)
+```
+
+## Wallet Compatibility
+
+Allora uses standard Cosmos SDK cryptography:
+- **Signature algorithm**: secp256k1 (same as Bitcoin and Ethereum)
+- **Derivation path**: BIP44 with coin type 118
+- **Address encoding**: bech32 with `allo` prefix
+
+Wallets are compatible with other Cosmos-based chains when using the Allora-specific prefix.
+
+## Creating and Signing Transactions
+
+The SDK provides utilities for creating and signing send transactions with support for offline signing workflows.
+
+### Creating an Unsigned Transaction
+
+Unsigned transactions can be created and stored (in Kafka, Postgres, etc.) before signing:
+
+```go
+import (
+    sdk "github.com/cosmos/cosmos-sdk/types"
+    allora "github.com/allora-network/allora-sdk-go"
+)
+
+// Parse addresses
+fromAddr, _ := sdk.AccAddressFromBech32("allo1...")
+toAddr, _ := sdk.AccAddressFromBech32("allo1...")
+
+// Define amount (1 ALLO = 1,000,000 uallo)
+amount := sdk.NewCoins(sdk.NewInt64Coin("uallo", 1000000))
+
+// Set transaction parameters
+params := &allora.TxParams{
+    ChainID:       "allora-mainnet-1",
+    AccountNumber: 123,
+    Sequence:      5,
+    GasLimit:      200000,
+    FeeAmount:     sdk.NewCoins(sdk.NewInt64Coin("uallo", 5000)),
+    Memo:          "deposit-id-12345", // Optional: exchange deposit ID
+}
+
+// Create unsigned transaction
+unsignedTx, err := allora.CreateUnsignedSendTx(fromAddr, toAddr, amount, params)
+if err != nil {
+    panic(err)
+}
+
+// Store unsignedTx bytes in database/Kafka for later signing
+```
+
+### Signing a Transaction
+
+Sign a previously created unsigned transaction:
+
+```go
+// Load wallet (from mnemonic, private key, or HSM)
+wallet, err := allora.NewWalletFromMnemonic(mnemonic, allora.DefaultHDPath)
+if err != nil {
+    panic(err)
+}
+
+// Load unsigned transaction from storage
+// unsignedTx := loadFromDatabase()
+
+// Sign the transaction
+signedTx, err := allora.SignTransaction(unsignedTx, wallet, params)
+if err != nil {
+    panic(err)
+}
+
+// signedTx is ready to broadcast
+```
+
+### Create and Sign in One Step
+
+For immediate signing workflows:
+
+```go
+wallet, _ := allora.NewWalletFromMnemonic(mnemonic, allora.DefaultHDPath)
+fromAddr := wallet.Address
+toAddr, _ := sdk.AccAddressFromBech32("allo1...")
+amount := sdk.NewCoins(sdk.NewInt64Coin("uallo", 1000000))
+
+params := &allora.TxParams{
+    ChainID:       "allora-mainnet-1",
+    AccountNumber: 123,
+    Sequence:      5,
+    GasLimit:      200000,
+    FeeAmount:     sdk.NewCoins(sdk.NewInt64Coin("uallo", 5000)),
+}
+
+signedTx, err := allora.CreateSignedSendTx(fromAddr, toAddr, amount, wallet, params)
+// Ready to broadcast
+```
+
+### Querying Transaction Parameters
+
+The SDK can automatically query required parameters from the blockchain:
+
+```go
+import (
+    "context"
+    "time"
+    sdk "github.com/cosmos/cosmos-sdk/types"
+    allora "github.com/allora-network/allora-sdk-go"
+    "github.com/allora-network/allora-sdk-go/config"
+)
+
+// Create client connection to testnet
+cfg := &config.ClientConfig{
+    Endpoints: []config.EndpointConfig{
+        {
+            URL:      "allora-grpc.testnet.allora.network:443",
+            Protocol: config.ProtocolGRPC,
+        },
+    },
+    RequestTimeout:    30 * time.Second,
+    ConnectionTimeout: 10 * time.Second,
+}
+
+client, err := allora.NewClient(cfg, logger)
+if err != nil {
+    panic(err)
+}
+defer client.Close()
+
+ctx := context.Background()
+
+// Option 1: Query all parameters automatically from blockchain
+addr, _ := sdk.AccAddressFromBech32("allo1...")
+params, err := allora.NewTxParamsBuilder(ctx, client).
+    WithAddress(addr).
+    WithGasLimit(250000).
+    WithFee(sdk.NewCoins(sdk.NewInt64Coin("uallo", 6000))).
+    WithMemo("withdrawal-67890").
+    QueryAndBuild()  // Queries chain ID, account number, and sequence
+
+// Option 2: Manual parameters for offline signing (no network required)
+params := &allora.TxParams{
+    ChainID:       "allora-testnet-1",  // Must match network
+    AccountNumber: 123,                  // Query once, cache per address
+    Sequence:      5,                    // Increment after each tx
+    GasLimit:      200000,
+    FeeAmount:     sdk.NewCoins(sdk.NewInt64Coin("uallo", 5000)),
+}
+```
+
+### Transaction Parameters Reference
+
+```go
+type TxParams struct {
+    // Required: Chain identification
+    ChainID string
+
+    // Required: Account information from blockchain
+    AccountNumber uint64  // Query once per address, cache
+    Sequence      uint64  // Increment after each successful transaction
+
+    // Required: Gas and fees
+    GasLimit  uint64      // Typical: 200,000 for simple transfers
+    FeeAmount sdk.Coins   // Typical: 5000 uallo
+
+    // Optional: Additional parameters
+    Memo          string  // For exchange deposit IDs, notes
+    TimeoutHeight uint64  // Block height after which tx is invalid
+}
+```
+
+### Fee Calculation
+
+Recommended fee structure:
+- **Minimum fee**: 5,000 uallo (0.005 ALLO)
+- **Standard fee**: 5,000-10,000 uallo
+- **Priority fee**: 15,000+ uallo
+
+Gas limit for send transactions: 200,000 gas units
+
+### Broadcasting Transactions
+
+**Note**: Broadcasting functionality is currently under development. For now, signed transaction bytes can be:
+1. Broadcast via RPC using external tools
+2. Submitted through block explorers
+3. Sent using `allorad tx broadcast <signed-tx-file>`
+
+For read-only operations (querying balances, network state, etc.), see the main README.md.
+
+## Support
+
+For integration support:
+- GitHub Issues: https://github.com/allora-network/allora-sdk-go/issues
+- Documentation: https://docs.allora.network
+
+## Example: Complete Wallet Setup
+
+```go
+package main
+
+import (
+    "fmt"
+    allora "github.com/allora-network/allora-sdk-go"
+)
+
+func main() {
+    // Generate new deposit wallet
+    wallet, err := allora.GenerateWallet()
+    if err != nil {
+        panic(err)
+    }
+
+    // Display wallet information
+    fmt.Printf("Deposit Address: %s\n", wallet.GetAddress())
+    fmt.Printf("Store this mnemonic securely: %s\n", wallet.GetMnemonic())
+
+    // Later, recover the wallet
+    recovered, err := allora.NewWalletFromMnemonic(
+        wallet.GetMnemonic(),
+        allora.DefaultHDPath,
+    )
+    if err != nil {
+        panic(err)
+    }
+
+    // Verify addresses match
+    if wallet.GetAddress() != recovered.GetAddress() {
+        panic("address mismatch")
+    }
+
+    fmt.Println("Wallet successfully recovered!")
+}
+```
