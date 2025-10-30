@@ -1,221 +1,81 @@
 import { Callout } from 'nextra/components'
 
-# Walkthrough: Deploying a Hugging Face Model as a Worker Node on the Allora Network
-
-## What You'll Learn
-- Complete process to deploy a Hugging Face model as a worker node on Allora Network
-- How to integrate the Chronos time-series forecasting model for cryptocurrency price predictions
-- Configuration management for multi-topic worker deployments and API integrations
-- Real-world implementation using CoinGecko API for BTC price forecasting on Topic 4
+# Walkthrough: Deploying a Hugging Face Model as a Worker Node
 
 ## Overview
 
-> **This guide provides a step-by-step process to deploy a Hugging Face model as a Worker Node within the Allora Network.** By following these instructions, you will be able to integrate and run models from Hugging Face, contributing to the Allora decentralized machine intelligence ecosystem.
+This guide shows how to deploy a Hugging Face model as an Allora Network worker. We'll use the Chronos time-series forecasting model to predict BTC prices on Topic 4.
 
-### Why Hugging Face Integration Matters
+All files are available in [this repository](https://github.com/allora-network/allora-huggingface-walkthrough).
 
-**Model Ecosystem Benefits**:
-- **Pre-trained models**: Access to thousands of state-of-the-art AI models
-- **Community-driven**: Leverage models developed and validated by the AI community
-- **Rapid deployment**: Quick integration without training models from scratch
-- **Proven performance**: Use battle-tested models with documented capabilities
+## About Chronos
 
-**Allora Network Value**:
-- **Diverse intelligence**: Contribute unique AI capabilities to the network
-- **Quality predictions**: Enhance network accuracy with specialized models
-- **Economic opportunity**: Earn rewards for providing valuable AI inferences
-- **Innovation platform**: Experiment with cutting-edge AI in a decentralized environment
+[Chronos (amazon/chronos-t5-tiny)](https://huggingface.co/amazon/chronos-t5-tiny) is a pretrained time-series forecasting model based on language model architectures. It:
 
-### Implementation Strategy
+- Transforms time series into token sequences via scaling and quantization
+- Trains on these tokens using cross-entropy loss
+- Generates probabilistic forecasts by sampling multiple future trajectories
 
-**During this walkthrough, we will build a worker node from an existing Hugging Face model to deploy and participate on the Allora Network.** We will use this model to predict the price of BTC in 24h.
-
-**You can find all the files in [this Git repository](https://github.com/allora-network/allora-huggingface-walkthrough).**
-
-**Repository Benefits**:
-- **Complete implementation**: All necessary files and configurations
-- **Working example**: Tested and validated code for immediate use
-- **Best practices**: Proven patterns for Hugging Face integration
-- **Community support**: Maintained example for reference and troubleshooting
-
-## Technical Architecture
-
-### Chronos Model Overview
-
-**In this example, we will use the Chronos model: [amazon/chronos-t5-tiny](https://huggingface.co/amazon/chronos-t5-tiny).** Chronos is a family of pretrained time series forecasting models based on language model architectures. In essence:
-- **A time series is transformed into a sequence of tokens via scaling and quantization, and a language model is trained on these tokens using the cross-entropy loss.**
-- **Once trained, probabilistic forecasts are obtained by sampling multiple future trajectories given the historical context.**
-
-**Chronos models have been trained on a large corpus of publicly available time series data, as well as synthetic data generated using Gaussian processes.**
-
-#### Model Architecture Benefits
-
-**Technical Advantages**:
-- **Language model foundation**: Leverage transformer architecture for time-series analysis
-- **Pre-trained knowledge**: Built-in understanding of time-series patterns and relationships
-- **Probabilistic forecasting**: Generate confidence intervals and uncertainty estimates
-- **Zero-shot capability**: Work on new datasets without additional training
-
-**Performance Characteristics**:
-- **Scalable**: Efficient processing of various time-series lengths and frequencies
-- **Robust**: Handles missing data and irregular time intervals
-- **Versatile**: Applicable to diverse forecasting domains beyond cryptocurrency
-- **State-of-the-art**: Competitive performance with specialized time-series models
-
-### Zero-Shot Forecasting
+Chronos is trained on public time-series data and synthetic data from Gaussian processes, enabling zero-shot forecasting on unseen datasets.
 
 <Callout type="info">
-For simplicity, we will use Zero-shot forecasting, which refers to the ability of models to generate forecasts from unseen datasets.
+This walkthrough uses zero-shot forecasting, meaning no additional training is required for new datasets.
 </Callout>
-
-**Zero-Shot Benefits**:
-- **Immediate deployment**: No training required on new datasets
-- **Broad applicability**: Works across different time-series without customization
-- **Reduced complexity**: Simplified implementation and maintenance
-- **Faster time-to-market**: Quick deployment of forecasting capabilities
-
-## Network Integration
-
-### Topic Selection
-
-**Our worker will provide inferences on the BTC 24h Prediction, which is Topic `4` on Allora Testnet.**
-
-> **Note:**
-> To deploy on the Allora Network, you will need to [pick the topic ID](/devs/get-started/network-interaction#available-topics) you wish to generate inference for, or [create a new topic](/devs/topic-creators/how-to-create-topic).
-
-**Topic Strategy**:
-- **Market selection**: Choose high-value, liquid markets for maximum network impact
-- **Competition analysis**: Understand existing participants and differentiation opportunities
-- **Data availability**: Ensure reliable data sources for consistent inference generation
-- **Economic viability**: Evaluate potential rewards versus operational costs
-
-### Data Source Integration
-
-**We will use [Coingecko](https://www.coingecko.com/en/api) to fetch the data.** You will need to [create an API key](https://www.coingecko.com/en/api/pricing).
-
-**CoinGecko Benefits**:
-- **Reliable data**: High-quality, consistently updated cryptocurrency market data
-- **Comprehensive coverage**: Wide range of cryptocurrencies and trading pairs
-- **API stability**: Well-documented and maintained API for production use
-- **Rate limits**: Reasonable usage limits for development and production
 
 ## Prerequisites
 
-**Before you start, ensure you have the following:**
+- Docker environment with `docker compose` installed
+- Basic machine learning knowledge and familiarity with [Hugging Face](https://huggingface.co/)
+- Understanding of [deploying worker nodes with Docker](/devs/workers/deploy-worker/using-docker)
+- [CoinGecko API key](https://www.coingecko.com/en/api/pricing) for data access
 
-- **A Docker environment with `docker compose` installed.**
-- **Basic knowledge of machine learning and the [Hugging Face](https://huggingface.co/) ecosystem.**
-- **Familiarity with Allora Network documentation on [building and deploying a worker node using Docker](/devs/workers/deploy-worker/using-docker).**
+## Setup
 
-### Technical Requirements
-
-**Development Environment**:
-- **Docker proficiency**: Understanding of containerization and Docker Compose
-- **Python knowledge**: Familiarity with Python for AI/ML development
-- **API integration**: Experience with REST API consumption and error handling
-- **Blockchain basics**: Understanding of Allora Network concepts and worker operations
-
-**Infrastructure Requirements**:
-- **Stable internet**: Reliable connection for API calls and network participation
-- **Computational resources**: Adequate CPU and memory for model inference
-- **Storage capacity**: Sufficient disk space for model weights and data caching
-- **Monitoring capability**: Tools for tracking worker performance and health
-
-## Setup Process
-
-### Step 1: Clone the Repository
-
-**Clone the [basic-coin-prediction-node](https://github.com/allora-network/basic-coin-prediction-node) repository. It will serve as the base sample for your quick setup.**
+### Step 1: Clone Repository
 
 ```bash
 git clone https://github.com/allora-network/basic-coin-prediction-node
 cd basic-coin-prediction-node
 ```
 
-**Repository Structure Benefits**:
-- **Production ready**: Battle-tested foundation for worker deployment
-- **Complete configuration**: All necessary files and settings included
-- **Docker integration**: Pre-configured containerization for easy deployment
-- **Documentation**: Comprehensive guides and examples
+### Step 2: Configure Network
 
-### Step 2: Configure Your Environment
+1. Copy `config.example.json` to `config.json`
+2. Update the following fields:
 
-1. **Copy `config.example.json` and name the copy `config.json`.**
-2. **Open `config.json` and **update** the necessary fields inside the `wallet` sub-object and `worker` config with your specific values:**
+#### wallet
 
-#### Wallet Configuration
+- `nodeRpc`: [RPC URL](/devs/get-started/quick-start#network-configuration) for your network
+- `addressKeyName`: Wallet key name from [wallet setup](/devs/get-started/quick-start#create-your-wallet)
+- `addressRestoreMnemonic`: Wallet mnemonic phrase
 
-##### `wallet` Sub-object
+#### worker
 
-1. **`nodeRpc`**: The [RPC URL](/devs/get-started/quick-start#network-configuration) for the corresponding network the node will be deployed on
-2. **`addressKeyName`**: The name you gave your wallet key when [setting up your wallet](/devs/get-started/quick-start#create-your-wallet)
-3. **`addressRestoreMnemonic`**: The mnemonic that was outputted when setting up a new key
+Topic configuration array. For BTC 24h prediction on Topic 4:
 
-**Wallet Security**:
-- **Secure storage**: Keep mnemonic phrases in secure, offline locations
-- **Access control**: Limit access to wallet configuration files
-- **Backup procedures**: Maintain multiple secure backups of wallet information
-- **Key rotation**: Consider periodic key updates for enhanced security
-
-#### Worker Configuration
-
-##### `worker` Config
-
-1. **`topicId`**: The specific topic ID you created the worker for.
-2. **`InferenceEndpoint`**: The endpoint exposed by your worker node to provide inferences to the network.
-3. **`Token`**: The token for the specific topic you are providing inferences for. The token needs to be exposed in the inference server endpoint for retrieval.
-   - The `Token` variable is specific to the endpoint you expose in your `main.py` file. It is not related to any topic parameter.
-
-**Configuration Strategy**:
-- **Topic focus**: Align worker configuration with chosen prediction market
-- **Endpoint design**: Create clear, RESTful endpoints for inference delivery
-- **Token management**: Use meaningful token identifiers for easy maintenance
-- **Performance tuning**: Configure parameters for optimal inference delivery
-
-##### Multi-Topic Support
-
-<Callout type="warning">
-The `worker` config is an array of sub-objects, each representing a different topic ID. This structure allows you to manage multiple topic IDs, each within its own sub-object.
-
-To deploy a worker that provides inferences for multiple topics, you can duplicate the existing sub-object and add it to the `worker` array. Update the `topicId`, `InferenceEndpoint` and `Token` fields with the appropriate values for each new topic:
 ```json
 "worker": [
-      {
-        "topicId": 1,
-        "inferenceEntrypointName": "api-worker-reputer",
-        "loopSeconds": 5,
-        "parameters": {
-          "InferenceEndpoint": "http://localhost:8000/inference/{Token}",
-          "Token": "ETH"
-        }
-      },
-      // worker providing inferences for topic ID 2
-      {
-        "topicId": 2, 
-        "inferenceEntrypointName": "api-worker-reputer",
-        "loopSeconds": 5,
-        "parameters": {
-          "InferenceEndpoint": "http://localhost:8000/inference/{Token}", // the specific endpoint providing inferences
-          "Token": "ETH" // The token specified in the endpoint
-        }
-      }
-    ],
+  {
+    "topicId": 4,
+    "inferenceEntrypointName": "api-worker-reputer",
+    "loopSeconds": 5,
+    "parameters": {
+      "InferenceEndpoint": "http://localhost:8000/inference/{Token}",
+      "Token": "BTC"
+    }
+  }
+]
 ```
+
+<Callout type="warning">
+The `worker` array supports multiple topics. Duplicate the configuration for each additional topic, updating `topicId`, `InferenceEndpoint`, and `Token` accordingly.
 </Callout>
 
-**Multi-Topic Benefits**:
-- **Revenue diversification**: Participate in multiple markets for increased rewards
-- **Risk distribution**: Spread operational risk across different prediction categories
-- **Resource efficiency**: Maximize infrastructure utilization
-- **Market opportunity**: Capture value from various prediction markets
+## Implementation
 
-## Implementation Development
+### Step 3: Create Inference Server
 
-### Step 3: Creating the Inference Server
-
-**We will create a very simple Flask application to serve inferences from the Hugging Face model.**
-
-**Here is an example of our newly created `app.py`:**
+Create `app.py` with a Flask application serving Chronos model inferences:
 
 ```python
 from flask import Flask, Response
@@ -225,10 +85,7 @@ import pandas as pd
 import torch
 from chronos import ChronosPipeline
 
-# create our Flask app
 app = Flask(__name__)
-
-# define the Hugging Face model we will use
 model_name = "amazon/chronos-t5-tiny"
 
 def get_coingecko_url(token):
@@ -240,20 +97,17 @@ def get_coingecko_url(token):
         'BNB': 'binancecoin',
         'ARB': 'arbitrum'
     }
-    
+
     token = token.upper()
     if token in token_map:
-        url = f"{base_url}{token_map[token]}/market_chart?vs_currency=usd&days=30&interval=daily"
-        return url
+        return f"{base_url}{token_map[token]}/market_chart?vs_currency=usd&days=30&interval=daily"
     else:
         raise ValueError("Unsupported token")
 
-# define our endpoint
 @app.route("/inference/<string:token>")
 def get_inference(token):
     """Generate inference for given token."""
     try:
-        # use a pipeline as a high-level helper
         pipeline = ChronosPipeline.from_pretrained(
             model_name,
             device_map="auto",
@@ -263,14 +117,13 @@ def get_inference(token):
         return Response(json.dumps({"pipeline error": str(e)}), status=500, mimetype='application/json')
 
     try:
-        # get the data from Coingecko
         url = get_coingecko_url(token)
     except ValueError as e:
         return Response(json.dumps({"error": str(e)}), status=400, mimetype='application/json')
 
     headers = {
         "accept": "application/json",
-        "x-cg-demo-api-key": "<Your Coingecko API key>" # replace with your API key
+        "x-cg-demo-api-key": "<Your Coingecko API key>"  # Replace with your API key
     }
 
     response = requests.get(url, headers=headers)
@@ -279,183 +132,156 @@ def get_inference(token):
         df = pd.DataFrame(data["prices"])
         df.columns = ["date", "price"]
         df["date"] = pd.to_datetime(df["date"], unit='ms')
-        df = df[:-1] # removing today's price
-        print(df.tail(5))
+        df = df[:-1]  # Remove today's price
     else:
-        return Response(json.dumps({"Failed to retrieve data from the API": str(response.text)}), 
-                        status=response.status_code, 
+        return Response(json.dumps({"Failed to retrieve data": str(response.text)}),
+                        status=response.status_code,
                         mimetype='application/json')
 
-    # define the context and the prediction length
     context = torch.tensor(df["price"])
     prediction_length = 1
 
     try:
-        forecast = pipeline.predict(context, prediction_length)  # shape [num_series, num_samples, prediction_length]
-        print(forecast[0].mean().item()) # taking the mean of the forecasted prediction
+        forecast = pipeline.predict(context, prediction_length)
         return Response(str(forecast[0].mean().item()), status=200)
     except Exception as e:
         return Response(json.dumps({"error": str(e)}), status=500, mimetype='application/json')
 
-# run our Flask app
-if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=8000, debug=True)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8000)
 ```
 
-#### Code Architecture Analysis
+### Step 4: Configure Requirements
 
-**Application Structure**:
-- **Flask framework**: Lightweight web framework for rapid API development
-- **Modular design**: Separate functions for data retrieval, model inference, and error handling
-- **RESTful endpoints**: Clean URL structure for inference requests
-- **Error handling**: Comprehensive error management for production reliability
-
-**Data Processing Pipeline**:
-1. **API integration**: Fetch historical price data from CoinGecko
-2. **Data transformation**: Convert API response to pandas DataFrame for analysis
-3. **Model preparation**: Initialize Chronos pipeline with appropriate device mapping
-4. **Inference generation**: Generate probabilistic forecasts using historical context
-5. **Response formatting**: Return predictions in network-compatible format
-
-**Technical Implementation Details**:
-- **Token mapping**: Support for multiple cryptocurrencies through symbol translation
-- **Device optimization**: Automatic device selection for GPU acceleration when available
-- **Memory efficiency**: Use bfloat16 precision for reduced memory usage
-- **Context window**: Use 30 days of daily price data for forecasting
-
-### Step 4: Update Dependencies
-
-**Update the `requirements.txt` to include the necessary packages for the inference server:**
+Create `requirements.txt`:
 
 ```
-flask[async]
-gunicorn[gthread]
-transformers[torch]
-pandas
+Flask==3.0.3
+gunicorn==22.0.0
+transformers==4.40.1
+pandas==2.2.2
+torch==2.3.0
 git+https://github.com/amazon-science/chronos-forecasting.git
+requests==2.32.2
 ```
 
-**Dependency Strategy**:
-- **Core framework**: Flask with async support for concurrent request handling
-- **Production server**: Gunicorn with threading for scalable deployment
-- **AI libraries**: Transformers and PyTorch for model inference
-- **Data processing**: Pandas for efficient time-series data manipulation
-- **Model source**: Direct installation from Chronos repository for latest features
+### Step 5: Create Dockerfile
 
-**Production Considerations**:
-- **Version pinning**: Consider pinning specific versions for reproducible deployments
-- **Security updates**: Regularly update dependencies for security patches
-- **Performance optimization**: Monitor dependency impact on inference speed
-- **Resource usage**: Balance feature richness with memory and CPU requirements
+Create `Dockerfile.inference`:
 
-## Deployment Process
+```dockerfile
+FROM --platform=linux/amd64 python:3.11-slim
 
-### Step 5: Deploy Your Worker
+WORKDIR /app
 
-**Now that the node is configured, let's deploy and register it to the network. To run the node, follow these steps:**
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 
-#### Deployment Workflow
+COPY requirements.txt .
 
-**Pre-Deployment Checklist**:
-- **Configuration validation**: Verify all configuration files are properly set
-- **API credentials**: Ensure CoinGecko API key is configured and valid
-- **Network connectivity**: Test connection to Allora Network RPC endpoints
-- **Resource availability**: Confirm adequate system resources for model operation
+RUN pip install --no-cache-dir -r requirements.txt
 
-**Launch Process**:
-1. **Environment initialization**: Export configuration variables and prepare runtime environment
-2. **Docker orchestration**: Use Docker Compose to coordinate all service containers
-3. **Service startup**: Launch inference server, worker node, and monitoring components
-4. **Network registration**: Register worker with Allora Network for topic participation
-5. **Health verification**: Confirm all services are operational and responding correctly
+COPY app.py .
 
-#### Monitoring and Maintenance
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "app:app"]
+```
 
-**Operational Monitoring**:
-- **Performance tracking**: Monitor inference response times and accuracy metrics
-- **Resource utilization**: Track CPU, memory, and network usage patterns
-- **Error monitoring**: Set up alerts for API failures and model errors
-- **Network participation**: Verify continuous participation in consensus rounds
+### Step 6: Update Docker Compose
 
-**Maintenance Procedures**:
-- **Log rotation**: Manage log files to prevent disk space issues
-- **Dependency updates**: Keep AI models and libraries current with security patches
-- **Performance optimization**: Tune parameters based on operational metrics
-- **Backup procedures**: Maintain backups of configuration and operational data
+Add the inference service to `docker-compose.yaml`:
 
-## Advanced Configuration
+```yaml
+inference:
+  container_name: inference
+  build:
+    context: .
+    dockerfile: Dockerfile.inference
+  command: python -u /app/app.py
+  ports:
+    - "8000:8000"
+  networks:
+    eth-model-local:
+      aliases:
+        - inference
+      ipv4_address: 172.22.0.4
+```
 
-### Model Optimization
+Ensure network configuration matches:
 
-**Performance Tuning**:
-- **Device selection**: Optimize GPU usage for faster inference generation
-- **Batch processing**: Process multiple requests efficiently when possible
-- **Memory management**: Balance model size with available system resources
-- **Caching strategies**: Cache frequently accessed data to reduce API calls
+```yaml
+networks:
+  eth-model-local:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.22.0.0/24
+```
 
-### Multi-Asset Support
+## Deployment
 
-**Scaling Strategy**:
-- **Asset expansion**: Add support for additional cryptocurrencies and trading pairs
-- **Topic diversification**: Participate in multiple prediction markets simultaneously
-- **Load balancing**: Distribute computational load across available resources
-- **Quality assurance**: Maintain prediction quality across different asset classes
+### Step 7: Initialize Configuration
 
-### Error Recovery
+```sh
+chmod +x init.config
+./init.config
+```
 
-**Resilience Patterns**:
-- **Graceful degradation**: Handle API failures without complete service interruption
-- **Retry mechanisms**: Implement exponential backoff for transient failures
-- **Circuit breakers**: Prevent cascade failures in external dependencies
-- **Health checks**: Automated detection and recovery from service issues
+This exports environment variables from `config.json`.
 
-## Best Practices
+<Callout>
+Rerun `init.config` if you modify `config.json`:
+```sh
+chmod +x init.config
+./init.config
+```
+</Callout>
 
-### Security Considerations
+### Step 8: Get Testnet Tokens
 
-**Production Security**:
-- **API key management**: Secure storage and rotation of external API credentials
-- **Network security**: Proper firewall configuration and access controls
-- **Container security**: Regular updates and security scanning of Docker images
-- **Data protection**: Secure handling of sensitive configuration and operational data
+Request tokens from the [Allora Testnet Faucet](https://faucet.testnet.allora.network/) using your Allora address.
 
-### Economic Optimization
+### Step 9: Deploy
 
-**Profitability Strategies**:
-- **Cost management**: Optimize infrastructure costs while maintaining performance
-- **Reward maximization**: Fine-tune inference quality for maximum network rewards
-- **Competition analysis**: Monitor and adapt to competitive landscape changes
-- **Resource efficiency**: Balance computational costs with prediction accuracy
+```bash
+docker compose up --build
+```
 
-## Troubleshooting
+Both the offchain node and inference service will start and communicate through internal Docker DNS.
 
-### Common Issues
+## Verification
 
-**Deployment Problems**:
-- **Configuration errors**: Validate JSON syntax and required field completion
-- **Network connectivity**: Test RPC endpoints and API access
-- **Resource constraints**: Ensure adequate CPU, memory, and storage
-- **Permission issues**: Verify Docker and file system permissions
+### Check Deployment
 
-### Performance Issues
+Look for successful nonce checking:
 
-**Optimization Solutions**:
-- **Model loading**: Optimize model initialization and caching
-- **API rate limits**: Implement proper rate limiting and request batching
-- **Memory leaks**: Monitor and address memory usage patterns
-- **Network latency**: Optimize network calls and connection pooling
+```bash
+offchain_node | {"level":"debug","topicId":4,"time":1723043600,"message":"Checking for latest open worker nonce on topic"}
+```
 
-## Prerequisites
+Successful inference submission shows:
 
-- **Docker expertise**: Proficiency with Docker and Docker Compose
-- **Python development**: Strong Python programming skills for AI/ML applications
-- **API integration**: Experience with REST API consumption and error handling
-- **Blockchain knowledge**: Understanding of Allora Network concepts and operations
+```bash
+{"level":"debug","msg":"Send Worker Data to chain","txHash":<tx-hash>,"time":<timestamp>,"message":"Success"}
+```
+
+### Test Locally
+
+Test your inference endpoint:
+
+```bash
+curl http://localhost:8000/inference/BTC
+```
+
+Verify the response contains a numeric prediction.
+
+## Customization
+
+To use different Hugging Face models:
+
+1. Replace `model_name` in `app.py` with your chosen model
+2. Update model loading and inference logic as needed for the new model's API
+3. Modify input data processing to match model requirements
+4. Update `requirements.txt` with any new dependencies
 
 ## Next Steps
 
-- [Explore price prediction worker walkthrough](/devs/workers/walkthroughs/walkthrough-price-prediction-worker) for alternative implementation approaches
-- [Learn about worker data querying](/devs/workers/query-worker-data) for performance monitoring
-- [Study worker requirements](/devs/workers/requirements) for infrastructure optimization
-- [Review existing topics](/devs/get-started/network-interaction#available-topics) for additional market opportunities
-
+[Explore other worker examples](/devs/workers/deploy-worker/using-docker) | [Query worker data](/devs/workers/query-worker-data) | [View available topics](/devs/get-started/network-interaction#available-topics)

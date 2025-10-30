@@ -2,137 +2,82 @@ import { Callout } from 'nextra/components'
 
 # Workers
 
-## What You'll Learn
-- Understanding the role of data scientists and AI practitioners as workers in the Allora Network
-- How machine learning expertise contributes to decentralized financial predictions
-- The value proposition of participating as a worker in the network
-- How Allora's consensus mechanism optimizes financial objectives through collective intelligence
-
 ## Overview
 
-### For Data Scientists
+Workers run machine learning models that generate predictions on network topics. The Allora Network uses consensus mechanisms to combine predictions from multiple workers, reward accurate models, and synthesize final inferences for consumers.
 
-**As a data scientist, your expertise in AI and ML is invaluable to this network, enabling you to contribute predictive models and insights that power a wide range of applications.**
+As a worker, you deploy models that submit inferences to specific topics (e.g., ETH price prediction, market volatility forecasting). Your rewards are determined by prediction accuracy relative to ground truth, measured through loss functions and weighted by consensus mechanisms.
 
-### How Allora Network Operates
+## How It Works
 
-**The Allora Network, powered by Allora's unique consensus mechanism, crowdsources financial predictions produced by machine learning models.** The network incentivizes the contribution of machine intelligence to optimize various financial objectives.
+The network crowdsources financial predictions through machine learning models. When you run a worker node:
 
-## Worker Role and Value Proposition
+1. Select topics matching your model's capabilities
+2. Submit inferences at regular intervals defined by the topic
+3. Network scores your predictions against ground truth data
+4. Earn rewards proportional to accuracy relative to other workers
 
-### Core Function
+The consensus mechanism combines multiple worker predictions using techniques like EMA (Exponential Moving Average) to weight recent performance more heavily, allowing the network to adapt quickly to model accuracy changes.
 
-**Primary Responsibilities**:
-- **Model deployment**: Contribute trained machine learning models to the network
-- **Inference generation**: Provide predictions on various financial topics and assets
-- **Performance optimization**: Continuously improve model accuracy for better rewards
-- **Network participation**: Engage in the collective intelligence ecosystem
+## Worker Responsibilities
 
-### Why Participate as a Worker?
+- Deploy and maintain inference models
+- Submit predictions according to topic schedules
+- Monitor model performance and accuracy
+- Retrain models as needed to maintain competitive accuracy
 
-**Benefits for Data Scientists**:
-- **Monetize expertise**: Earn rewards for accurate predictions and valuable insights
-- **Access to collective intelligence**: Learn from network-wide model performance
-- **Real-world application**: Apply ML skills to live financial markets and data
-- **Decentralized platform**: Participate in cutting-edge blockchain-based AI networks
+## Technical Requirements
 
-**Professional Development**:
-- **Model validation**: Test your models against real market conditions
-- **Comparative analysis**: Benchmark performance against other data scientists
-- **Continuous learning**: Adapt to changing market conditions and patterns
-- **Innovation opportunity**: Contribute to the future of decentralized AI
+### Infrastructure
 
-## Network Architecture Benefits
+- Computing resources sufficient for model inference
+- Reliable network connectivity to Allora RPC nodes
+- Storage for model weights and training data
+- Monitoring setup to track inference submission and rewards
 
-### Consensus-Driven Accuracy
+### Integration
 
-**Collective Intelligence Advantages**:
-- **Wisdom of crowds**: Leverage diverse perspectives and methodologies
-- **Error reduction**: Network consensus helps minimize individual model biases
-- **Robust predictions**: Multiple models provide more reliable outcomes
-- **Quality assurance**: Reputation systems reward consistent accuracy
+Workers integrate via the worker node software, which handles:
 
-### Financial Optimization Focus
+- Network communication and authentication
+- Inference submission timing
+- Reward tracking and distribution
+- Connection management to Allora blockchain
 
-**Targeted Applications**:
-- **Market prediction**: Price forecasting for various financial instruments
-- **Risk assessment**: Volatility and uncertainty quantification
-- **Trading strategies**: Signal generation for investment decisions
-- **Economic indicators**: Macroeconomic trend analysis and forecasting
+See [system requirements](/devs/workers/requirements) for detailed specifications.
 
-## Getting Started as a Worker
+## Model Development
 
-### Assessment and Preparation
+### Data and Training
 
-**Prerequisites Evaluation**:
-- **Technical skills**: Machine learning model development and deployment
-- **Domain knowledge**: Understanding of financial markets and data
-- **Infrastructure**: Computing resources for model training and inference
-- **Network familiarity**: Basic understanding of blockchain and tokenomics
+Focus on high-quality training data relevant to your target topics. Financial prediction models benefit from:
 
-### Model Development Strategy
+- Clean, preprocessed price and market data
+- Appropriate feature engineering for the prediction task
+- Robust validation procedures to avoid overfitting
+- Regular retraining as new data becomes available
 
-**Optimization Approach**:
-- **Data quality**: Focus on clean, relevant training datasets
-- **Feature engineering**: Create meaningful predictors for financial outcomes
-- **Model selection**: Choose appropriate algorithms for specific prediction tasks
-- **Validation methods**: Implement robust testing and cross-validation procedures
+### Model Selection
 
-### Network Integration
+Choose algorithms suited to your prediction task. Time-series forecasting for price prediction typically uses models like:
 
-**Deployment Considerations**:
-- **Topic selection**: Choose financial prediction categories aligned with expertise
-- **Resource planning**: Ensure adequate computational resources for continuous operation
-- **Performance monitoring**: Track model accuracy and network rewards
-- **Community engagement**: Participate in discussions and knowledge sharing
+- LSTM and GRU networks for sequence prediction
+- Transformer architectures for attention-based forecasting
+- Ensemble methods combining multiple approaches
+- Classical models (ARIMA, Prophet) as baselines
 
-## Success Strategies
+### Performance Optimization
 
-### Model Performance
+Continuously monitor your model's accuracy on the network. The consensus mechanism means you're competing against other workers, so consistent accuracy is crucial for maximizing rewards.
 
-**Accuracy Enhancement**:
-- **Continuous learning**: Regularly retrain models with new data
-- **Ensemble methods**: Combine multiple approaches for better predictions
-- **Market adaptation**: Adjust models for changing market conditions
-- **Error analysis**: Learn from prediction mistakes and systematic biases
+Analyze prediction errors to identify:
 
-### Network Participation
+- Systematic biases in your model
+- Market conditions where accuracy drops
+- Opportunities for feature or architecture improvements
 
-**Engagement Best Practices**:
-- **Consistent contribution**: Maintain regular inference submissions
-- **Quality focus**: Prioritize accuracy over volume of predictions
-- **Collaboration**: Share insights and learn from other network participants
-- **Long-term commitment**: Build reputation through sustained performance
+## Deployment
 
-## Technical Considerations
+[Deploy using Docker](/devs/workers/deploy-worker/using-docker) for the fastest setup, or [build from source](/devs/workers/deploy-worker/from-source) for custom configurations.
 
-### Infrastructure Requirements
-
-**System Specifications**:
-- **Computing power**: Adequate processing for model inference and training
-- **Network connectivity**: Reliable internet connection for network participation
-- **Storage capacity**: Space for model data, training sets, and historical records
-- **Monitoring tools**: Systems to track performance and network status
-
-### Integration Complexity
-
-**Development Challenges**:
-- **API integration**: Connect models with network infrastructure
-- **Data formatting**: Ensure compatibility with network data standards
-- **Error handling**: Implement robust systems for network connectivity issues
-- **Security measures**: Protect model intellectual property and network credentials
-
-## Prerequisites
-
-- **Machine learning expertise**: Strong foundation in ML algorithms and model development
-- **Financial market knowledge**: Understanding of markets, instruments, and prediction challenges
-- **Programming skills**: Proficiency in relevant languages (Python, R, etc.) for model development
-- **Blockchain familiarity**: Basic understanding of decentralized networks and token economics
-
-## Next Steps
-
-- [Review system requirements](/devs/workers/requirements) for technical specifications
-- [Explore worker deployment guides](/devs/workers/deploy-worker/using-docker) for hands-on implementation
-- [Study existing topics](/devs/get-started/network-interaction#available-topics) to understand available prediction categories
-- [Learn about worker data querying](/devs/workers/query-worker-data) for performance monitoring
-
+After deployment, [query worker data](/devs/workers/query-worker-data) to monitor performance and [view available topics](/devs/get-started/network-interaction#available-topics) to select prediction targets.
