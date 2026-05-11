@@ -763,7 +763,7 @@ d3-zoom@3:
     d3-selection "2 - 3"
     d3-transition "2 - 3"
 
-d3@^7.4.0, d3@^7.8.2:
+d3@^7.4.0, d3@^7.9.0:
   version "7.9.0"
   resolved "https://registry.yarnpkg.com/d3/-/d3-7.9.0.tgz#579e7acb3d749caf8860bd1741ae8d371070cd5d"
   integrity sha512-e1U46jVP+w7Iut8Jt8ri1YsPOvFpg46k+K8TpCb0P+zjCkjkPnV7WzfDJzMHy1LnA+wj5pLT1wjO901gLXeEhA==
@@ -799,12 +799,12 @@ d3@^7.4.0, d3@^7.8.2:
     d3-transition "3"
     d3-zoom "3"
 
-dagre-d3-es@7.0.10:
-  version "7.0.10"
-  resolved "https://registry.yarnpkg.com/dagre-d3-es/-/dagre-d3-es-7.0.10.tgz#19800d4be674379a3cd8c86a8216a2ac6827cadc"
-  integrity sha512-qTCQmEhcynucuaZgY5/+ti3X/rnszKZhEQH/ZdWdtP1tA/y3VoHJzcVrO9pjjJCNpigfscAtoUB5ONcd2wNn0A==
+dagre-d3-es@7.0.13:
+  version "7.0.13"
+  resolved "https://registry.yarnpkg.com/dagre-d3-es/-/dagre-d3-es-7.0.13.tgz#acfb4b449f6dcdd48d8ea8081a6d8c59bc8128c3"
+  integrity sha512-efEhnxpSuwpYOKRm/L5KbqoZmNNukHa/Flty4Wp62JRvgH2ojwVgPgdYyr4twpieZnyRDdIH7PY2mopX26+j2Q==
   dependencies:
-    d3 "^7.8.2"
+    d3 "^7.9.0"
     lodash-es "^4.17.21"
 
 dayjs@^1.11.7:
@@ -850,10 +850,10 @@ diff@^5.0.0:
   resolved "https://registry.yarnpkg.com/diff/-/diff-5.2.2.tgz#0a4742797281d09cfa699b79ea32d27723623bad"
   integrity sha512-vtcDfH3TOjP8UekytvnHH1o1P4FcUdt4eQ1Y+Abap1tk/OB2MWQvcwS2ClCd1zuIhc3JKOx6p3kod8Vfys3E+A==
 
-dompurify@^3.0.5:
-  version "3.4.1"
-  resolved "https://registry.yarnpkg.com/dompurify/-/dompurify-3.4.1.tgz#521d04483ac12631b2aedf434a5f5390933b8789"
-  integrity sha512-JahakDAIg1gyOm7dlgWSDjV4n7Ip2PKR55NIT6jrMfIgLFgWo81vdr1/QGqWtFNRqXP9UV71oVePtjqS2ebnPw==
+dompurify@^3.2.4:
+  version "3.4.2"
+  resolved "https://registry.yarnpkg.com/dompurify/-/dompurify-3.4.2.tgz#f0ff81be682c485505097ba8195a058d8f575218"
+  integrity sha512-lHeS9SA/IKeIFFyYciHBr2n0v1VMPlSj843HdLOwjb2OxNwdq9Xykxqhk+FE42MzAdHvInbAolSE4mhahPpjXA==
   optionalDependencies:
     "@types/trusted-types" "^2.0.7"
 
@@ -1586,9 +1586,9 @@ mdast-util-to-string@^3.0.0, mdast-util-to-string@^3.1.0:
     "@types/mdast" "^3.0.0"
 
 mermaid@^10.2.2:
-  version "10.9.0"
-  resolved "https://registry.yarnpkg.com/mermaid/-/mermaid-10.9.0.tgz#4d1272fbe434bd8f3c2c150554dc8a23a9bf9361"
-  integrity sha512-swZju0hFox/B/qoLKK0rOxxgh8Cf7rJSfAUc1u8fezVihYMvrJAS45GzAxTVf4Q+xn9uMgitBcmWk7nWGXOs/g==
+  version "10.9.6"
+  resolved "https://registry.yarnpkg.com/mermaid/-/mermaid-10.9.6.tgz#75e683737b20adaff034e61ee1974dfd1a70c379"
+  integrity sha512-XRjjRaI4aPCAMpVaOhxIwLYdx3U4Cb6mN0M268ggFAfFRqsvyFW8zxWbEZazN/mPkqsVWThb0oa1UawWK+XMNg==
   dependencies:
     "@braintree/sanitize-url" "^6.0.1"
     "@types/d3-scale" "^4.0.3"
@@ -1597,9 +1597,9 @@ mermaid@^10.2.2:
     cytoscape-cose-bilkent "^4.1.0"
     d3 "^7.4.0"
     d3-sankey "^0.12.3"
-    dagre-d3-es "7.0.10"
+    dagre-d3-es "7.0.13"
     dayjs "^1.11.7"
-    dompurify "^3.0.5"
+    dompurify "^3.2.4"
     elkjs "^0.9.0"
     katex "^0.16.9"
     khroma "^2.0.0"
@@ -1608,7 +1608,7 @@ mermaid@^10.2.2:
     non-layered-tidy-tree-layout "^2.0.2"
     stylis "^4.1.3"
     ts-dedent "^2.2.0"
-    uuid "^9.0.0"
+    uuid "^9.0.0 || ^10 || ^11.1.0 || ^12 || ^13 || ^14.0.0"
     web-worker "^1.2.0"
 
 micromark-core-commonmark@^1.0.0, micromark-core-commonmark@^1.0.1:
@@ -2712,10 +2712,10 @@ unist-util-visit@^5.0.0:
     unist-util-is "^6.0.0"
     unist-util-visit-parents "^6.0.0"
 
-uuid@^9.0.0:
-  version "9.0.1"
-  resolved "https://registry.yarnpkg.com/uuid/-/uuid-9.0.1.tgz#e188d4c8853cc722220392c424cd637f32293f30"
-  integrity sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==
+"uuid@^9.0.0 || ^10 || ^11.1.0 || ^12 || ^13 || ^14.0.0":
+  version "14.0.0"
+  resolved "https://registry.yarnpkg.com/uuid/-/uuid-14.0.0.tgz#0af883220163d264ffe0c084f6b8a89b9666966d"
+  integrity sha512-Qo+uWgilfSmAhXCMav1uYFynlQO7fMFiMVZsQqZRMIXp0O7rR7qjkj+cPvBHLgBqi960QCoo/PH2/6ZtVqKvrg==
 
 uvu@^0.5.0:
   version "0.5.6"
