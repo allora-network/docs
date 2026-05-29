@@ -48,7 +48,7 @@ version that is being upgraded from, and the function to run to do the migration
 
 #### For Allora Chain Validator Operators
 
-For those running the chain software, you will have to have to perform an upgrade as follows:
+For those running the chain software, you will have to perform an upgrade as follows:
 
 1. Make sure you're running the `allorad` software with [Cosmovisor](https://docs.cosmos.network/main/build/tooling/cosmovisor)) managing the process, `DAEMON_NAME=allorad` and `DAEMON_HOME=/path/to/allorad/data/folder`. Hopefully you've already run `cosmovisor init /path/to/allorad-binary` and have the `/allorad/data/folder/cosmovisor` set.
 2. At some point the blockchain developers will provide you with a binary to put in that  `/allorad/data/folder/cosmovisor` folder to upgrade to. This may be optional if the `UpgradeInfo` is set correctly by the developers, but if you're the paranoid type you can always download the binary yourself ahead of the upgrade and put it in the right folder by hand.
