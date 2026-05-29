@@ -4,7 +4,7 @@ import ChatComponent from "./chatbutton1"; // Adjust the path as needed
 
 function AiButton() {
   // State to control whether the ChatComponent is displayed
-  const [showChat, setShowChat] = useState(false);
+  const [showChat, setShowChat] = useState(true);
 
   // Toggle function to open or close the chat
   const toggleChat = () => {
