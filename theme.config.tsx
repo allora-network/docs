@@ -2,6 +2,7 @@
 import React from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
+import Script from 'next/script'
 import { DocsThemeConfig, useConfig } from 'nextra-theme-docs'
 import AiButton from './components/AiButton.js'
 
@@ -54,6 +55,15 @@ const config: DocsThemeConfig = {
         <meta name="apple-mobile-web-app-title" content="Allora" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="icon" href="/favicon.png" type="image/png" />
+        <Script
+          src="https://tag.safary.club/stag-0.1.19.js"
+          async
+          data-name="safary-sdk"
+          data-product-id="prd_LY5rw7KKF0"
+          integrity="sha256-HIiAIcXc6BMTZX//tyipuAVyCNCB67w86gVFLK52pxY="
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
       </>
     )
   },
