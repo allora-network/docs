@@ -54,6 +54,16 @@ const config: DocsThemeConfig = {
         <meta name="apple-mobile-web-app-title" content="Allora" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="icon" href="/favicon.png" type="image/png" />
+        <script defer data-domain="docs.allora.network" src="https://plausible.io/js/script.file-downloads.hash.outbound-links.pageview-props.tagged-events.js"></script>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+window.plausible = window.plausible || function() { 
+  (window.plausible.q = window.plausible.q || []).push(arguments)
+}
+            `,
+          }}
+        />
       </>
     )
   },
