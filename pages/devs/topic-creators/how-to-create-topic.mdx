@@ -1,3 +1,5 @@
+import { Callout } from 'nextra/components'
+
 # How to Create a Topic
 
 > Inferences for the same domain are aggregated into the same topic
@@ -57,32 +59,71 @@ type MsgCreateNewTopic struct {
   ActiveInfererQuantile github_com_allora_network_allora_chain_math.Dec `json:"active_inferer_quantile"`
   ActiveForecasterQuantile github_com_allora_network_allora_chain_math.Dec `json:"active_forecaster_quantile"`
   ActiveReputerQuantile github_com_allora_network_allora_chain_math.Dec `json:"active_reputer_quantile"`
+  // Restrict inference/forecast submissions to whitelisted workers
+  EnableWorkerWhitelist bool `json:"enable_worker_whitelist,omitempty"`
+  // Restrict loss submissions to whitelisted reputers
+  EnableReputerWhitelist bool `json:"enable_reputer_whitelist,omitempty"`
+  // Per-topic normalization constant used when mapping regrets to weights
+  CNorm            github_com_allora_network_allora_chain_math.Dec `json:"c_norm"`
+  // --- Multi-label / classification (added in v0.17.0) ---
+  // Topic type: 1 = TOPIC_TYPE_REGRESSION, 2 = TOPIC_TYPE_CLASSIFICATION
+  TopicType        TopicType `json:"topic_type,omitempty"`
+  // Output arity: 1 = TOPIC_OUTPUT_ARITY_SINGLE, 2 = TOPIC_OUTPUT_ARITY_MULTI
+  OutputArity      TopicOutputArity `json:"output_arity,omitempty"`
+  // For classification topics: require the per-label outputs to sum to one
+  RequireUnity     bool `json:"require_unity,omitempty"`
+  // Tolerance applied to the unity (sum-to-one) constraint
+  UnityTolerance   github_com_allora_network_allora_chain_math.Dec `json:"unity_tolerance"`
+  // Cap on the number of labels a single worker may submit in one payload (multi-output topics)
+  MaxLabelsPerSubmission uint64 `json:"max_labels_per_submission,omitempty"`
+  // Optional allowlist of permitted (canonicalized) label names; empty means unrestricted
+  LabelWhitelist   []string `json:"label_whitelist,omitempty"`
+  // Default value used for missing label slots in dense multi-label vectors
+  LabelDefaultValue github_com_allora_network_allora_chain_math.Dec `json:"label_default_value"`
+  // If false (default), label names are lowercased when canonicalized ("Cat" == "cat");
+  // immutable after topic creation
+  LabelCaseSensitive bool `json:"label_case_sensitive,omitempty"`
 }
 ```
 
 Using the [`allorad` CLI](/devs/get-started/cli#installing-allorad) to create a topic:
 
+The command takes the following positional arguments, in order:
+
 ```shell bash
 allorad tx emissions create-topic \
-  allo13tr5nx74zjdh7ya8kgyuu0hweppnnx8d4ux7pj \    # Creator address
-  "ETH prediction in 24h" \                                         # Metadata
-  "mse" \                                         # LossMethod
-  3600 \                                          # EpochLength
-  0 \                                             # GroundTruthLag
-  3 \                                             # WorkerSubmissionWindow
-  3 \                                             # PNorm 
-  1 \                                             # AlphaRegret 
-  true \                                          # AllowNegative
-  0.001 \                                         # Epsilon
-  0.1 \                                           # MeritSortitionAlpha
-  0.25 \                                           # ActiveInfererQuantile
-  0.25 \                                           # ActiveForecasterQuantile
-  0.25 \                                           # ActiveReputerQuantile
-  --node <RPC_URL>
+  allo13tr5nx74zjdh7ya8kgyuu0hweppnnx8d4ux7pj \    # creator address
+  "ETH prediction in 24h" \                        # metadata
+  "mse" \                                          # loss_method
+  3600 \                                           # epoch_length
+  0 \                                              # ground_truth_lag
+  3 \                                              # worker_submission_window
+  3 \                                              # p_norm
+  1 \                                              # alpha_regret
+  true \                                           # allow_negative
+  0.001 \                                          # epsilon
+  0.1 \                                            # merit_sortition_alpha
+  0.25 \                                           # active_inferer_quantile
+  0.25 \                                           # active_forecaster_quantile
+  0.25 \                                           # active_reputer_quantile
+  false \                                          # enable_worker_whitelist
+  false \                                          # enable_reputer_whitelist
+  0.75 \                                           # c_norm
+  1 \                                              # topic_type (1 = regression)
+  1 \                                              # output_arity (1 = single output)
+  false \                                          # require_unity
+  0 \                                              # unity_tolerance
+  1 \                                              # max_labels_per_submission
+  '[]' \                                           # label_whitelist (empty = unrestricted)
+  0 \                                              # label_default_value
+  false \                                          # label_case_sensitive
+  --node <RPC_URL> \
   --chain-id <CHAIN_ID>
 ```
 
 Be sure to swap out [`RPC_URL`](/devs/get-started/setup-wallet#rpc-url-and-chain-id), `YOUR_ADDRESS`, [`CHAIN_ID`](/devs/get-started/setup-wallet#rpc-url-and-chain-id) and all other arguments as appropriate with the desired values.
+
+The example above creates a standard **single-output regression topic** — the historical default, and what most price/quantity prediction topics use. The last nine arguments (`enable_worker_whitelist` through `label_case_sensitive`) configure whitelisting and the multi-label features introduced in v0.17.0; see the section below.
 
 ### Notes
 
@@ -92,6 +133,42 @@ An explanation in more detail of some of these fields.
 - `allowNegative` determines whether the loss function output can be negative.
   - If **true**, the reputer submits raw losses.
   - If **false**, the reputer submits logs of losses.
+
+## Topic Types, Output Arity, and Labels
+
+Starting in **v0.17.0**, a topic declares what kind of output it produces. These fields are set at
+creation and, except for the label registry, cannot be changed afterwards.
+
+- **`topic_type`** — `1` for **regression** (numeric prediction, e.g. the price of ETH) or `2` for
+  **classification** (predicting the likelihood of discrete outcomes).
+- **`output_arity`** — `1` for a **single** output value, or `2` for **multiple** labeled outputs. A
+  single-output topic behaves exactly like topics did before v0.17.0.
+- **`require_unity`** / **`unity_tolerance`** — for classification topics, require the per-label
+  outputs to sum to one (a probability distribution), within `unity_tolerance`.
+
+Multi-output topics attach a **label** to each value a worker submits (for example `up`, `down`,
+`flat`). The topic's **label registry** controls this:
+
+- **`max_labels_per_submission`** — the maximum number of labels a single worker may include in one
+  payload.
+- **`label_whitelist`** — an optional allowlist of permitted label names. Leave it empty (`'[]'`) to
+  accept any label; provide a list (e.g. `'["up","down","flat"]'`) to restrict submissions. Labels
+  are canonicalized (UTF-8, NFC-normalized, trimmed) before comparison.
+- **`label_default_value`** — the value used for label slots a worker omits when building the dense
+  multi-label vector.
+- **`label_case_sensitive`** — when `false` (the default), `Cat`, `CAT` and `cat` collapse to the
+  same label; when `true` they are distinct. This flag is immutable after creation.
+
+A single-output topic internally uses the canonical label `y`, which is why single-output network
+inferences are still returned under a single value.
+
+<Callout type="info">
+`update-topic` performs a **full replacement** of the fields it accepts (including the label
+registry). In particular, sending an empty `label_whitelist` sets the topic to *unrestricted* rather
+than preserving the current list, so always re-send the full whitelist to keep a restriction. Label
+changes are rejected while a worker submission window is open. `topic_type`, `output_arity`,
+`require_unity` and `label_case_sensitive` cannot be changed after creation.
+</Callout>
 
 ---
 

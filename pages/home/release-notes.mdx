@@ -1,6 +1,33 @@
 # Allora Network Release Notes
 
 
+## v0.17.0
+
+### Key Features and Improvements
+
+#### Topics
+- **Multi-label & classification topics**: Topics can now be typed as regression or classification (`topic_type`) and emit either a single value or a vector of labeled outputs (`output_arity`). Multi-output topics carry a per-topic label registry, with an optional `label_whitelist`, a `max_labels_per_submission` cap, a `label_default_value` for sparse submissions, and an immutable `label_case_sensitive` flag.
+- **Classification unity constraint**: Classification topics can require their per-label outputs to sum to one (`require_unity`) within a configurable `unity_tolerance`.
+- **New topic & module parameters**: `create-topic`/`update-topic` accept the new label-registry fields, and three new module params bound label sizes (`max_canonical_label_byte_length`, `max_topic_label_whitelist_size`, `max_epoch_label_registry_size`).
+
+#### Network Inference
+- **Labeled network inferences**: Network inferences are now stored and served as a `NetworkInferenceBundle` of labeled values, supporting multi-label topics. Single-output topics use a canonical `y` label.
+- **Unified event**: A single `EventNetworkInferenceBundle` (with an `outlier_resistant` flag) replaces the separate network-inference and outlier-resistant events.
+- **Outlier-resistant scope**: Outlier-resistant network inferences are computed only for single-label regression topics; the outlier-resistant query now returns an error for multi-label topics.
+
+#### Queries and CLI (breaking)
+- **v10 emissions API**: Emissions queries and transactions move to the `emissions/v10` package and REST namespace.
+- **Worker latest-inference query renamed**: `GetWorkerLatestInferenceByTopicId` → `GetWorkerLatestInputInferenceByTopicId` (REST `.../latest_input_inference`), now returning an `InputInference`.
+- **Wider p_norm range**: The allowed `p_norm` range for topics was increased.
+
+### Bug Fixes and Other Improvements
+- **AutoCLI**: Fixed parameter advertising, fixed dry-run and auto-gas handling, and added keyring simulation.
+- **Events**: Clamp `Dec` magnitudes in emissions events to keep event payloads compact.
+
+### Upgrade
+- **v0.17.0 upgrade**: The `x/emissions` consensus version is bumped to 15. The migration backfills regression/single-output defaults on existing topics and converts stored network inferences to the new labeled bundle format.
+
+
 ## v0.16.0
 
 ### Key Features and Improvements
