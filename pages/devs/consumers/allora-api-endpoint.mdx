@@ -45,7 +45,7 @@ API requests are subject to rate limiting. If you exceed the rate limit, you wil
 **Example**: `https://allora-api.testnet.allora.network/emissions/v10/latest_network_inferences/1`
 
 Where:
-- "v10" represents the latest network version number
+- "v10" is the `emissions` API version, which depends on the deployed chain version of the network you are querying (testnet = `v10`, mainnet = `v9`). See [Networks](/devs/reference/networks) for the current version per network.
 - "1" represents the topic ID
 
 An **outlier-resistant** variant is available for single-label regression topics:
