@@ -42,93 +42,70 @@ API requests are subject to rate limiting. If you exceed the rate limit, you wil
 
 **Generic**: `https://allora-api.testnet.allora.network/emissions/{version_number}/latest_network_inferences/{topic_id}`
 
-**Example**: `https://allora-api.testnet.allora.network/emissions/v7/latest_network_inferences/1`
+**Example**: `https://allora-api.testnet.allora.network/emissions/v10/latest_network_inferences/1`
 
 Where:
-- "v7" represents the latest network version number
+- "v10" is the `emissions` API version, which depends on the deployed chain version of the network you are querying (testnet = `v10`, mainnet = `v9`). See [Networks](/devs/reference/networks) for the current version per network.
 - "1" represents the topic ID
 
-Sample Response:
+An **outlier-resistant** variant is available for single-label regression topics:
+
+**Outlier-resistant**: `https://allora-api.testnet.allora.network/emissions/v10/latest_network_inferences_outlier_resistant/{topic_id}`
+
+Sample Response (single-output regression topic):
 
 ```json
 {
   "network_inferences": {
     "topic_id": "1",
-    "reputer_request_nonce": null,
-    "reputer": "",
-    "extra_data": null,
-    "combined_value": "2605.533879185080648394998043723508",
+    "nonce": "1349577",
+    "combined_value": [
+      { "label_id": 1, "label_name": "y", "value": "2605.533879185080648394998043723508" }
+    ],
     "inferer_values": [
       {
         "worker": "allo102ksu3kx57w0mrhkg37kvymmk2lgxqcan6u7yn",
-        "value": "2611.01109296"
+        "values": [
+          { "label_id": 1, "label_name": "y", "value": "2611.01109296" }
+        ]
       },
       {
         "worker": "allo10q6hm2yae8slpvvgmxqrcasa30gu5qfysp4wkz",
-        "value": "2661.505295679922"
+        "values": [
+          { "label_id": 1, "label_name": "y", "value": "2661.505295679922" }
+        ]
       }
     ],
     "forecaster_values": [
-        {
-            "worker": "allo1za8r9v0st4ntfyeka23qs5wvd7mvsnzhztupk0",
-            "value": "2610.160000000000000000000000000000"
-        }
+      {
+        "worker": "allo1za8r9v0st4ntfyeka23qs5wvd7mvsnzhztupk0",
+        "values": [
+          { "label_id": 1, "label_name": "y", "value": "2610.160000000000000000000000000000" }
+        ]
+      }
     ],
-    "naive_value": "2605.533879185080648394998043723508",
+    "naive_value": [
+      { "label_id": 1, "label_name": "y", "value": "2605.533879185080648394998043723508" }
+    ],
     "one_out_inferer_values": [
       {
-        "worker": "allo102ksu3kx57w0mrhkg37kvymmk2lgxqcan6u7yn",
-        "value": "2570.859434973857748387096774193548"
-      },
-      {
-        "worker": "allo10q6hm2yae8slpvvgmxqrcasa30gu5qfysp4wkz",
-        "value": "2569.230589724828006451612903225806"
+        "withheld_inferer": "allo102ksu3kx57w0mrhkg37kvymmk2lgxqcan6u7yn",
+        "combined_inference": [
+          { "label_id": 1, "label_name": "y", "value": "2570.859434973857748387096774193548" }
+        ]
       }
     ],
     "one_out_forecaster_values": [],
     "one_in_forecaster_values": [],
     "one_out_inferer_forecaster_values": []
   },
-  "inferer_weights": [
-    {
-      "worker": "allo102ksu3kx57w0mrhkg37kvymmk2lgxqcan6u7yn",
-      "weight": "0.0002191899319465528034563075461505151"
-    },
-    {
-      "worker": "allo10q6hm2yae8slpvvgmxqrcasa30gu5qfysp4wkz",
-      "weight": "0.0002191899319465528034563075461505151"
-    }
-  ],
-  "forecaster_weights": [
-    {
-      "worker": "allo1za8r9v0st4ntfyeka23qs5wvd7mvsnzhztupk0",
-      "weight": "0.1444137067859501612197657742201029"
-    }
-  ],
-  "forecast_implied_inferences": [
-    {
-      "worker": "allo1za8r9v0st4ntfyeka23qs5wvd7mvsnzhztupk0",
-      "value": "2610.160000000000000000000000000000"
-    }
-  ],
-  "inference_block_height": "1349577",
-  "loss_block_height": "0",
-  "confidence_interval_raw_percentiles": [
-    "2.28",
-    "15.87",
-    "50",
-    "84.13",
-    "97.72"
-  ],
-  "confidence_interval_values": [
-    "2492.1675618299669694181830608795809",
-    "2543.9249467952655499150756965734158",
-    "2611.033130351115229549044053766836",
-    "2662.29523395638446190095015123294396",
-    "2682.827040221238"
-  ]
+  "inference_block_height": "1349577"
 }
 ```
+
+<Callout type="info">
+Since v0.17.0 the network inference is returned as a **labeled bundle**. Every value carries a `label_id` and `label_name`. A **single-output** topic (like the one above) always uses the canonical label `y`, so each array holds a single entry. A **multi-output / classification** topic returns one entry per label — for example `combined_value` might contain `{ "label_name": "up", ... }`, `{ "label_name": "down", ... }`, and `{ "label_name": "flat", ... }`.
+</Callout>
 
 <Callout type="warning">
 Please be aware that there may be some expected volatility in predictions due to the nascency of the network and the more forgiving testnet configurations currently in place. We are actively working on implementing an outlier protection mechanism, which will be applied at the consumer layer and tailored to individual use cases in the near future.
@@ -136,44 +113,43 @@ Please be aware that there may be some expected volatility in predictions due to
 
 ## Breaking Down the Response
 
-Below is an explanation of important sub-objects displayed in the JSON output:
+Below is an explanation of the important fields in the JSON output. Every inference value is **labeled** (`label_id` + `label_name` + `value`); single-output topics use the canonical label `y`.
 
 ### `topic_id`
 In this case, "1" represents the topic being queried. [Topics](/devs/topic-creators/how-to-create-topic) define the context and rules for a particular inference.
 
-### `naive_value`
-The **naive value** omits all forecast-implied inferences from the weighted average by setting their weights to zero. The naive network inference is used to quantify the contribution of the
-forecasting task to the network accuracy, which in turn sets the reward distribution between the inference and forecasting tasks.
-
 ### `combined_value`
-The **combined value** is an optimized inference that represents a collective intelligence approach, taking both naive submissions and forecast data into account.
+The **combined value** is an optimized inference that represents a collective intelligence approach, taking both worker submissions and forecast data into account.
 
-> If you are looking to just get one value or number from Allora for a data oracle, this would be the one to take.
+> If you are looking to just get one value or number from Allora for a data oracle, this is the one to take (for a single-output topic, the entry labeled `y`).
 
 ### `inferer_values`
-Workers in the network submit their inferences, each represented by an `allo` address. For example:
+Workers in the network submit their inferences, each represented by an `allo` address and one value per label. For example:
 
 ```json
 {
     "worker": "allo102ksu3kx57w0mrhkg37kvymmk2lgxqcan6u7yn",
-    "value": "2611.01109296"
+    "values": [
+        { "label_id": 1, "label_name": "y", "value": "2611.01109296" }
+    ]
 }
 ```
 
-Each worker submits a value based on their own models. These individual submissions contribute to both the naive and combined values. The combined value gives higher weighting to more reliable workers, based on performance or other criteria.
+Each worker submits values based on their own models. These individual submissions contribute to both the naive and combined values. The combined value gives higher weighting to more reliable workers, based on performance or other criteria.
 
-### `one_out_inferer_values`
-These values simulate removing a single worker from the pool to see how the overall inference changes. This is a technique used to evaluate the impact of individual inferences on the combined result. 
+### `forecaster_values`
+The forecast-implied inferences, one per forecaster. A [forecast-implied inference](/home/layers/forecast-synthesis/synthesis#forecast-implied-inferences) uses forecasted losses and worker inferences to produce a predicted value, weighted by how accurately each forecaster predicted losses in previous epochs.
 
-### `forecast_implied_inferences`
-The [Forecast-Implied Inference](/home/layers/forecast-synthesis/synthesis#forecast-implied-inferences) uses forecasted losses and worker inferences to produce a predicted value where each prediction is weighted based on how accurately the forecasters predicted losses in previous time steps, or epochs.
+### `naive_value`
+The **naive value** omits all forecast-implied inferences from the weighted average by setting their weights to zero. It is used to quantify the contribution of the forecasting task to network accuracy, which in turn sets the reward distribution between the inference and forecasting tasks.
+
+### `one_out_inferer_values` / `one_out_forecaster_values` / `one_in_forecaster_values`
+These simulate removing (or adding) a single participant to measure their marginal impact on the combined inference. They are used for scoring and reward distribution.
 
 ### `inference_block_height`
-The specific chain block that the inference data was generated
+The specific chain block at which the inference data was generated.
 
-### `confidence_interval_raw_percentiles`
-Fixed percentiles that are used to generate [confidence intervals](/home/confidence-intervals)
-
-### `confidence_interval_values`
-[Confidence intervals](/home/confidence-intervals) show the predicted range of outcomes based on worker inferences.
+<Callout type="info">
+Per-actor **weights** and **confidence intervals** are not part of this response. Weights can be queried separately (for example `GetLatestInfererWeight` / `GetLatestForecasterWeight`), and confidence intervals are described on the [Confidence Intervals](/home/confidence-intervals) page.
+</Callout>
 

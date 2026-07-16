@@ -14,6 +14,19 @@ Loss calculation logic determined at topic creation by a topic creator who decid
 - The loss function to use (e.g., mean absolute directional loss, L1-norm)
 - The source of ground truth (e.g., some endpoint, some oracle, the median of gathered inferences)
 
+### Topic Types
+
+Since v0.17.0, a topic declares the kind of output it produces:
+
+- **Regression topics** predict a numeric value (e.g. the future price of ETH).
+- **Classification topics** predict the likelihood of discrete outcomes, and can optionally require those outcomes to sum to one (a probability distribution).
+
+A topic also declares its **output arity** — whether it produces a **single** value or **multiple** labeled values (see Labels).
+
+### Labels
+
+Names attached to the individual values a worker submits to a **multi-output** topic (for example `up`, `down`, `flat`). Each topic maintains a **label registry** and may restrict the permitted labels via an allowlist, cap how many labels a worker may submit, and define a default value for omitted labels. Single-output topics use one canonical label (`y`) internally.
+
 ## Inferences
 
 Predictions or conclusions made by workers about specific outcomes within a given topic. 
@@ -34,6 +47,10 @@ An additional dimension of evaluation that enables the network to achieve the be
 By incorporating feedback from the test set (live, revealed ground truth plus the live, revealed performances of one's peers), both inference and forecast models of individual workers can be improved over time. This improves overall network performance. 
 
 By incentivizing forecasts, workers are incentivized to understand the contexts in which they and their peers perform well or poorly. For example, forecasters may understand that a subset of workers perform better on Wednesdays, whereas another performs well on Thursdays, or some do well in bear markets and others in bull markets. Integrating such context-aware insights empowers Allora to admit better performance than any individual actor because it can selectively leverage insights from the appropriate actors in the appropriate contexts.
+
+## Network Inference
+
+The network's aggregate output for a topic in a given epoch — a weighted combination of the individual worker inferences and forecast-implied inferences. It is stored on-chain and served to consumers as a **network inference bundle** containing the combined value, the contributing inferer and forecaster values, a naive baseline, and one-out/one-in values used for scoring. Since v0.17.0 every value in the bundle is **labeled**, so multi-output topics return one value per label while single-output topics return a single value under the canonical label `y`. An optional **outlier-resistant** variant is produced for single-label regression topics.
 
 ## Network Participants
 

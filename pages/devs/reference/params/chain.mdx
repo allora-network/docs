@@ -161,3 +161,25 @@ Default Value: 0.0000001
 The maximum length of a string to allow to store on the chain. For example, used in limiting metadata for the creation of new topics.
 
 Default Value: 255
+
+## Multi-Label Parameters
+
+These parameters (introduced in v0.17.0) bound the size of the [label registry](/devs/topic-creators/how-to-create-topic#topic-types-output-arity-and-labels) used by multi-output topics.
+
+#### max_canonical_label_byte_length
+
+The maximum byte length of a canonical label name, after NFC normalization and whitespace trimming.
+
+Default Value: 64
+
+#### max_topic_label_whitelist_size
+
+The maximum number of canonical labels allowed in a single topic's label whitelist.
+
+Default Value: 256
+
+#### max_epoch_label_registry_size
+
+The maximum number of labels allowed in an epoch label registry for a single (topic, nonce).
+
+Default Value: 32768

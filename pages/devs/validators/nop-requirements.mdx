@@ -29,6 +29,6 @@ The topic-specific logic ran by validators is compiled to WASM and stored on IPF
 - Inferences from the past epoch
 - The revealed ground truth consisting of up to `topic.inference_cadence/topic.loss_cadence`-many values. In other words, it entails one ground truth value for each inference cadence within the preceding loss-calculation epoch.
 
-The WASM also involves committing the new losses to the appchain in a transaction. This is ultimately done by one b7s node.
+The new losses are then committed to the appchain in a transaction.
 
 Computing loss-calculation logic off-chain saves the network validators operating expenses (because less is run on-chain), allows topic creators to write loss-calculation logic in any language (that compiles to WASM), and lessens the need for frequent node software upgrades (because the module source code remains unchanged even as new topics are added, each with their specific loss-calculation schemes).

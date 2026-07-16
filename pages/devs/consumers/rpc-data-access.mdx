@@ -17,7 +17,6 @@ Each network uses a different RPC URL and Chain ID which are needed to specify w
 
 ### Testnet
 - **RPC URLs**:
-  - `https://rpc.ankr.com/allora_testnet`
   - `https://allora-rpc.testnet.allora.network/`
 - **Chain ID**: `allora-testnet-1`
 
@@ -25,55 +24,56 @@ Each network uses a different RPC URL and Chain ID which are needed to specify w
 
 The following RPC methods are particularly useful for consumers looking to access inference data from the Allora network:
 
-### Get Latest Available Network Inferences
+### Get Latest Network Inferences
 
 This is the primary method for consumers to retrieve the latest network inference for a specific topic.
 
 ```bash
-allorad q emissions latest-available-network-inferences [topic_id] --node <RPC_URL>
+allorad q emissions latest-network-inferences [topic_id] --node <RPC_URL>
 ```
 
 **Parameters:**
-- `topic_id`: The identifier of the topic for which you want to retrieve the latest available network inference.
+- `topic_id`: The identifier of the topic for which you want to retrieve the latest network inference.
 - `RPC_URL`: The URL of the RPC node you're connecting to.
 
 **Example:**
 ```bash
-allorad q emissions latest-available-network-inferences 1 --node https://allora-rpc.testnet.allora.network/
+allorad q emissions latest-network-inferences 1 --node https://allora-rpc.testnet.allora.network/
 ```
 
+An **outlier-resistant** variant (single-label regression topics only) is available via `allorad q emissions latest-network-inferences-outlier-resistant [topic_id]`.
+
 **Response:**
-The response includes the network inference data, including the combined value, individual worker values, confidence intervals, and more. Here's a simplified example:
+The response includes the network inference bundle — the combined value, individual worker values, a naive baseline, and one-out/one-in values. Since v0.17.0 every value is **labeled**; single-output topics use the canonical label `y`. Here's a simplified example:
 
 ```json
 {
   "network_inferences": {
     "topic_id": "1",
-    "combined_value": "2605.533879185080648394998043723508",
+    "nonce": "1349577",
+    "combined_value": [
+      { "label_id": 1, "label_name": "y", "value": "2605.533879185080648394998043723508" }
+    ],
     "inferer_values": [
       {
         "worker": "allo102ksu3kx57w0mrhkg37kvymmk2lgxqcan6u7yn",
-        "value": "2611.01109296"
+        "values": [ { "label_id": 1, "label_name": "y", "value": "2611.01109296" } ]
       },
       {
         "worker": "allo10q6hm2yae8slpvvgmxqrcasa30gu5qfysp4wkz",
-        "value": "2661.505295679922"
+        "values": [ { "label_id": 1, "label_name": "y", "value": "2661.505295679922" } ]
       }
     ],
-    "naive_value": "2605.533879185080648394998043723508"
+    "naive_value": [
+      { "label_id": 1, "label_name": "y", "value": "2605.533879185080648394998043723508" }
+    ]
   },
-  "confidence_interval_values": [
-    "2492.1675618299669694181830608795809",
-    "2543.9249467952655499150756965734158",
-    "2611.033130351115229549044053766836",
-    "2662.29523395638446190095015123294396",
-    "2682.827040221238"
-  ]
+  "inference_block_height": "1349577"
 }
 ```
 
 <Callout type="info">
-The `combined_value` field represents the optimized inference that takes both naive submissions and forecast data into account. This is typically the value you want to use for most consumer applications.
+The `combined_value` field is a list of labeled values representing the optimized inference that takes both worker submissions and forecast data into account. For a single-output topic it holds a single entry (labeled `y`), which is typically the value you want for most consumer applications. A multi-output / classification topic returns one entry per label.
 </Callout>
 
 ## Using RPC in Your Applications
@@ -92,7 +92,7 @@ async function getLatestInference(topicId: number, rpcUrl: string) {
       id: 1,
       method: 'abci_query',
       params: {
-        path: `/allora.emissions.v1.Query/GetLatestAvailableNetworkInferences`,
+        path: `/allora.emissions.v10.Query/GetLatestNetworkInferences`,
         data: Buffer.from(JSON.stringify({ topic_id: topicId })).toString('hex'),
         prove: false
       }
@@ -118,8 +118,9 @@ async function getLatestInference(topicId: number, rpcUrl: string) {
 // Example usage
 getLatestInference(1, 'https://allora-rpc.testnet.allora.network/')
   .then(data => {
-    console.log('Latest inference:', data.network_inferences.combined_value);
-    console.log('Confidence intervals:', data.confidence_interval_values);
+    // combined_value is a list of labeled values; a single-output topic has one entry ("y")
+    console.log('Latest inference:', data.network_inferences.combined_value[0].value);
+    console.log('Inference block height:', data.inference_block_height);
   })
   .catch(error => {
     console.error('Failed to get inference:', error);
@@ -142,7 +143,7 @@ def get_latest_inference(topic_id, rpc_url):
             "id": 1,
             "method": "abci_query",
             "params": {
-                "path": "/allora.emissions.v1.Query/GetLatestAvailableNetworkInferences",
+                "path": "/allora.emissions.v10.Query/GetLatestNetworkInferences",
                 "data": bytes(json.dumps({"topic_id": topic_id}), 'utf-8').hex(),
                 "prove": False
             }
@@ -167,8 +168,9 @@ def get_latest_inference(topic_id, rpc_url):
 # Example usage
 try:
     data = get_latest_inference(1, "https://allora-rpc.testnet.allora.network/")
-    print(f"Latest inference: {data['network_inferences']['combined_value']}")
-    print(f"Confidence intervals: {data['confidence_interval_values']}")
+    # combined_value is a list of labeled values; a single-output topic has one entry ("y")
+    print(f"Latest inference: {data['network_inferences']['combined_value'][0]['value']}")
+    print(f"Inference block height: {data['inference_block_height']}")
 except Exception as e:
     print(f"Failed to get inference: {e}")
 ```

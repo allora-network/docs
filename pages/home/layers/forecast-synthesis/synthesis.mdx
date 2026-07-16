@@ -45,3 +45,11 @@ This combined result is expected to be more accurate and reliable due to the wei
 
 ![synthesis-final](/synthesis-final.jpg)
 
+## Multi-Label Topics
+
+Since v0.17.0, synthesis is **label-aware**. For [multi-output topics](/devs/topic-creators/how-to-create-topic#topic-types-output-arity-and-labels), the process above runs independently for each label, and the result is returned as a **network inference bundle** — a set of labeled values rather than a single number. A single-output topic is simply the special case with one canonical label (`y`), so its bundle carries a single value.
+
+For **classification** topics that set `require_unity`, the per-label outputs are constrained to sum to one (within the topic's `unity_tolerance`), so the bundle represents a probability distribution across the labels.
+
+The **outlier-resistant** network inference is only computed for single-label regression topics; it is not produced for multi-label topics.
+

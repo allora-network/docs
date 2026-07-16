@@ -17,7 +17,7 @@ This diagram illustrates the architecture of the integration between the Allora 
 #### Key Components
 
 1. **Allora Network (Cosmos AppChain)**
-   - **Public Head Node**: Acts as the entry point for the Allora Network, handling requests and responses.
+   - **Allora appchain**: The entry point for the Allora Network, coordinating topics, worker submissions, and network inferences.
 
 2. **AWS Account Setup**
    - **Region**: The geographical location within AWS where the resources are deployed.
@@ -33,7 +33,7 @@ This diagram illustrates the architecture of the integration between the Allora 
 #### Process Flow
 
 1. **Request Flow**:
-   - The Allora Network's Public Head Node sends a request for inferences to the EC2 instance within the AWS environment.
+   - The Allora appchain triggers a request for inferences to the EC2 instance within the AWS environment.
    - The request passes through the VPC Internet Gateway and reaches the Offchain node in the public subnet.
    - The Offchain node forwards the request to the Node Function.
    - The Node Function calls `Main.py` on the Model Server to generate the required inferences.
