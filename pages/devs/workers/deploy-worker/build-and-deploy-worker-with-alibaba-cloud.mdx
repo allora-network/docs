@@ -209,22 +209,6 @@ Edit `config.json` with your wallet information and worker configuration. Here's
 - Adjust `topicId` to match the topic you're participating in
 - Modify the `Token` parameter to match your target trading pair
 
-### Update Docker Image Version
-
-In `docker-compose.yml`, update the offchain node image version:
-
-Change from:
-```yml
-image: alloranetwork/allora-offchain-node:v0.6.0
-```
-
-To:
-```yml
-image: alloranetwork/allora-offchain-node:v0.12.0
-```
-
-**Note:** It's acceptable if the minor version differs slightly from your allorad version.
-
 ### Customize the Inference Model
 
 The `app.py` file is the core of the worker node project. This example provides a basic machine learning model template that you can customize for your predictions.
