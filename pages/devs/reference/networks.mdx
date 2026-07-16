@@ -14,8 +14,9 @@ the production **mainnet**. Each may run a different `allora-chain` version, whi
 | **Chain ID** | `allora-testnet-1` | `allora-mainnet-1` |
 | **Deployed version** | v0.17.0 | v0.16.0 |
 | **Emissions API namespace** | `emissions/v10` | `emissions/v9` |
-| **RPC** | `https://allora-rpc.testnet.allora.network/` | `https://allora-rpc.mainnet.allora.network/` |
-| **API (REST)** | `https://allora-api.testnet.allora.network/` | `https://allora-api.mainnet.allora.network/` |
+| **RPC JSON** | `https://allora-rpc.testnet.allora.network/` | `https://allora-rpc.mainnet.allora.network/` |
+| **gRPC** | `https://allora-grpc.testnet.allora.network/` | `https://allora-grpc.mainnet.allora.network/` |
+| **API (Cosmos LCD - REST)** | `https://allora-api.testnet.allora.network/` | `https://allora-api.mainnet.allora.network/` |
 | **Explorer** | `https://explorer.testnet.allora.network/allora-testnet-1` | `https://explorer.allora.network/` |
 
 <Callout type="warning">
@@ -30,9 +31,9 @@ and the [Release Notes](/home/release-notes).
 
 - **Chain ID**: `allora-testnet-1`
 - **Deployed version**: v0.17.0 (serves the `emissions/v10` API)
-- **RPC**:
-  - `https://allora-rpc.testnet.allora.network/`
-- **API (REST)**: `https://allora-api.testnet.allora.network/`
+- **RPC JSON**: `https://allora-rpc.testnet.allora.network/`
+- **gRPC**: `https://allora-grpc.testnet.allora.network/`
+- **API (Cosmos LCD - REST)**: `https://allora-api.testnet.allora.network/`
 - **Explorer**: `https://explorer.testnet.allora.network/allora-testnet-1`
 - **Faucet / wallet setup**: see [Setup Wallet](/devs/get-started/setup-wallet)
 
@@ -43,8 +44,9 @@ before they ship to mainnet.
 
 - **Chain ID**: `allora-mainnet-1`
 - **Deployed version**: v0.16.0 (serves the `emissions/v9` API)
-- **RPC**: `https://allora-rpc.mainnet.allora.network/`
-- **API (REST)**: `https://allora-api.mainnet.allora.network/`
+- **RPC JSON**: `https://allora-rpc.mainnet.allora.network/`
+- **gRPC**: `https://allora-grpc.mainnet.allora.network/`
+- **API (Cosmos LCD - REST)**: `https://allora-api.mainnet.allora.network/`
 - **Explorer**: `https://explorer.allora.network/`
 
 <Callout type="info">
@@ -57,6 +59,6 @@ Pick the version segment that matches the network you are querying.
 ## Related
 
 - [Allora API Endpoint](/devs/consumers/allora-api-endpoint) — querying inferences over REST
-- [RPC Data Access](/devs/consumers/rpc-data-access) — querying over RPC
-- [Setup Wallet](/devs/get-started/setup-wallet) — RPC URL and Chain ID configuration
+- [RPC JSON Data Access](/devs/consumers/rpc-data-access) — querying over RPC JSON
+- [Setup Wallet](/devs/get-started/setup-wallet) — RPC JSON URL and Chain ID configuration
 - [Software Upgrades](/devs/validators/software-upgrades) — how network versions are upgraded
