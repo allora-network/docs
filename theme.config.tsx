@@ -4,6 +4,7 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { DocsThemeConfig, useConfig } from 'nextra-theme-docs'
 import AiButton from './components/AiButton.js'
+import CookieConsent from './components/CookieConsent.js'
 
 const config: DocsThemeConfig = {
   useNextSeoProps() {
@@ -68,16 +69,19 @@ const config: DocsThemeConfig = {
   // fixed-position container.
   footer: {
     component: () => (
-      <div
-        style={{
-          position: "fixed",
-          right: "20px",
-          bottom: "20px",
-          zIndex: 1000,
-        }}
-      >
-        <AiButton />
-      </div>
+      <>
+        <div
+          style={{
+            position: "fixed",
+            right: "20px",
+            bottom: "20px",
+            zIndex: 1000,
+          }}
+        >
+          <AiButton />
+        </div>
+        <CookieConsent />
+      </>
     ),
   },
   sidebar: {
