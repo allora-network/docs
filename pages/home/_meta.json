@@ -11,5 +11,10 @@
     "whitepaper": {
       "title": "Whitepaper",
       "href": "https://research.assets.allora.network/allora.0x10001.pdf"
+    },
+    "allora-studio": {
+      "title": "Allora Studio",
+      "href": "https://explorer.allora.network/",
+      "newWindow": true
     }
 }
