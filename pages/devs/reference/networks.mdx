@@ -1,4 +1,5 @@
 import { Callout } from 'nextra/components'
+import { CHAIN_VERSION_MAINNET, CHAIN_VERSION_TESTNET } from '../../../components/versions'
 
 # Networks
 
@@ -6,13 +7,13 @@ import { Callout } from 'nextra/components'
 
 The Allora Network runs as two public networks: a **testnet** for development and integration, and
 the production **mainnet**. Each may run a different `allora-chain` version, which also determines the
-`emissions` REST/gRPC API version (for example, v0.16.x serves `emissions/v9` while v0.17.x serves
-`emissions/v10`).
+`emissions` REST/gRPC API version (for example, mainnet's {CHAIN_VERSION_MAINNET} serves `emissions/v9`
+while testnet's {CHAIN_VERSION_TESTNET} serves `emissions/v10`).
 
 | | Testnet | Mainnet |
 |---|---|---|
 | **Chain ID** | `allora-testnet-1` | `allora-mainnet-1` |
-| **Deployed version** | v0.17.0 | v0.16.0 |
+| **Deployed version** | {CHAIN_VERSION_TESTNET} | {CHAIN_VERSION_MAINNET} |
 | **Emissions API namespace** | `emissions/v10` | `emissions/v9` |
 | **RPC JSON** | `https://allora-rpc.testnet.allora.network/` | `https://allora-rpc.mainnet.allora.network/` |
 | **gRPC** | `https://allora-grpc.testnet.allora.network/` | `https://allora-grpc.mainnet.allora.network/` |
@@ -30,7 +31,7 @@ and the [Release Notes](/home/release-notes).
 ## Testnet
 
 - **Chain ID**: `allora-testnet-1`
-- **Deployed version**: v0.17.0 (serves the `emissions/v10` API)
+- **Deployed version**: {CHAIN_VERSION_TESTNET} (serves the `emissions/v10` API)
 - **RPC JSON**: `https://allora-rpc.testnet.allora.network/`
 - **gRPC**: `https://allora-grpc.testnet.allora.network/`
 - **API (Cosmos LCD - REST)**: `https://allora-api.testnet.allora.network/`
@@ -43,16 +44,17 @@ before they ship to mainnet.
 ## Mainnet
 
 - **Chain ID**: `allora-mainnet-1`
-- **Deployed version**: v0.16.0 (serves the `emissions/v9` API)
+- **Deployed version**: {CHAIN_VERSION_MAINNET} (serves the `emissions/v9` API)
 - **RPC JSON**: `https://allora-rpc.mainnet.allora.network/`
 - **gRPC**: `https://allora-grpc.mainnet.allora.network/`
 - **API (Cosmos LCD - REST)**: `https://allora-api.mainnet.allora.network/`
 - **Explorer**: `https://explorer.allora.network/`
 
 <Callout type="info">
-The `emissions` API version differs by network. On mainnet (v0.16.0) network-inference endpoints live
-under `emissions/v9` and return a single (unlabeled) value; on testnet (v0.17.0) they live under
-`emissions/v10` and return [labeled network-inference bundles](/devs/consumers/allora-api-endpoint).
+The `emissions` API version differs by network. On mainnet ({CHAIN_VERSION_MAINNET}) network-inference
+endpoints live under `emissions/v9` and return a single (unlabeled) value; on testnet
+({CHAIN_VERSION_TESTNET}) they live under `emissions/v10` and return
+[labeled network-inference bundles](/devs/consumers/allora-api-endpoint).
 Pick the version segment that matches the network you are querying.
 </Callout>
 

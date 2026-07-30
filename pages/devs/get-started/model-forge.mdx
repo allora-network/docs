@@ -1,4 +1,5 @@
-import { Callout } from "nextra/components";
+import { Callout, Code, Pre } from "nextra/components";
+import { CHAIN_VERSION_TESTNET } from "../../../components/versions";
 
 # Model Forge Quickstart
 
@@ -15,11 +16,11 @@ To get started, you'll need to create a wallet on the Allora Network.
 
 #### Download the `allorad` CLI Tool
 
-Open your terminal and run the following command to install the `allorad` CLI tool.
+Open your terminal and run the following command to install the `allorad` CLI tool ({CHAIN_VERSION_TESTNET}, the version currently deployed on the testnet).
 
-```bash
-curl -sSL https://raw.githubusercontent.com/allora-network/allora-chain/dev/install.sh | bash -s -- v0.12.1
-```
+<Pre hasCopyCode data-language="bash">
+  <Code>{`curl -sSL https://raw.githubusercontent.com/allora-network/allora-chain/dev/install.sh | bash -s -- ${CHAIN_VERSION_TESTNET}`}</Code>
+</Pre>
 
 #### Create a Wallet
 
