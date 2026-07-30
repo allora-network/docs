@@ -14,6 +14,11 @@ module.exports = withNextra(
           destination: '/home/explore',
           permanent: true,
         },
+        {
+          source: '/devs/reputers/coin-prediction-reputer',
+          destination: '/devs/reputers/build-a-reputer',
+          permanent: true,
+        },
       ];
     },
   }
