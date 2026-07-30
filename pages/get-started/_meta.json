@@ -1,6 +1,7 @@
 {
   "index": "Overview",
   "quickstart-worker": "Deploy a Worker in 10 Minutes",
+  "quickstart-consume": "Consume an Inference in 2 Minutes",
   "setup-wallet": "Setup Wallet",
   "cli": "Installation",
   "basic-usage": "Basic Usage"
