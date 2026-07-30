@@ -1,3 +1,11 @@
+---
+title: Existing Allora Network Topics
+description: Live topic tables for Allora testnet and mainnet — topic IDs, metadata, epoch lengths, and categories — plus how to verify a topic's status.
+persona: ML builder
+verified_against: live chain state via Cosmos LCD (testnet allora-testnet-1 emissions/v10, mainnet allora-mainnet-1 emissions/v9), queried 2026-07-30
+last_reviewed: 2026-07-30
+---
+
 import { Callout } from 'nextra/components'
 
 # Existing Allora Network Topics
@@ -6,6 +14,7 @@ import { Callout } from 'nextra/components'
 
 The tables below list every topic that is **active** on each Allora network, with its topic ID,
 on-chain metadata (name), epoch length (in blocks), and category (price / log-return / volatility).
+Each [Forge competition](/build/forge/competitions) targets one of these live topics.
 
 <Callout type="info">
 This page was generated from live chain state on **2026-07-30** by querying the
@@ -107,4 +116,6 @@ curl -s https://allora-api.mainnet.allora.network/emissions/v9/is_topic_active/1
 
 ## Next
 
-[Install `allorad`](/get-started/cli#installing-allorad) and [create your first topic](/operate/topics/create) by following the instructions in the hyperlinks provided.
+- Deploy a worker on the sandbox topic: [build a price prediction worker](/build/worker/sdk-py)
+- Compete on a live topic: [Forge competitions](/build/forge/competitions)
+- Need a topic that doesn't exist yet? [Create your own](/operate/topics/create)
