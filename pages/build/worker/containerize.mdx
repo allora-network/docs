@@ -1,220 +1,207 @@
+---
+title: Deploy a Worker with Docker
+description: Containerize an Allora Python SDK worker — build the image, mount the wallet key read-only, set a restart policy, and run it unattended.
+persona: ML builder productionizing a worker
+verified_against: allora_sdk 1.0.6 (latest release on PyPI)
+last_reviewed: 2026-07-30
+---
+
 import { Callout } from 'nextra/components'
 
-# Build and Deploy a Worker Node using Docker
+# Deploy a Worker with Docker
 
-<Callout type="error">
-**Deprecated:** the `allora-offchain-node` stack described on this page is deprecated in favor of running a worker with the [Allora Python SDK](/consume/sdk-py) and the [Forge Builder Kit](https://github.com/allora-network/allora-forge-builder-kit). For new workers — and to move an existing offchain-node worker — follow the [migration guide](/build/migrate-from-offchain-node).
+A worker built with the [Allora Python SDK](/build/worker/sdk-py) is a single Python process, so containerizing it is a plain Python Dockerfile plus two operational details:
+
+1. **The wallet key** must reach the container without being baked into the image — the worker's interactive mnemonic prompt cannot run in a detached container.
+2. **A restart policy** keeps the worker running after crashes and host reboots.
+
+<Callout type="info">
+Coming from the legacy `config.json`-based worker stack? That stack is deprecated — follow [Migrate from the Offchain Node](/build/migrate-from-offchain-node) first, then return here to containerize the result.
 </Callout>
 
-This document outlines a setup where the worker node is supported by an inference server. Communication occurs through an endpoint, allowing the worker to request inferences from the server.
+## Goal
 
-To build this setup, please follow these steps:
+Run your Python SDK worker as a detached Docker container that restarts automatically, with its wallet key mounted read-only from the host.
 
 ## Prerequisites
 
-Ensure you have the following installed on your machine:
+- [Docker Engine](https://docs.docker.com/engine/install/) (or Docker Desktop)
+- A worker script — this page uses the minimal `worker.py` from the [Python SDK guide](/build/worker/sdk-py); any worker built on `AlloraWorker` works the same way
+- An Allora API key — free at [developer.allora.network](https://developer.allora.network); on testnet, the worker uses it to request ALLO gas from the faucet automatically
 
-- Git
-- Go (version 1.16 or later)
-- Docker
+## Steps
 
-## Clone the `allora-offchain-node` Repository
+### 1. Lay out the project
 
-Download the `allora-offchain-node` git repo:
-
-```bash
-git clone https://github.com/allora-network/allora-offchain-node
-cd allora-offchain-node
+```text
+allora-worker/
+├── worker.py         # your worker
+├── requirements.txt  # Python dependencies
+├── Dockerfile
+├── .dockerignore
+└── .allora_key       # wallet mnemonic -- created in step 2, never copied into the image
 ```
 
-## Configure Your Environment
-
-1. Copy `config.example.json` and name the copy `config.json`.
-2. Open `config.json` and **update** the necessary fields inside the `wallet` sub-object and `worker` config with your specific values:
-
-### `wallet` Sub-object
-
-1. `nodeRpc`: The [RPC URL](/get-started/setup-wallet#rpc-url-and-chain-id) for the corresponding network the node will be deployed on
-2. `addressKeyName`: The name you gave your wallet key when [setting up your wallet](/get-started/setup-wallet)
-3. `addressRestoreMnemonic`: The mnemonic that was outputted when setting up a new key
-
-{/* <Callout type="info">
-`addressKeyName` and `addressRestoreMnemonic` are optional parameters. If you did not previously generate keys, keys will be generated for you when [running the node](/build/worker/containerize#generate-keys-and-export-variables).
-
-If you have existing keys that you wish to use, you will need to provide these variables.
-</Callout> */}
-
-### `worker` Config
-
-1. `topicId`: The specific topic ID you created the worker for. 
-2. `InferenceEndpoint`: The endpoint exposed by your worker node to provide inferences to the network.
-3. `Token`: The token for the specific topic you are providing inferences for. The token needs to be exposed in the inference server endpoint for retrieval.
-  - The `Token` variable is specific to the endpoint you expose in your `main.py` file. It is not related to any topic parameter.
-
-<Callout type="warning">
-The `worker` config is an array of sub-objects, each representing a different topic ID. This structure allows you to manage multiple topic IDs, each within its own sub-object.
-
-To deploy a worker that provides inferences for multiple topics, you can duplicate the existing sub-object and add it to the `worker` array. Update the `topicId`, `InferenceEndpoint` and `Token` fields with the appropriate values for each new topic:
-```json
-"worker": [
-      {
-        "topicId": 1,
-        "inferenceEntrypointName": "api-worker-reputer",
-        "loopSeconds": 5,
-        "parameters": {
-          "InferenceEndpoint": "http://localhost:8000/inference/{Token}",
-          "Token": "ETH"
-        }
-      },
-      // worker providing inferences for topic ID 2
-      {
-        "topicId": 2, 
-        "inferenceEntrypointName": "api-worker-reputer",
-        "loopSeconds": 5,
-        "parameters": {
-          "InferenceEndpoint": "http://localhost:8000/inference/{Token}", // the specific endpoint providing inferences
-          "Token": "ETH" // The token specified in the endpoint
-        }
-      }
-    ],
-```
-</Callout>
-
-### Reputer Config
-
-The `config.example.json` file that was copied and edited in the previous steps also contains a JSON object for configuring and deploying a [reputer](/build/reputer/deploy-docker). To ignore the reputer and only deploy a worker, delete the reputer sub-object from the `config.json` file.
-
-## Create the Inference Server
-
-### Prepare the API Gateway
-
-Ensure you have an API gateway or server that can accept API requests to call your model. 
-
-<Callout>
-The model in `allora-offchain-node` is barebones and outputs a random integer. For a full example that trains a real price model and serves its predictions, see the [price prediction worker walkthrough](/build/worker/sdk-py).
-</Callout>
-
-### Server Responsibilities
-
-- Accept API requests from `main.go`.
-- Respond with the corresponding inference obtained from the model.
-
-### Inference Relay
-
-Below is a sample structure of what your `main.go`, `main.py` and Dockerfile will look like.
-
-#### `main.go`
-
-`allora-offchain-node` comes preconfigured with a `main.go` file inside the [`adapter/api/apiadapter` folder](https://github.com/allora-network/allora-offchain-node/blob/dev/adapter/api/apiadapter/main.go).
-
-The `main.go` file fetches the responses outputted from the Inference Endpoint based on the `InferenceEndpoint` and `Token` provided in the section above.
-
-#### `main.py`
-
-`allora-offchain-node` comes preconfigured with a Flask application that uses a `main.py` file to expose the Inference Endpoint. 
-
-The Flask application serves the request from `main.go`, which is routed to the `get_inference`  function using the required argument (`Token`). Before proceeding, ensure that all necessary packages are listed in the `requirements.txt` file.
+`worker.py` — the minimal worker (replace the body of `run_model` with your model, and `COPY` any extra model files in the Dockerfile below):
 
 ```python
-from flask import Flask
-from model import get_inference  # Importing the hypothetical model
+import asyncio
+import os
 
-app = Flask(__name__)
+from allora_sdk import AlloraNetworkConfig, AlloraWorker
 
-@app.route('inference/<argument>')
-def get_inference(param):
-    random_float = str(random.uniform(0.0, 100.0))
-    return random_float
+async def run_model(nonce: int) -> float:
+    # Your ML model's prediction logic goes here
+    return 123.45
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0')
+async def main():
+    worker = AlloraWorker.inferer(
+        run=run_model,
+        topic_id=69,
+        network=AlloraNetworkConfig.testnet(),
+        api_key=os.environ.get("ALLORA_API_KEY"),
+    )
+    async for result in worker.run():
+        if isinstance(result, Exception):
+            print(f"Inference worker error: {result}")
+        else:
+            print(f"Prediction submitted to Allora: {result.prediction}")
+
+asyncio.run(main())
+```
+
+`requirements.txt` — the SDK plus whatever your model imports:
+
+```text
+allora_sdk
+```
+
+### 2. Create the wallet key on the host
+
+Inside a container the worker cannot prompt you for a mnemonic, so create the `.allora_key` file on the host first. Either run the worker once locally (press **Enter** at the `Mnemonic:` prompt to generate an identity — see the [SDK guide](/build/worker/sdk-py#2-start-with-a-minimal-worker)), or write an existing mnemonic to the file yourself:
+
+```bash
+( umask 077; printf '%s\n' "$ALLORA_WALLET_MNEMONIC" > .allora_key )
 ```
 
 <Callout type="warning">
-  The model in `allora-offchain-node` is barebones and outputs a random integer. For a full example that trains a real price model and serves its predictions, see the [price prediction worker walkthrough](/build/worker/sdk-py).
+`.allora_key` **is** your worker's identity and funds. Keep it out of the image and out of version control — add it to both `.dockerignore` and `.gitignore`, and keep a backup.
 </Callout>
 
+`.dockerignore`:
 
+```text
+.allora_key
+.git
+```
 
-#### `Dockerfile`
-
-A sample Dockerfile has been created in `allora-offchain-node` that can be used to deploy your model on port 8000.
+### 3. Write the Dockerfile
 
 ```dockerfile
-FROM python:3.9-slim
-
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+FROM python:3.12-slim
 
 WORKDIR /app
 
 COPY requirements.txt .
-
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY worker.py .
 
-EXPOSE 8000
+# Stream logs straight to `docker logs` instead of buffering them
+ENV PYTHONUNBUFFERED=1
 
-CMD ["python", "main.py"]
+CMD ["python", "worker.py"]
 ```
 
-## Running the Node
+The SDK supports Python 3.10–3.13, so any `python:3.10-slim` through `python:3.13-slim` base works. If your model has heavier dependencies (for example `scikit-learn` from the [SDK guide's price model](/build/worker/sdk-py#3-build-the-price-model)), add them to `requirements.txt` and `COPY` the model files next to `worker.py`.
 
-Now that the node is configured, let's deploy and register it to the network. To run the node, follow these steps:
-
-### Export Variables
-
-Execute the following command from the root directory:
-
-```sh
-chmod +x init.config
-./init.config 
-```
-
-This command will automatically export the necessary variables from the account created. These variables are used by the offchain node and are bundled with your provided `config.json`, then passed to the node as environment variables.
-
-<Callout>
-If you need to **make changes** to your `config.json` file after you ran the `init.config` command, rerun: 
-
-```sh
-chmod +x init.config
-./init.config 
-```
-
-before proceeding.
-
-</Callout>
-
-### Request from Faucet
-
-Copy your Allora address and request some tokens from the [Allora Testnet Faucet](https://faucet.testnet.allora.network/) to register your worker in the next step successfully.
-
-### Deploy the Node
-
-```
-docker compose up --build
-```
-
-Both the offchain node and the source services will be started. They will communicate through endpoints attached to the internal DNS.
-
-If your node is working correctly, you should see it actively checking for the active worker nonce:
+### 4. Build the image
 
 ```bash
-offchain_node    | {"level":"debug","topicId":1,"time":1723043600,"message":"Checking for latest open worker nonce on topic"}
+docker build -t allora-worker .
 ```
 
-A **successful** response from your Worker should display:
+### 5. Run it with the key mounted and a restart policy
 
 ```bash
-{"level":"debug","msg":"Send Worker Data to chain","txHash":<tx-hash>,"time":<timestamp>,"message":"Success"}
+export ALLORA_API_KEY="<your key from developer.allora.network>"
+
+docker run -d \
+  --name allora-worker \
+  --restart unless-stopped \
+  -e ALLORA_API_KEY \
+  -v "$PWD/.allora_key:/app/.allora_key:ro" \
+  allora-worker
 ```
 
-Congratulations! You've successfully deployed and registered your node on Allora.
+- `-v "$PWD/.allora_key:/app/.allora_key:ro"` mounts the mnemonic file **read-only** at the path the worker checks by default (`.allora_key` in its working directory, `/app`). The key never enters the image, so the image is safe to push to a registry.
+- `--restart unless-stopped` restarts the container after a crash and when the Docker daemon comes back up (e.g. after a host reboot), but respects an explicit `docker stop`. Use `--restart always` if the worker should come back even after being stopped manually, or `--restart on-failure` to restart only on non-zero exits.
+- `-e ALLORA_API_KEY` forwards the variable from your shell without writing the value into the command line or the image.
 
-### Testing
+Prefer to pass the mnemonic as an environment variable instead of a file mount? Configure the wallet explicitly in `worker.py` — `wallet=AlloraWalletConfig(mnemonic=os.environ["ALLORA_WALLET_MNEMONIC"])` as shown in the [SDK guide](/build/worker/sdk-py#6-configure-the-wallet) — and run with `-e ALLORA_WALLET_MNEMONIC`. Note that container environment variables are visible to anyone who can run `docker inspect` on the host; the read-only file mount is the safer default.
 
-You can test your local inference server by performing a `GET` request on `http://localhost:8000/inference/<token>`.
+### 6. (Optional) Run it with Docker Compose
+
+`docker-compose.yml`:
+
+```yaml
+services:
+  worker:
+    build: .
+    container_name: allora-worker
+    restart: unless-stopped
+    environment:
+      - ALLORA_API_KEY=${ALLORA_API_KEY}
+    volumes:
+      - ./.allora_key:/app/.allora_key:ro
+```
 
 ```bash
-curl http://localhost:8000/inference/<token>
+docker compose up -d --build
 ```
+
+## Verify
+
+- `docker ps` shows the container with a status of `Up ...`.
+- The restart policy is active:
+
+  ```bash
+  docker inspect -f '{{ .HostConfig.RestartPolicy.Name }}' allora-worker
+  ```
+
+  prints `unless-stopped`.
+- `docker logs -f allora-worker` shows the same lifecycle as a local run — the wallet address and balance at startup (plus a faucet top-up on a fresh testnet wallet), then, each time a submission window opens, lines like:
+
+  ```text
+  🚀 Worker submission window opened (topic 69, nonce <block height>, height <block height>)
+  👉 Found new nonce <block height> for topic 69, submitting...
+  ✅ Successfully submitted: topic=69 nonce=<block height>
+      - Transaction hash: <tx hash>
+  Prediction submitted to Allora: <your prediction>
+  ```
+
+- Open [testnet.explorer.allora.network/topics/69](https://testnet.explorer.allora.network/topics/69) and look for your worker's `allo...` address among the topic's workers. For dashboards and on-chain score queries, see [Monitor a Worker](/build/worker/monitoring).
+
+## Kubernetes
+
+The same container runs on Kubernetes with three adjustments:
+
+- **One replica per wallet.** Run the worker as a Deployment with `replicas: 1`. Transactions from one account must be submitted in strict sequence order, so two pods signing with the same key will conflict. To scale across topics, run one Deployment (and one wallet) per topic.
+- **Key from a Secret.** Store the mnemonic in a Kubernetes Secret and mount it read-only at `/app/.allora_key` (or expose it as an environment variable consumed by `AlloraWalletConfig`, as above). Do not bake it into the image.
+- **Restarts come built in.** A Deployment's default `restartPolicy: Always` replaces the Docker restart policy; nothing extra is needed for crash recovery.
+
+`docker stop`, Compose shutdowns, and Kubernetes pod termination all deliver SIGTERM, which the worker treats as a graceful shutdown.
+
+## Troubleshoot
+
+- **Container exits immediately or restart-loops** — read `docker logs allora-worker`. The most common cause is a missing key mount: without `/app/.allora_key`, the worker falls back to its interactive mnemonic prompt, which fails in a detached container. Check the mount path and that `.allora_key` exists on the host.
+- **No log output** — Python buffers stdout by default when it is not a TTY. The Dockerfile above sets `PYTHONUNBUFFERED=1`; if you wrote your own, add it (or run `python -u worker.py`).
+- **`Too many faucet requests`** — the testnet faucet is rate-limited. Send ALLO to the worker's address from another wallet, or request funds manually at [faucet.testnet.allora.network](https://faucet.testnet.allora.network), then restart the container.
+- **gRPC `StatusCode.UNIMPLEMENTED` with `unknown service emissions.vN.QueryService`** — the image holds an SDK release older than the deployed network. Rebuild without cache to pick up the latest release: `docker build --no-cache -t allora-worker .`. For reproducible deploys, pin the version in `requirements.txt` (e.g. `allora_sdk==1.0.6`) and bump it deliberately.
+- **Worker runs but never submits** — submission windows only open once per topic epoch, so quiet stretches are normal. Confirm the worker is registered and scored via [Monitor a Worker](/build/worker/monitoring).
+
+## Next
+
+- Watch your worker: [monitor a worker](/build/worker/monitoring) — dashboards, logs, and EMA scores
+- Full worker configuration — wallets, networks, fee tiers: [build a worker with the Python SDK](/build/worker/sdk-py)
+- Pick a topic to serve: [existing topics](/build/forge/topics)
