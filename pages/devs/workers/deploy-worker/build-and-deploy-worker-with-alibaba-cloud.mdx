@@ -1,3 +1,6 @@
+import { Code, Pre } from 'nextra/components'
+import { CHAIN_VERSION_TESTNET, CHAIN_VERSION_TESTNET_BARE } from '../../../../components/versions'
+
 # Build and Deploy a Worker Node With Alibaba Cloud
 
 This guide provides detailed instructions on how to deploy an Allora Worker Node on Alibaba Cloud infrastructure. 
@@ -91,13 +94,13 @@ If you see output similar to the image below, Docker has been installed successf
 
 ## 3. Download and Configure allorad
 
-Allora Network provides convenient precompiled binaries. At the time of writing, the current version is v0.12.1.
+Allora Network provides convenient precompiled binaries. The version currently deployed on the testnet is {CHAIN_VERSION_TESTNET}.
 
 ### Download allorad
 
-```bash
-wget https://github.com/allora-network/allora-chain/releases/download/v0.12.1/allora-chain_0.12.1_linux_amd64
-```
+<Pre hasCopyCode data-language="bash">
+  <Code>{`wget https://github.com/allora-network/allora-chain/releases/download/${CHAIN_VERSION_TESTNET}/allora-chain_${CHAIN_VERSION_TESTNET_BARE}_linux_amd64`}</Code>
+</Pre>
 
 For the latest version, check the [allora-chain releases page](https://github.com/allora-network/allora-chain/releases).
 
@@ -105,11 +108,11 @@ For the latest version, check the [allora-chain releases page](https://github.co
 
 Rename the binary, move it to an executable path, and grant permissions:
 
-```bash
-mv allora-chain_0.12.1_linux_amd64 allorad
+<Pre hasCopyCode data-language="bash">
+  <Code>{`mv allora-chain_${CHAIN_VERSION_TESTNET_BARE}_linux_amd64 allorad
 mv allorad /usr/local/bin
-chmod a+x /usr/local/bin/allorad
-```
+chmod a+x /usr/local/bin/allorad`}</Code>
+</Pre>
 
 ### Verify Installation
 
@@ -117,7 +120,7 @@ chmod a+x /usr/local/bin/allorad
 allorad version
 ```
 
-If it shows `0.12.1`, the installation is complete, and a `.allorad` folder will be created in the root directory.
+If it shows the version you just installed (<Code>{CHAIN_VERSION_TESTNET_BARE}</Code>), the installation is complete, and a `.allorad` folder will be created in the root directory.
 
 ![allorad Version Output](/alibaba/picture3.jpg)
 
