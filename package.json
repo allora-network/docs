@@ -15,6 +15,7 @@
     "fixlinks": "node scripts/fixRelativeLinks.js",
     "checklinks": "node scripts/checkExternalLinks.js",
     "checkfm": "node scripts/checkFrontmatter.js",
-    "frontmatter": "node scripts/addFrontmatter.js"
+    "frontmatter": "node scripts/addFrontmatter.js",
+    "topics": "node scripts/generateTopics.js"
   }
 }

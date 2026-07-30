@@ -1,0 +1,71 @@
+name: Refresh Topics Data
+
+on:
+  schedule:
+    # Nightly at 04:00 UTC, so the published topic list tracks chain state
+    # within 24 hours of topics being activated or deactivated.
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: refresh-topics-data
+  cancel-in-progress: false
+
+jobs:
+  refresh-topics-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # The generator is plain Node (no dependencies) and reads only public
+      # LCD endpoints, so no install step and no secrets are needed.
+      - name: Regenerate public/api/topics.json from chain state
+        run: node ./scripts/generateTopics.js
+
+      - name: Detect changes
+        id: diff
+        run: |
+          if git diff --quiet -- public/api/topics.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Topic data is unchanged; nothing to open a PR for."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git --no-pager diff --stat -- public/api/topics.json
+          fi
+
+      - name: Open pull request
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: chore/refresh-topics-data
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BRANCH"
+          git add public/api/topics.json
+          git commit -m "chore: refresh topics data from chain state"
+          # The branch is machine-owned and fully regenerated each run, so a
+          # plain force-push is correct (and --force-with-lease cannot be used:
+          # the shallow checkout has no remote-tracking ref for it).
+          git push --force origin "$BRANCH"
+          if [ -z "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
+            gh pr create \
+              --base "${{ github.ref_name }}" \
+              --head "$BRANCH" \
+              --title "chore: refresh topics data from chain state" \
+              --body "Regenerated \`public/api/topics.json\` from live testnet and mainnet chain state via \`scripts/generateTopics.js\`. The topics table on the Existing Allora Network Topics page renders from this file."
+          else
+            echo "An open PR for $BRANCH already exists; it now carries the latest data."
+          fi

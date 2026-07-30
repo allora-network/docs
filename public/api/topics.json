@@ -1,0 +1,542 @@
+{
+  "generated_at": "2026-07-30T23:51:18Z",
+  "source": "Cosmos LCD (REST) emissions API: next_topic_id, is_topic_active, topics",
+  "networks": [
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "emissions_api": "v10",
+      "lcd": "https://allora-api.testnet.allora.network",
+      "active_topic_count": 39
+    },
+    {
+      "network": "mainnet",
+      "chain_id": "allora-mainnet-1",
+      "emissions_api": "v9",
+      "lcd": "https://allora-api.mainnet.allora.network",
+      "active_topic_count": 13
+    }
+  ],
+  "topics": [
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 1,
+      "metadata": "ETH 10min Prediction",
+      "epoch_length": 120,
+      "loss_method": "mse",
+      "category": "price",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 2,
+      "metadata": "ETH 24h Prediction",
+      "epoch_length": 17280,
+      "loss_method": "mse",
+      "category": "price",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 3,
+      "metadata": "BTC 10min Prediction",
+      "epoch_length": 120,
+      "loss_method": "mse",
+      "category": "price",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 8,
+      "metadata": "BNB 20min Prediction",
+      "epoch_length": 240,
+      "loss_method": "mse",
+      "category": "price",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 9,
+      "metadata": "ARB 20min Prediction",
+      "epoch_length": 240,
+      "loss_method": "mse",
+      "category": "price",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 13,
+      "metadata": "ETH 5min Prediction",
+      "epoch_length": 60,
+      "loss_method": "mse",
+      "category": "price",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 14,
+      "metadata": "BTC 5min Prediction",
+      "epoch_length": 60,
+      "loss_method": "mse",
+      "category": "price",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 18,
+      "metadata": "BTC 8h Prediction",
+      "epoch_length": 5760,
+      "loss_method": "mse",
+      "category": "price",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 37,
+      "metadata": "SOL/USD - 5min Price Prediction",
+      "epoch_length": 35,
+      "loss_method": "mse",
+      "category": "price",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 38,
+      "metadata": "SOL/USD - 8h Price Prediction",
+      "epoch_length": 35,
+      "loss_method": "mse",
+      "category": "price",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 41,
+      "metadata": "ETH/USD - 8h Price Prediction",
+      "epoch_length": 35,
+      "loss_method": "mse",
+      "category": "price",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 42,
+      "metadata": "BTC/USD - 8h Price Prediction",
+      "epoch_length": 35,
+      "loss_method": "mse",
+      "category": "price",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 56,
+      "metadata": "1 hour BERA/USD Log-Return Prediction",
+      "epoch_length": 655,
+      "loss_method": "ztae",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 58,
+      "metadata": "8 hour SOL/USD Log-Return Prediction",
+      "epoch_length": 52,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 60,
+      "metadata": "24 hour XAU/USD Log-Return Prediction",
+      "epoch_length": 60,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 61,
+      "metadata": "1 day BTC/USD Log-Return Prediction",
+      "epoch_length": 60,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 62,
+      "metadata": "1 day SOL/USD Log-Return Prediction",
+      "epoch_length": 60,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 63,
+      "metadata": "1 day ETH/USD Log-Return Prediction",
+      "epoch_length": 60,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 64,
+      "metadata": "8h BTC/USD Log-Return Prediction (5min Updates)",
+      "epoch_length": 54,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 65,
+      "metadata": "8h BTC/USD Log-Return Prediction (2h Updates)",
+      "epoch_length": 1286,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 66,
+      "metadata": "7 day SOL/USD Log-Return Prediction",
+      "epoch_length": 720,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 67,
+      "metadata": "7 day BTC/USD Log-Return Prediction",
+      "epoch_length": 720,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 68,
+      "metadata": "7 day ETH/USD Log-Return Prediction",
+      "epoch_length": 720,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 69,
+      "metadata": "PLAYGROUND: 1 day BTC/USD Price Prediction",
+      "epoch_length": 54,
+      "loss_method": "mse",
+      "category": "price",
+      "sandbox": true
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 70,
+      "metadata": "7 day NEAR/USD Log-Return Prediction",
+      "epoch_length": 720,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 71,
+      "metadata": "8 hour NEAR/USD Log-Return Prediction",
+      "epoch_length": 60,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 72,
+      "metadata": "1 hour BTC/USD Log-Return Prediction",
+      "epoch_length": 60,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 73,
+      "metadata": "1 hour ETH/USD Log-Return Prediction",
+      "epoch_length": 60,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 74,
+      "metadata": "15 minute BTC/USD Log-Return Prediction",
+      "epoch_length": 60,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 75,
+      "metadata": "15 minute ETH/USD Log-Return Prediction",
+      "epoch_length": 60,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 76,
+      "metadata": "15 minute SOL/USD Log-Return Prediction",
+      "epoch_length": 60,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 77,
+      "metadata": "PLAYGROUND FAST - 5 minute BTC/USD Price Prediction",
+      "epoch_length": 60,
+      "loss_method": "czar",
+      "category": "price",
+      "sandbox": true
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 79,
+      "metadata": "15 minute BTC/USD - Volatility Prediction",
+      "epoch_length": 60,
+      "loss_method": "mse",
+      "category": "volatility",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 80,
+      "metadata": "15 minute ETH/USD - Volatility Prediction",
+      "epoch_length": 60,
+      "loss_method": "mse",
+      "category": "volatility",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 81,
+      "metadata": "15 minute XRP/USD - Volatility Prediction",
+      "epoch_length": 60,
+      "loss_method": "mse",
+      "category": "volatility",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 82,
+      "metadata": "15 minute SOL/USD - Volatility Prediction",
+      "epoch_length": 60,
+      "loss_method": "mse",
+      "category": "volatility",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 83,
+      "metadata": "BTC/USD - Log Returns - 8h",
+      "epoch_length": 60,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 84,
+      "metadata": "ETH/USD - Log Returns - 8h",
+      "epoch_length": 60,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 85,
+      "metadata": "4 hour ETH/USD - Volatility Prediction",
+      "epoch_length": 60,
+      "loss_method": "mse",
+      "category": "volatility",
+      "sandbox": false
+    },
+    {
+      "network": "mainnet",
+      "chain_id": "allora-mainnet-1",
+      "id": 1,
+      "metadata": "BTC/USD - Log Returns - 8h",
+      "epoch_length": 75,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "mainnet",
+      "chain_id": "allora-mainnet-1",
+      "id": 2,
+      "metadata": "ETH/USD - Log Returns - 8h",
+      "epoch_length": 75,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "mainnet",
+      "chain_id": "allora-mainnet-1",
+      "id": 3,
+      "metadata": "SOL/USD - Log Returns - 8h",
+      "epoch_length": 75,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "mainnet",
+      "chain_id": "allora-mainnet-1",
+      "id": 9,
+      "metadata": "ETH/USD - Price Prediction - 8h",
+      "epoch_length": 60,
+      "loss_method": "mse",
+      "category": "price",
+      "sandbox": false
+    },
+    {
+      "network": "mainnet",
+      "chain_id": "allora-mainnet-1",
+      "id": 10,
+      "metadata": "SOL/USD - Price Prediction - 8h",
+      "epoch_length": 60,
+      "loss_method": "mse",
+      "category": "price",
+      "sandbox": false
+    },
+    {
+      "network": "mainnet",
+      "chain_id": "allora-mainnet-1",
+      "id": 14,
+      "metadata": "BTC/USD - Price Prediction - 8h",
+      "epoch_length": 60,
+      "loss_method": "mse",
+      "category": "price",
+      "sandbox": false
+    },
+    {
+      "network": "mainnet",
+      "chain_id": "allora-mainnet-1",
+      "id": 15,
+      "metadata": "BTC/USD - Log Returns - 24h",
+      "epoch_length": 60,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "mainnet",
+      "chain_id": "allora-mainnet-1",
+      "id": 16,
+      "metadata": "ETH/USD - Log Returns - 24h",
+      "epoch_length": 60,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "mainnet",
+      "chain_id": "allora-mainnet-1",
+      "id": 17,
+      "metadata": "SOL/USD - Log Returns - 24h",
+      "epoch_length": 60,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "mainnet",
+      "chain_id": "allora-mainnet-1",
+      "id": 18,
+      "metadata": "BTC/USD - Log Returns - 20m",
+      "epoch_length": 60,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "mainnet",
+      "chain_id": "allora-mainnet-1",
+      "id": 19,
+      "metadata": "NEAR/USD - Log Returns - 8h",
+      "epoch_length": 60,
+      "loss_method": "czar",
+      "category": "log-return",
+      "sandbox": false
+    },
+    {
+      "network": "mainnet",
+      "chain_id": "allora-mainnet-1",
+      "id": 20,
+      "metadata": "BTC/USD - Volatility - 15m",
+      "epoch_length": 60,
+      "loss_method": "mse",
+      "category": "volatility",
+      "sandbox": false
+    },
+    {
+      "network": "mainnet",
+      "chain_id": "allora-mainnet-1",
+      "id": 21,
+      "metadata": "ETH/USD - Volatility - 15m",
+      "epoch_length": 60,
+      "loss_method": "mse",
+      "category": "volatility",
+      "sandbox": false
+    }
+  ]
+}
