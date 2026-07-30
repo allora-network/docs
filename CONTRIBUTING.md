@@ -68,9 +68,9 @@ Conventions:
   correctness. Only bump it when you have re-verified the page; cosmetic or
   mechanical edits (typo fixes, link rewrites, file moves) do not count.
 
-The `verified_against` and `last_reviewed` values render as a
-"Verified against … · reviewed …" badge at the top of every page (see
-`components/PageMeta.tsx`).
+The `verified_against` and `last_reviewed` values are metadata only — they do
+not render on the page, but they are required and CI-enforced so reviewers and
+tooling can tell how fresh each page is.
 
 `yarn checkfm` validates the frontmatter across all pages; it also runs as
 part of `yarn build` and in CI. `yarn frontmatter` fills in missing keys with
