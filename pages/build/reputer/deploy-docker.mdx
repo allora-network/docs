@@ -1,3 +1,11 @@
+---
+title: Deploy a Reputer Node using Docker
+description: Deploying a reputer in the Allora network involves configuring the config.example.json file to ensure your reputer can interact with the network and provide accurate truth data.
+persona: Reputer operator
+verified_against: docs content as of 2026-07-30
+last_reviewed: 2026-07-30
+---
+
 import { Callout } from 'nextra/components'
 
 # Deploy a Reputer Node using Docker
@@ -85,7 +93,7 @@ To deploy a reputer that provides inferences for multiple topics, you can duplic
 
 ### Worker Config
 
-The `config.example.json` file that was copied and edited in the previous steps also contains a JSON object for configuring and deploying a [worker](/build/worker/containerize). To ignore the worker and only deploy a reputer, delete the reputer sub-object from the `config.json` file.
+The `config.example.json` file that was copied and edited in the previous steps also contains a JSON object for the node's legacy inference-worker mode (deprecated — see [Migrate from the Offchain Node](/build/migrate-from-offchain-node)). To ignore the worker and only deploy a reputer, delete the worker sub-object from the `config.json` file.
 
 ## Create the Truth Server
 

@@ -1,0 +1,158 @@
+---
+title: Deploy a worker in 10 minutes
+description: Run a Python inference worker that submits a live prediction to Allora's testnet sandbox topic.
+persona: ML builder
+verified_against: allora-sdk-py v1.2.0 (github.com/allora-network/allora-sdk-py) on allora-testnet-1 (emissions/v10)
+last_reviewed: 2026-07-30
+---
+
+import { Callout } from 'nextra/components'
+
+# Deploy a worker in 10 minutes
+
+## Goal
+
+Run an inference worker on your machine that submits a prediction to the Allora
+testnet and see it confirmed on-chain. The worker targets **topic 69**, the
+testnet sandbox ("PLAYGROUND: 1 day BTC/USD Price Prediction") — a topic for
+newcomers where inaccurate inferences carry no penalty.
+
+Everything is automatic: the SDK generates a wallet for you, uses your API key
+to request testnet ALLO from the faucet for gas, registers your worker on the
+topic, and submits your model's prediction each epoch.
+
+## Prerequisites
+
+- Python 3.10 or newer
+- A free Allora API key from
+  [developer.allora.network](https://developer.allora.network) — the worker uses
+  it to faucet testnet gas; no wallet setup and no funding steps
+
+## Steps
+
+### 1. Install the SDK
+
+Create a project directory with a fresh virtual environment and install
+[`allora_sdk`](https://github.com/allora-network/allora-sdk-py):
+
+```bash
+mkdir allora-quickstart && cd allora-quickstart
+python3 -m venv .venv && source .venv/bin/activate
+pip install allora_sdk
+```
+
+### 2. Create the worker
+
+Save this as `quickstart_worker.py`. The `run_model` function is called once per
+epoch; whatever float it returns is submitted as your inference. The placeholder
+value stands in for your model's prediction logic.
+
+```python file=../../snippets/quickstart_worker.py filename="quickstart_worker.py"
+```
+
+### 3. Run it
+
+```bash
+export ALLORA_API_KEY="<your key from developer.allora.network>"
+python quickstart_worker.py
+```
+
+On first run you are asked for a wallet mnemonic — press **Enter** to have one
+generated. It is saved to `.allora_key` (permissions `0600`) in the current
+directory and reused automatically on later runs.
+
+You should see output like this (address and hashes will differ):
+
+```text
+No mnemonic or private key provided. Enter your Allora wallet mnemonic or press <ENTER> to have one generated for you.
+Mnemonic:
+Mnemonic saved to .allora_key (file permissions: 0600)
+
+       _    _     _     ___  ____      _
+      / \  | |   | |   / _ \|  _ \    / \
+     / _ \ | |   | |  | | | | |_) |  / _ \
+    / ___ \| |___| |__| |_| |  _ <  / ___ \        Chain:   allora-testnet-1
+   /_/   \_\_____|_____\___/|_| \_\/_/   \_\       Topic:   PLAYGROUND: 1 day BTC/USD Price Prediction (ID: 69)
+   __        _____  ____  _  _______ ____          Address: allo1p0pd89cw50l0s20fjggjqkcpx0svx822t9xuqj
+   \ \      / / _ \|  _ \| |/ / ____|  _ \         Role:    INFERER
+    \ \ /\ / / | | | |_) | ' /|  _| | |_) |
+     \ V  V /| |_| |  _ <| . \| |___|  _ <
+      \_/\_/  \___/|_| \_\_|\_\_____|_| \_\
+
+2026-07-30 16:55:14,241 INF    Worker wallet: allo1p0pd89cw50l0s20fjggjqkcpx0svx822t9xuqj  ||  Balance: 0.000000000000000000 ALLO
+2026-07-30 16:55:14,279 INF     Requesting ALLO from testnet faucet...
+2026-07-30 16:55:14,821 INF     Request sent...
+2026-07-30 16:55:19,861 INF     Balance: 0.000000001000000000 ALLO
+2026-07-30 16:55:38,767 INF ✅ Registered inferer allo1p0pd89cw50l0s20fjggjqkcpx0svx822t9xuqj for topic 69
+2026-07-30 16:55:38,770 INF 🔄 Starting polling worker
+2026-07-30 16:55:38,993 INF    Topic 69: unfulfilled nonces: {10297079}
+2026-07-30 16:55:39,028 INF 👉 Found new nonce 10297079 for topic 69, submitting... account_seq=2
+2026-07-30 16:55:39,069 WRN ⚠️⚠️⚠️  SANITY CHECK WARNING: Your prediction (123.450000) is 329.3 standard deviations from the network consensus (mean: 64603.618208, std: 195.817539). Please verify you're predicting the correct target variable and using the right units.
+2026-07-30 16:55:49,860 INF ✅ Successfully submitted: topic=69 nonce=10297079
+2026-07-30 16:55:49,860 INF      - Transaction hash: 5456F7849BE2B58B7215146B6CADD5D5CBD17259792200ABD3DC79ED69B92DB3
+2026-07-30 16:55:49,860 INF      - View on explorer: https://testnet.explorer.allora.network/explorer/transactions/5456F7849BE2B58B7215146B6CADD5D5CBD17259792200ABD3DC79ED69B92DB3
+Prediction submitted to Allora: 123.45
+```
+
+<Callout type="info">
+The **sanity check warning** is expected here: topic 69 asks for a 1-day BTC/USD
+price prediction, and the snippet's placeholder value `123.45` is far from the
+network consensus. Replace `run_model`'s body with a real prediction to clear it.
+</Callout>
+
+The worker keeps running and submits again whenever a new submission window
+opens. Stop it with `Ctrl+C`.
+
+## Verify
+
+1. **In the console** — look for `✅ Successfully submitted` followed by a
+   transaction hash, and your script's own
+   `Prediction submitted to Allora: 123.45` line.
+
+2. **On-chain** — query the transaction hash from your output against the
+   testnet API:
+
+   ```bash
+   curl -s "https://allora-api.testnet.allora.network/cosmos/tx/v1beta1/txs/<TX_HASH>"
+   ```
+
+   A successful submission returns `"code": 0` in `tx_response`, and the message
+   type `/emissions.v10.InsertWorkerPayloadRequest` with `"topic_id": "69"`.
+
+3. **On the explorer** — open the
+   [testnet explorer](https://explorer.testnet.allora.network/allora-testnet-1)
+   and paste your worker address (printed in the startup banner) into the search
+   bar to see your wallet, its faucet funding, and your submissions.
+
+## Troubleshoot
+
+- **`unknown service emissions.v9.QueryService`** — your installed `allora_sdk`
+  release predates the testnet's `emissions/v10` upgrade (see
+  [Networks](/reference/networks)). Upgrade with `pip install --upgrade allora_sdk`.
+- **Faucet rate-limited** (`Too many faucet requests`) — wait a few minutes and
+  rerun, or request funds manually at
+  [https://faucet.testnet.allora.network](https://faucet.testnet.allora.network)
+  for the address shown in your startup banner, then rerun the worker.
+- **Worker sits idle** (`Our unfulfilled nonces: -`) — the topic's current
+  submission window has already been fulfilled or closed. Leave the worker
+  running; it submits automatically when the next window opens.
+- **Wrong or lost identity** — the wallet mnemonic lives in `.allora_key` in the
+  directory you ran the worker from, and is auto-detected on rerun. Run from the
+  same directory to reuse it, or delete the file to generate a fresh identity.
+- **`not whitelisted on topic`** — topic 69 is open to everyone, but other topics
+  may restrict who can submit. Contact the topic creator to be whitelisted.
+
+## Next
+
+- **Build a real model** — the
+  [Allora Forge Builder Kit](https://github.com/allora-network/allora-forge-builder-kit)
+  walks you from historical Allora datasets through feature engineering and
+  evaluation to a deployed worker, with a monitoring dashboard built in. To
+  compete with it, [enter the Forge competition](/build/forge/competitions).
+- **Monitor your worker** — track your submissions and scores on-chain with
+  [worker data queries](/build/worker/query-worker-data) and your
+  [EMA score](/build/worker/monitoring#5-query-ema-scores-with-allorad).
+- **Go to mainnet** — switch the snippet to
+  `network=AlloraNetworkConfig.mainnet()` and fund your wallet with real ALLO
+  (mainnet has no faucet). Endpoints and chain IDs are listed in
+  [Networks](/reference/networks).

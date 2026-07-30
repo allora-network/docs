@@ -4,5 +4,6 @@
   "forecaster": "Build and Deploy a Forecaster",
   "reputer": "Reputers",
   "forge": "Forge",
+  "atlas": "Atlas",
   "migrate-from-offchain-node": "Migrate from the Offchain Node"
 }

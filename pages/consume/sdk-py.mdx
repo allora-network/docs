@@ -62,7 +62,7 @@ async def main():
         if isinstance(result, Exception):
             print(f"Inference worker error: {result}")
         else:
-            print(f"Prediction submitted to Allora: {result.prediction}")
+            print(f"Prediction submitted to Allora: {result.submission}")
 
 asyncio.run(main())
 ```
@@ -246,5 +246,5 @@ Run either tool with `-h` for all options.
 
 - Find a topic to predict on: [existing topics](/build/forge/topics)
 - Productionize your worker: [deploy a worker with Docker](/build/worker/containerize)
-- Consume inferences from your app: [Allora API endpoint](/consume/api) or the [TypeScript SDK](/consume/sdk-ts)
+- Consume inferences from your app: [Allora API endpoint](/consume/api), the [TypeScript SDK](/consume/sdk-ts), or the [Go SDK](/consume/sdk-go)
 - Train and deploy a model end to end with the [Forge Builder Kit](https://github.com/allora-network/allora-forge-builder-kit)

@@ -2,7 +2,12 @@ const withNextra = require('nextra')({
   theme: 'nextra-theme-docs',
   themeConfig: './theme.config.tsx',
   latex: true,
-  defaultShowCopyCode: true
+  defaultShowCopyCode: true,
+  mdxOptions: {
+    // Inject snippets/* files into ```lang file=<path> fences at build time so
+    // documented code cannot drift from the runnable snippet files.
+    remarkPlugins: [require('./scripts/remarkIncludeCode')]
+  }
 })
 
 // Every path that existed before the six-section IA restructure 301s to its
@@ -12,7 +17,10 @@ const withNextra = require('nextra')({
 const permanent = true;
 
 const exactRedirects = {
-  '/': '/get-started/overview',
+  '/': '/get-started',
+
+  // ── Get Started landing moved from /get-started/overview to /get-started ──
+  '/get-started/overview': '/get-started',
 
   // ── pre-restructure redirects, retargeted to avoid chains ──
   '/devs/consumers/consumer-contracts': '/consume/api',
@@ -36,7 +44,7 @@ const exactRedirects = {
   '/devs/sdk/allora-sdk-py': '/consume/sdk-py',
 
   // ── /devs/get-started → Get Started / Build / Operate ──
-  '/devs/get-started/overview': '/get-started/overview',
+  '/devs/get-started/overview': '/get-started',
   '/devs/get-started/setup-wallet': '/get-started/setup-wallet',
   '/devs/get-started/cli': '/get-started/cli',
   '/devs/get-started/basic-usage': '/get-started/basic-usage',
@@ -53,7 +61,7 @@ const exactRedirects = {
   '/devs/workers/migrate-from-offchain-node': '/build/migrate-from-offchain-node',
   '/devs/workers/deploy-forecaster': '/build/forecaster',
   '/devs/workers/query-worker-data': '/build/worker/query-worker-data',
-  '/devs/workers/query-ema-score': '/build/worker/query-ema-score',
+  '/devs/workers/query-ema-score': '/build/worker/monitoring',
 
   // ── /devs/reputers → Build on Allora ──
   '/devs/reputers': '/build/reputer',
@@ -61,7 +69,11 @@ const exactRedirects = {
   '/devs/reputers/build-a-reputer': '/build/reputer/build-a-reputer',
   '/devs/reputers/set-and-adjust-stake': '/build/reputer/set-and-adjust-stake',
   '/devs/reputers/query-reputer-data': '/build/reputer/query-reputer-data',
-  '/devs/reputers/query-ema-score': '/build/reputer/query-ema-score',
+  '/devs/reputers/query-ema-score': '/build/worker/monitoring',
+
+  // ── EMA-score pages consolidated into the worker monitoring guide ──
+  '/build/worker/query-ema-score': '/build/worker/monitoring',
+  '/build/reputer/query-ema-score': '/build/worker/monitoring',
 
   // ── /devs/topic-creators → Operate the Network ──
   '/devs/topic-creators/topic-life-cycle': '/operate/topics/lifecycle',
@@ -69,13 +81,43 @@ const exactRedirects = {
   '/devs/topic-creators/query-topic-data': '/operate/topics/query',
 
   // ── /home exceptions (slugs that changed or left Learn) ──
-  '/home': '/learn/explore',
+  '/home': '/learn/what-is-allora',
   '/home/delegating-stake': '/learn/staking',
   '/home/release-notes': '/reference/release-notes',
   // The whitepaper page was an orphaned glossary stub; the nav already points
   // at the PDF, so the URL does too.
   '/home/whitepaper': 'https://research.assets.allora.network/allora.0x10001.pdf',
   '/learn/whitepaper': 'https://research.assets.allora.network/allora.0x10001.pdf',
+
+  // ── Learn consolidation: explore + overview → what-is-allora; the layers
+  // tree → inference-synthesis (consumption, forecast, synthesis) and
+  // consensus-and-rewards (consensus, worker/reputer/topic/total rewards).
+  // Exact /home/... rules are listed too so those URLs jump straight to the
+  // final destination instead of chaining through the /home/:path* rule.
+  '/learn/explore': '/learn/what-is-allora',
+  '/home/explore': '/learn/what-is-allora',
+  '/learn/overview': '/learn/what-is-allora',
+  '/home/overview': '/learn/what-is-allora',
+  '/learn/layers': '/learn/inference-synthesis',
+  '/home/layers': '/learn/inference-synthesis',
+  '/learn/layers/inference-consumption': '/learn/inference-synthesis#inference-consumption',
+  '/home/layers/inference-consumption': '/learn/inference-synthesis#inference-consumption',
+  '/learn/layers/forecast-synthesis': '/learn/inference-synthesis#forecast-and-synthesis',
+  '/home/layers/forecast-synthesis': '/learn/inference-synthesis#forecast-and-synthesis',
+  '/learn/layers/forecast-synthesis/forecast': '/learn/inference-synthesis#forecast',
+  '/home/layers/forecast-synthesis/forecast': '/learn/inference-synthesis#forecast',
+  '/learn/layers/forecast-synthesis/synthesis': '/learn/inference-synthesis#synthesis',
+  '/home/layers/forecast-synthesis/synthesis': '/learn/inference-synthesis#synthesis',
+  '/learn/layers/consensus': '/learn/consensus-and-rewards',
+  '/home/layers/consensus': '/learn/consensus-and-rewards',
+  '/learn/layers/consensus/workers': '/learn/consensus-and-rewards#worker-rewards',
+  '/home/layers/consensus/workers': '/learn/consensus-and-rewards#worker-rewards',
+  '/learn/layers/consensus/reputers': '/learn/consensus-and-rewards#reputer-rewards',
+  '/home/layers/consensus/reputers': '/learn/consensus-and-rewards#reputer-rewards',
+  '/learn/layers/consensus/topic-rewards': '/learn/consensus-and-rewards#topic-rewards',
+  '/home/layers/consensus/topic-rewards': '/learn/consensus-and-rewards#topic-rewards',
+  '/learn/layers/consensus/total-rewards': '/learn/consensus-and-rewards#total-rewards',
+  '/home/layers/consensus/total-rewards': '/learn/consensus-and-rewards#total-rewards',
 
   // ── /marketplace → Consume Inference ──
   '/marketplace': '/consume/integrations',
@@ -88,13 +130,18 @@ const exactRedirects = {
 };
 
 const treeRedirects = [
+  // Eliza-OS integration removed (upstream no longer ships the plugin); these
+  // must precede the slug-preserving /marketplace/integrations rule so old
+  // Eliza URLs reach their final destination in a single hop.
+  { source: '/consume/integrations/eliza-os/:path*', destination: '/consume/integrations', permanent },
+  { source: '/marketplace/integrations/eliza-os/:path*', destination: '/consume/integrations', permanent },
   // Slug-preserving subtree moves.
   { source: '/devs/reference/:path*', destination: '/reference/:path*', permanent },
   { source: '/devs/validators/:path*', destination: '/operate/validators/:path*', permanent },
   { source: '/marketplace/integrations/:path*', destination: '/consume/integrations/:path*', permanent },
   { source: '/home/:path*', destination: '/learn/:path*', permanent },
   // Backstops: anything else under the removed trees lands somewhere useful.
-  { source: '/devs/:path*', destination: '/get-started/overview', permanent },
+  { source: '/devs/:path*', destination: '/get-started', permanent },
   { source: '/marketplace/:path*', destination: '/consume/integrations', permanent },
   { source: '/community/:path*', destination: 'https://github.com/allora-network/docs/blob/main/CONTRIBUTING.md', permanent },
 ];

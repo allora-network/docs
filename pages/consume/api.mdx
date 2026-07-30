@@ -1,3 +1,11 @@
+---
+title: "Allora API: How to Query Data of Existing Topics"
+description: The Allora API provides an interface to query real-time on-chain data of the latest inferences made by workers.
+persona: App developer
+verified_against: docs content as of 2026-07-30
+last_reviewed: 2026-07-30
+---
+
 import { Callout } from 'nextra/components'
 
 # Allora API: How to Query Data of Existing Topics
@@ -140,7 +148,7 @@ Workers in the network submit their inferences, each represented by an `allo` ad
 Each worker submits values based on their own models. These individual submissions contribute to both the naive and combined values. The combined value gives higher weighting to more reliable workers, based on performance or other criteria.
 
 ### `forecaster_values`
-The forecast-implied inferences, one per forecaster. A [forecast-implied inference](/learn/layers/forecast-synthesis/synthesis#forecast-implied-inferences) uses forecasted losses and worker inferences to produce a predicted value, weighted by how accurately each forecaster predicted losses in previous epochs.
+The forecast-implied inferences, one per forecaster. A [forecast-implied inference](/learn/inference-synthesis#forecast-implied-inferences) uses forecasted losses and worker inferences to produce a predicted value, weighted by how accurately each forecaster predicted losses in previous epochs.
 
 ### `naive_value`
 The **naive value** omits all forecast-implied inferences from the weighted average by setting their weights to zero. It is used to quantify the contribution of the forecasting task to network accuracy, which in turn sets the reward distribution between the inference and forecasting tasks.

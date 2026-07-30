@@ -1,0 +1,285 @@
+---
+title: Consensus and Rewards
+description: How Allora reaches consensus on CometBFT and distributes rewards across workers, reputers, topics, and validators.
+persona: Protocol researcher
+verified_against: docs content as of 2026-07-30
+last_reviewed: 2026-07-30
+---
+
+import { Callout } from 'nextra/components'
+
+# Consensus and Rewards
+
+The Allora Network is built as a hub chain on Cosmos. Network Validators validate the chain (standard definition). 
+
+Consumers pay fees in the native network token that are distributed across the supply side in return for inferences. CometBFT Proof of Stake.
+
+## Differentiated Incentives
+
+Each network participant has a different reward mechanism to incentivize the growth and security of the network.
+- Workers are rewarded based on the quality of their inferences
+- Reputers are rewarded based on the accuracy of their evaluations and their stake in the network 
+- Network Validators are rewarded solely based on their stake in the network
+    - [CometBFT](https://docs.cometbft.com/v0.38/introduction/#what-is-cometbft)
+    - Delegated Proof of Stake
+
+For workers and reputers, we'll explain how rewards are calculated for the total number of actors within each individual participant, how topic rewards are distributed between participants, and finally how total rewards are split between validators and topics.
+
+{/* ### The 'Naive' Approach
+
+A naive approach involves aggregating inferences based solely on raw data, without considering any additional context. 
+This simplistic method disregards supplementary information that could refine or enhance the inference, relying only on the basic inputs available.
+
+#### Workers
+
+- A 'naive' inference is an aggregated inference made by the network without including any information from forecasting workers.
+- To create this naive inference, the weights of all forecast-implied inferences are set to zero. Essentially, it’s like ignoring everything the forecasting tasks have added and just using the raw inferences.
+
+#### Reputers
+
+- Reputers are scored based on their accuracy in reporting workers' evaluations with respect to the ground truth. 
+- The naive method involves calculating the stake-weighted average of all losses reported by a reputer. Rewards are then added to the reputers' stakes based on their performance.
+
+_**Both Reputers and Workers could theoretically be scored using only a 'naive' network solution, however, this is not sufficient...**_
+
+Let's dive into why in the following sections. */}
+
+## Worker Rewards
+
+Workers are specifically rewarded based on their unique contribution to the synthesized network inference provided by the Allora Network to a consumer.
+
+- Inference workers are scored using a one-out inference
+- Forecasting workers are scored using both one-out and one-in inferences
+
+Scores are used to calculate rewards.
+
+### Inference Workers
+
+**One-out Inference**: evaluating the impact of an inference by removing one worker’s inference and seeing how much the loss increases.
+
+The performance score $$T_{ij}$$ for inference worker $$j$$ is calculated as the difference in the logarithm of losses with and without the worker’s inference. If removing a worker's contribution increases the loss, their performance score is positive, indicating a valuable contribution. 
+
+$$
+T_{ij} = \log \mathcal{L}_{ji}^- - \log \mathcal{L}_i
+$$
+
+### Forecast Workers
+
+#### Why One-Out Inferences Aren't Enough
+
+In forecasting tasks, multiple workers often contribute similar information. This means they can back each other up. If one worker is missing, the others can still maintain a similar level of performance because they provide overlapping information.
+
+When you remove one worker to see their impact (**one-out inference**), the overall performance might not change much because the remaining workers can cover for the missing one. This makes it hard to see the true value of the removed worker's contribution.
+
+#### Why One-In Inferences Are Needed
+To better understand each forecast worker's unique contribution, you need to also see what happens when you specifically include their work (**one-in inference**).
+By adding a worker’s forecast-implied inference to a group without any forecast-implied inferences and measuring the change, you can see how much they really help on their own.
+
+$$
+T_{ik}^+ = \log \mathcal{L}_i^- - \log \mathcal{L}_{ki}^+
+$$
+
+
+#### Combining Both
+
+To fairly measure each forecasting worker's contribution, we combine the one-out and one-in scores.
+This combined score gives a balanced view of how removing or adding each forecasting worker impacts the prediction accuracy.
+
+$$
+T_{ik} = (1 - f^+)T_{ik}^- + f^+T_{ik}^+
+$$
+
+- $$f+$$ is a weighting factor that adjusts the importance of the one-in score.
+
+## Reputer Rewards
+
+Reputers are rewarded based on their accuracy relative to consensus (formed by all reputers providing data for a topic) and stake, with added functionality to prevent centralization of rewards caused by reputers with larger stakes.
+
+### Problem: Runaway Centralization
+1. **Stake-Weighted Average:**
+- Reputers are actors who report how accurate certain predictions or inferences are against the ground truth.
+- Normally, we might average the accuracy (or "losses") they report but give more weight to reputers with bigger stakes (more reputation).
+- This means reputers with more stake have more influence on the consensus (agreed-upon truth).
+2. **Runaway Effect:**
+- The problem is that reputers with higher stakes will be closer to consensus, which they have more influence on, and get more rewards, which further increases their stakes.
+- This creates a cycle where the rich get richer, leading to centralization. A few reputers end up controlling most of the influence and rewards, which is unfair and unhealthy for the system.
+
+### Solution: Adjusted Stake
+1. **Adjusted Stake:**
+- To prevent runaway centralization, we adjust how much weight each reputer's stake has when setting the consensus.
+- Instead of using the full stake for weighting, we use an adjusted version that doesn’t let any one reputer dominate.
+2. **How It Works:**
+- The formula for adjusted stake ensures that if a reputer's stake goes above a certain level, it doesn’t keep increasing their weight in the consensus calculation.
+- It levels the playing field, so reputers with smaller stakes still have some influence.
+
+$$\hat{S}_{im} = \min \left( \frac{N_r a_{im} S_{im}}{\sum_m a_{im} S_{im}}, 1 \right)$$
+
+Where:
+- $$N_{r}$$​ is the number of reputers.
+- $$a_{im}$$ is a listening coefficient, which is a measure of how much the network considers each reputer's input, and is optimized to maximize consensus among the reputers.
+- $$S_{im}$$​ is the original stake.
+
+## Topic Rewards
+
+Now that we've explained the mechanisms behind distributing rewards for the actors of each network participant, let's dive in to how topic rewards are distributed across the groups of::
+- inference workers
+- forecast workers 
+- reputers
+
+The common objective of the calculated reward distribution across the network is to incentivize decentralization.
+
+### Key Factors
+#### Modified Entropy
+
+Entropy, in this context, is a measure of how spread out the rewards are among participants. We calculate entropy for each class of tasks (inference, forecast, reputer), which helps in determining how decentralized the reward distribution is.
+
+<Callout type="info">
+Higher entropy means rewards are more evenly spread out across all participants.
+</Callout>
+
+The modified entropy for each class of tasks is given by the following equations:
+
+**Inference**
+
+$$
+F_i = - \sum_j f_{ij} \ln \left( f_{ij} \left( \frac{N_i^{\text{eff}}}{N_i} \right)^\beta \right)
+$$
+
+Where:
+- $$ F_i $$ is the entropy for inference workers.
+- $$ \sum_j $$ means we add up the values for all inference workers $$ j $$.
+- $$ f_{ij} $$ is the (smoothed) fraction of rewards for the $$ j $$-th inference worker.
+- $$ N_i^{\text{eff}} $$ is the effective number of inference workers (a fair count to prevent cheating).
+- $$ N_i $$ is the total number of inference workers.
+- $$ \beta $$ is a constant that helps adjust the calculation.
+
+The formula for forecast workers ($$ G_i $$) and reputers ($$ H_i $$) is similar:
+
+$$
+G_i = - \sum_k f_{ik} \ln \left( f_{ik} \left( \frac{N_f^{\text{eff}}}{N_f} \right)^\beta \right)
+$$
+
+$$
+H_i = - \sum_m f_{im} \ln \left( f_{im} \left( \frac{N_r^{\text{eff}}}{N_r} \right)^\beta \right)
+$$
+
+Where:
+- $$ G_i $$ and $$ H_i $$ are the entropies for forecast workers and reputers, respectively.
+- $$ \sum_k $$ and $$ \sum_m $$ mean we add up the values for all forecast workers $$ k $$ and all reputers $$ m $$.
+- $$ f_{ik} $$ and $$ f_{im} $$ are the (smoothed) fractions of rewards for the $$ k $$-th forecast worker and the $$ m $$-th reputer.
+- $$ N_f^{\text{eff}} $$ and $$ N_r^{\text{eff}} $$ are the effective numbers of forecast workers and reputers.
+- $$ N_f $$ and $$ N_r $$ are the total numbers of forecast workers and reputers.
+
+
+where we have defined modified reward fractions per class as:
+
+$$
+f_{ij} = \frac{\tilde{u}_{ij}}{\sum_j \tilde{u}_{ij}}, \quad f_{ik} = \frac{\tilde{v}_{ik}}{\sum_k \tilde{v}_{ik}}, \quad f_{im} = \frac{\tilde{w}_{im}}{\sum_m \tilde{w}_{im}}
+$$
+
+<Callout type="info">
+    Here, the tilde over the rewards indicates they are smoothed using an exponential moving average to remove noise and volatility from the decentralization measure.
+</Callout>
+
+#### Effective Number of Participants
+
+To prevent manipulation of the reward system against sybil attacks, we calculate the effective number of participants (actors). It ensures that the reward distribution remains fair even if someone tries to game the system.
+
+$$
+N_i^{\text{eff}} = \frac{1}{\sum_j f_{ij}^2}, \quad N_f^{\text{eff}} = \frac{1}{\sum_k f_{ik}^2}, \quad N_r^{\text{eff}} = \frac{1}{\sum_m f_{im}^2}
+$$
+
+Where:
+- $$ N_i^{\text{eff}} $$, $$ N_f^{\text{eff}} $$, and $$ N_r^{\text{eff}} $$ are the effective numbers of inference workers, forecast workers, and reputers.
+- The fractions $$ f_{ij} $$, $$ f_{ik} $$, and $$ f_{im} $$ are squared and then added up for each type of worker.
+
+
+### Putting It All Together
+
+#### Dividing the Pie: Who Gets What?
+
+We take the total reward for a task and split it among the different worker types based on our entropy calculations. Here's the formula:
+
+$$
+U_i = \frac{(1 - \chi)\gamma F_i E_{i,t}}{F_i + G_i + H_i}, \quad V_i = \frac{\chi \gamma G_i E_{i,t}}{F_i + G_i + H_i}, \quad W_i = \frac{H_i E_{i,t}}{F_i + G_i + H_i}
+$$
+
+In simpler terms:
+- $$ U_i $$ is the reward for inference workers.
+- $$ V_i $$ is the reward for forecast workers.
+- $$ W_i $$ is the reward for reputers.
+- $$ E_{i,t} $$ is the total reward for the participants in topic $$ t $$.
+- $$ \chi $$ is a factor that adjusts how much reward goes to forecast workers.
+- $$ \gamma $$ is a is a normalization factor to ensure the rewards add up to $$ E_{i,t} $$.
+- $$ F_i $$, $$ G_i $$, and $$ H_i $$ are the entropies for inference workers, forecast workers, and reputers.
+
+#### What Value is Added by Forecasters? Checking the Predictions
+
+We quantify the value added by the entire forecasting task using a score called $$ T_i $$:
+
+$$
+T_i = \log L_i^- - \log L_i
+$$
+
+Where:
+- $$ T_i $$ is the performance score for the entire forecasting task.
+- $$ L_i^- $$ is the network loss without any forecast-implied inferences (the inference task alone).
+- $$ L_i $$ is the network loss with the forecast task included.
+
+We then use this score to decide how much the forecast workers should get. The higher their score relative to inference workers, the higher the total reward allocated to forecasters:
+
+$$
+\tau_i \equiv \alpha \frac{T_i - \min(0, \max_j T_{ij})}{|\max_j T_{ij}|} + (1 - \alpha) \tau_{i-1}
+$$
+
+Where:
+- $$ \tau_i $$ is a ratio expressing the relative added value of the forecasting task relative to inference workers.
+- $$ T_{ij} $$ is the performance score for each inference worker.
+
+This ratio is then mapped onto a fraction of the worker rewards that is allocated to forecasters:
+
+$$
+\chi = \begin{cases}
+    0.1 & \text{if } \tau_i < 0, \\
+    0.4 \tau_i + 0.1 & \text{if } 0 \leq \tau_i < 1, \\
+    0.5 & \text{if } \tau_i \geq 1.
+\end{cases}
+$$
+
+#### The Normalization Factor
+
+We use a normalization factor $$ \gamma $$ to ensure the rewards add up to $$ E_{i,t} $$:
+
+$$
+\gamma = \frac{F_i + G_i}{(1 - \chi)F_i + \chi G_i}
+$$
+
+Where:
+- $$ \gamma $$ ensures that the total reward allocated to workers ($$ U_{i} + V_{i} $$) remains constant after accounting for the added value of the forecasting task.
+By using these methods, we can ensure that rewards are spread out fairly and encourage everyone to contribute their best work.
+
+## Total Rewards
+
+50% of the rewards in the network go to participants providing economic security and 50% of the rewards go to intelligence contributors.
+
+- Economic Security: Validators and Reputers
+- Intelligence Contributors: Forecast and Inference Workers
+
+### Total Reward Distribution
+
+#### Validator Rewards
+
+Validator rewards are divided from the total allocation of 25% based on how much **stake** a given validator has in the network comparative to the overall stake of all validators in the network.
+
+#### Topic Rewards
+
+Topic rewards for a single topic are divided from the total allocation of 75% based on how much '**weight**' the topic has.
+
+##### Understanding Topic Weight
+
+- Weight is like a score that shows how important or valuable a topic is.
+- This weight is based on two things:
+    - How much reputer stake it has
+    - How much revenue the topic generates
+- The formula for calculating weight looks at both these factors equally
+- The weight is averaged over time to keep it stable and fair, so sudden changes don’t affect it too much.

@@ -1,0 +1,227 @@
+---
+title: Consume an inference in 2 minutes
+description: Fetch the Allora network's latest aggregated inference with a single curl, then with the TypeScript, Python, or Go SDK.
+persona: app developer
+verified_against: live api.allora.network v2 responses; @alloralabs/allora-sdk 0.1.1 (npm); allora_sdk 1.0.6 (PyPI); allora-sdk-go v1.3.0
+last_reviewed: 2026-07-30
+---
+
+import { Callout, Tabs, Tab } from 'nextra/components'
+
+# Consume an inference in 2 minutes
+
+## Goal
+
+Fetch the network's latest aggregated inference for a live topic from the
+Allora API (`api.allora.network`) — first with a single `curl`, then with the
+SDK of your choice. The examples query **topic 69** ("PLAYGROUND: 1 day
+BTC/USD Price Prediction") on testnet — the same topic the
+[worker quickstart](/get-started/quickstart-worker) submits predictions to.
+
+## Prerequisites
+
+- A free Allora API key. Keys are self-serve: sign up at the
+  [Allora Developer Portal](https://developer.allora.network) and create a key
+  from your dashboard. Keys are prefixed with `UP-`.
+- `curl` for the first request; for the SDK step, whichever runtime you pick:
+  Node.js 18+, Python 3.10+, or Go 1.24+.
+
+## Steps
+
+### 1. Export your API key
+
+Keep the key out of your shell history and code by reading it from an
+environment variable:
+
+```bash
+export ALLORA_API_KEY=<YOUR_API_KEY>
+```
+
+### 2. Fetch an inference with curl
+
+```bash
+curl -s "https://api.allora.network/v2/allora/consumer/ethereum-11155111?allora_topic_id=69" \
+  -H "accept: application/json" \
+  -H "x-api-key: $ALLORA_API_KEY"
+```
+
+You get the latest aggregated network inference for the topic:
+
+```json
+{
+  "request_id": "11bfa420-0a3d-49e2-b4e6-3ef10fcf2c9c",
+  "status": true,
+  "data": {
+    "signature": "0x656ac0177a6331cf1dcfb113c418e6bd137850191c266364bdd8f847cec377934edb582662b0d299f4d5f27c0f35edbb86d7e84c9d76feb116ef7bd3832c70571c",
+    "token_decimals": 18,
+    "inference_data": {
+      "network_inference": "64609501828101036794984",
+      "network_inference_normalized": "64609.501828101036794984",
+      "topic_id": "69",
+      "timestamp": 1785448720,
+      "extra_data": "0x"
+    }
+  }
+}
+```
+
+What the fields mean:
+
+- **`network_inference_normalized`** — the network's aggregated (combined)
+  inference in human-readable units. If you want one number from Allora, this
+  is it.
+- **`network_inference`** — the same value as a fixed-point integer, scaled by
+  `token_decimals` (here 10^18), for use on-chain.
+- **`timestamp`** — Unix seconds when the inference was generated. Active
+  topics update every epoch, so this should be recent.
+- **`signature`** — the payload signed for the format named in the URL path.
+  `ethereum-11155111` (Ethereum Sepolia) is the only signature format the SDKs
+  define today.
+- The response schema also reserves optional `confidence_interval_percentiles`
+  and `confidence_interval_values` fields that quantify how much workers agree
+  on the value; they are not populated for every topic. See
+  [Confidence Intervals](/learn/confidence-intervals) for how the network
+  computes them.
+
+### 3. Fetch the same inference with an SDK
+
+<Tabs items={['TypeScript', 'Python', 'Go']}>
+  <Tab>
+    Install the SDK in a fresh project (plus [`tsx`](https://www.npmjs.com/package/tsx)
+    to run TypeScript directly):
+
+    ```bash
+    mkdir allora-consume && cd allora-consume
+    npm init -y
+    npm install @alloralabs/allora-sdk tsx
+    ```
+
+    Save this as `quickstart-consume.ts`:
+
+    ```typescript file=../../snippets/quickstart_consume.ts filename="quickstart-consume.ts"
+    ```
+
+    <Callout type="info">
+    Import from the package root (`@alloralabs/allora-sdk`) — the `/v2` subpath
+    shown in older examples is not exported by the published package. The
+    snippet also pins `baseAPIUrl` to `https://api.allora.network/v2`; the
+    SDK's built-in default still points at a legacy host.
+    </Callout>
+
+    Run it:
+
+    ```bash
+    npx tsx quickstart-consume.ts
+    ```
+
+    ```text
+    Topic 69 network inference: 64609.501828101036794984
+    Timestamp: 1785448630
+    ```
+  </Tab>
+  <Tab>
+    Install [`allora_sdk`](https://pypi.org/project/allora-sdk/) in a fresh
+    virtual environment (Python 3.10+):
+
+    ```bash
+    mkdir allora-consume && cd allora-consume
+    python3 -m venv .venv && source .venv/bin/activate
+    pip install allora_sdk
+    ```
+
+    Save this as `quickstart_consume.py`. The API client is async, so the
+    snippet drives it with `asyncio.run`:
+
+    ```python file=../../snippets/quickstart_consume.py filename="quickstart_consume.py"
+    ```
+
+    Run it:
+
+    ```bash
+    python quickstart_consume.py
+    ```
+
+    ```text
+    Topic 69 network inference: 64721.168862868732973159
+    Timestamp: 1785448592
+    ```
+  </Tab>
+  <Tab>
+    Create a module and fetch the SDK (Go 1.24+):
+
+    ```bash
+    mkdir allora-consume && cd allora-consume
+    go mod init allora-consume
+    go get github.com/allora-network/allora-sdk-go
+    ```
+
+    The Go SDK's API client exposes topic queries against testnet rather than
+    the consumer endpoint; each topic carries its latest network inference.
+    Save this as `main.go`:
+
+    ```go file=../../snippets/quickstart_consume.go filename="main.go"
+    ```
+
+    Run it:
+
+    ```bash
+    go run .
+    ```
+
+    ```text
+    PLAYGROUND: 1 day BTC/USD Price Prediction (topic 69)
+    Network inference: 64609.50182810103679498465574550800
+    ```
+  </Tab>
+</Tabs>
+
+## Verify
+
+- The curl response has `"status": true` and a `network_inference_normalized`
+  value; for topic 69 it is a 1-day BTC/USD price prediction, so it should be
+  in the vicinity of the current BTC price.
+- `timestamp` is within the last few minutes — topic 69 settles a new
+  inference every few minutes.
+- The SDK output prints the same topic and a value close to your curl result.
+  Exact values differ between runs as new epochs settle.
+
+## Troubleshoot
+
+- **HTTP 401, `No active API user found for API key`** — the key is missing or
+  wrong. Check that `ALLORA_API_KEY` is exported in the shell you are running
+  from and that the request sends it in the `x-api-key` header.
+- **HTTP 404, `Could not get network inferences for allora topic id N`** — the
+  topic does not exist or has no network inference. List live topics and pick
+  one with `"is_active": true`:
+
+  ```bash
+  curl -s "https://api.allora.network/v2/allora/allora-testnet-1/topics" \
+    -H "x-api-key: $ALLORA_API_KEY"
+  ```
+
+- **HTTP 429** — you are rate limited; retry with backoff. The Go client can
+  do this automatically: `allora.NewAPIClient(apiKey, allora.WithDefaultBackoff())`.
+- **TypeScript: `ERR_PACKAGE_PATH_NOT_EXPORTED`** — you imported
+  `@alloralabs/allora-sdk/v2`. Import from `@alloralabs/allora-sdk` (the
+  package root) instead.
+- **Python: pip cannot find a compatible `allora_sdk`** — the package requires
+  Python 3.10 or newer; upgrade your interpreter and recreate the virtual
+  environment.
+- **Go: `go.mod requires go >= 1.24.0`** — upgrade your Go toolchain to 1.24
+  or newer.
+- **Stale `timestamp`** — the topic has gone quiet. Use the topics query above
+  and choose an active topic with a recent `latest_network_inference`.
+
+## Next
+
+- **Gauge the uncertainty** — read
+  [Confidence Intervals](/learn/confidence-intervals) to understand the
+  percentile ranges the network computes around an inference.
+- **Go deeper on the API** — the [Allora API reference](/consume/api) breaks
+  down the on-chain query route and every response field, and the
+  [consumer docs](/consume/overview) cover the other ways to consume.
+- **Browse more topics** — every SDK can enumerate topics
+  (`getAllTopics()` / `get_all_topics()` / `GetTopics()`) so you can point the
+  same code at any live topic ID.
+- **Produce inferences instead** — run a model on the other side of this API
+  with the [worker quickstart](/get-started/quickstart-worker).

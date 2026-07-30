@@ -1,0 +1,349 @@
+---
+title: Allora Go SDK
+description: Read topics, inferences, and market data over the Allora API, and make typed chain queries with load balancing and failover, from Go.
+persona: backend / infrastructure developer
+verified_against: allora-sdk-go v1.3.0 (latest release), github.com/allora-network/allora-sdk-go
+last_reviewed: 2026-07-30
+---
+
+import { Callout } from 'nextra/components'
+
+# Allora Go SDK
+
+The Allora Go SDK ([`allora-sdk-go`](https://github.com/allora-network/allora-sdk-go)) is built for backend services and infrastructure that consume Allora data at scale. It provides two clients:
+
+| Client | Constructor | Use it to |
+| :--- | :--- | :--- |
+| API client | `allora.NewAPIClient` | Read topics, latest network inferences, and historical OHLC market data over HTTPS from the Allora API. |
+| Chain client | `allora.NewClient` | Make typed queries against the Allora chain's modules (emissions, mint, auth, bank, staking, and more) over gRPC, REST, or CometBFT RPC — with round-robin load balancing, automatic failover, and WebSocket event subscriptions. |
+
+The chain client also ships wallet and transaction helpers (`GenerateWallet`, `NewWalletFromMnemonic`, `CreateSignedSendTx`) aimed at exchanges and custodial integrations.
+
+## Goal
+
+Read a topic and its latest network inference through the Allora API, then query the chain directly and subscribe to new blocks.
+
+## Prerequisites
+
+- Go 1.24 or newer
+- An Allora API key — get one for free at [developer.allora.network](https://developer.allora.network)
+
+## Steps
+
+### 1. Install the SDK
+
+Inside a Go module (`go mod init <name>` if you are starting fresh):
+
+```bash
+go get github.com/allora-network/allora-sdk-go
+```
+
+### 2. Read topics and inferences with the API client
+
+Save this as `main.go`:
+
+```go
+package main
+
+import (
+	"fmt"
+	"os"
+
+	allora "github.com/allora-network/allora-sdk-go"
+)
+
+func main() {
+	client := allora.NewAPIClient(os.Getenv("ALLORA_API_KEY"))
+
+	// Fetch a single topic (42 is the BTC/USD 8-hour price prediction topic)
+	topic, err := client.GetTopic(42)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "failed to fetch topic:", err)
+		os.Exit(1)
+	}
+	fmt.Printf("Topic %d: %s (workers: %d, active: %v)\n",
+		topic.TopicID, topic.TopicName, topic.WorkerCount, topic.IsActive)
+	if topic.LatestNetworkInference != nil {
+		fmt.Printf("Latest network inference: %s\n", topic.LatestNetworkInference.CombinedValue)
+	}
+
+	// Iterate over every topic on the network (pagination is handled for you)
+	count := 0
+	for t, err := range client.GetTopics() {
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "failed to fetch topics:", err)
+			os.Exit(1)
+		}
+		if t.IsActive {
+			count++
+		}
+	}
+	fmt.Printf("Active topics: %d\n", count)
+}
+```
+
+### 3. Run it
+
+```bash
+export ALLORA_API_KEY="<your key from developer.allora.network>"
+go run .
+```
+
+Expected output (values will differ):
+
+```
+Topic 42: BTC/USD - 8h Price Prediction (workers: 12, active: true)
+Latest network inference: 64757.14233536308300576439034902826
+Active topics: 33
+```
+
+<Callout type="info">
+The API client talks to `https://api.allora.network/v2` and currently reads the **testnet** (`allora-testnet-1`) topic list. Each `Topic` includes metadata (epoch length, worker and reputer counts, stake) plus `LatestNetworkInference` with the topic's combined value and timestamp.
+</Callout>
+
+## Verify
+
+- The program prints the topic name, a numeric `Latest network inference`, and a non-zero active-topic count.
+- Cross-check the inference value against the topic page on the [testnet explorer](https://testnet.explorer.allora.network/topics/42).
+
+## Query the chain directly
+
+`allora.NewClient` pools any mix of gRPC, Cosmos-REST, and CometBFT RPC endpoints, load-balances requests across them, and fails over automatically. Query methods take the typed protobuf request objects from [`allora-chain`](https://github.com/allora-network/allora-chain) and Cosmos SDK modules:
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"time"
+
+	emissionstypes "github.com/allora-network/allora-chain/x/emissions/types"
+	allora "github.com/allora-network/allora-sdk-go"
+	"github.com/allora-network/allora-sdk-go/config"
+	cmtservice "github.com/cosmos/cosmos-sdk/client/grpc/cmtservice"
+	"github.com/rs/zerolog"
+)
+
+func main() {
+	logger := zerolog.New(os.Stderr).Level(zerolog.WarnLevel)
+
+	cfg := &config.ClientConfig{
+		Endpoints: []config.EndpointConfig{
+			{
+				URL:      "allora-grpc.testnet.allora.network:443",
+				Protocol: config.ProtocolGRPC,
+			},
+			{
+				URL:      "https://allora-api.testnet.allora.network",
+				Protocol: config.ProtocolREST,
+			},
+		},
+		RequestTimeout:    30 * time.Second,
+		ConnectionTimeout: 10 * time.Second,
+	}
+
+	client, err := allora.NewClient(cfg, logger)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to create client")
+	}
+	defer client.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Latest block height
+	block, err := client.Cosmos().Tendermint().GetLatestBlock(ctx, &cmtservice.GetLatestBlockRequest{})
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to get latest block")
+	}
+	fmt.Printf("Latest block height: %d\n", block.SdkBlock.Header.Height)
+
+	// Topic metadata from the emissions module
+	topic, err := client.Cosmos().Emissions().GetTopic(ctx, &emissionstypes.GetTopicRequest{TopicId: 42})
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to get topic")
+	}
+	fmt.Printf("Topic 42: %q (epoch length: %d blocks)\n", topic.Topic.Metadata, topic.Topic.EpochLength)
+
+	// Latest network inference for the topic
+	resp, err := client.Cosmos().Emissions().GetLatestNetworkInferences(ctx, &emissionstypes.GetLatestNetworkInferencesRequest{TopicId: 42})
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to get network inferences")
+	}
+	fmt.Printf("Inference block height: %d\n", resp.InferenceBlockHeight)
+	for _, v := range resp.NetworkInferences.CombinedValue {
+		fmt.Printf("Combined value (label %q): %s\n", v.LabelName, v.Value.String())
+	}
+}
+```
+
+Output:
+
+```
+Latest block height: 10297833
+Topic 42: "BTC/USD - 8h Price Prediction" (epoch length: 35 blocks)
+Inference block height: 10297796
+Combined value (label "y"): 64757.14233536308300576439034902826
+```
+
+- `client.Cosmos()` exposes typed query clients per module: `Emissions()` (100+ queries), `Mint()`, `Auth()`, `Bank()`, `Staking()`, `Tendermint()`, and more. Endpoint URLs and the current emissions version per network are listed in [Networks](/reference/networks).
+- Network inference values are **labeled**: single-output topics carry the canonical label `y`; multi-output topics return one entry per label. See the [Allora API page](/consume/api) for what each field of the inference bundle means.
+- To query at a historical height, pass the `config.Height` call option: `client.Cosmos().Emissions().GetTopic(ctx, req, config.Height(5601386))`.
+
+## Subscribe to chain events
+
+Add a CometBFT RPC endpoint with a `WebsocketURL` and the client can stream chain events — for example, to react the moment a new block (and any inference in it) lands:
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"time"
+
+	ctypes "github.com/cometbft/cometbft/types"
+	"github.com/rs/zerolog"
+
+	allora "github.com/allora-network/allora-sdk-go"
+	"github.com/allora-network/allora-sdk-go/config"
+	"github.com/allora-network/allora-sdk-go/tmrpc"
+)
+
+func main() {
+	logger := zerolog.New(os.Stderr).Level(zerolog.WarnLevel)
+
+	cfg := &config.ClientConfig{
+		Endpoints: []config.EndpointConfig{
+			{
+				URL:          "https://allora-rpc.testnet.allora.network",
+				WebsocketURL: "https://allora-rpc.testnet.allora.network/websocket",
+				Protocol:     config.ProtocolTendermintRPC,
+			},
+		},
+	}
+
+	client, err := allora.NewClient(cfg, logger)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to create client")
+	}
+	defer client.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// The CometBFT RPC pool serves raw block data
+	block, err := client.Tendermint().Block(ctx, nil)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to get latest block")
+	}
+	fmt.Printf("Starting from block %d\n", block.Block.Header.Height)
+
+	// Subscribe to new blocks (any CometBFT event query works here)
+	mailbox := tmrpc.NewMailbox(100)
+	client.Subscribe(mailbox, "tm.event='NewBlock'")
+
+	for i := 0; i < 2; i++ {
+		select {
+		case <-mailbox.Notify():
+			event, ok := mailbox.Retrieve()
+			if !ok {
+				continue
+			}
+			if blockEvent, ok := event.(ctypes.EventDataNewBlock); ok {
+				fmt.Printf("New block: height %d with %d txs\n",
+					blockEvent.Block.Height, len(blockEvent.Block.Txs))
+			}
+		case <-time.After(30 * time.Second):
+			logger.Fatal().Msg("timed out waiting for a block")
+		}
+	}
+}
+```
+
+Output:
+
+```
+Starting from block 10297841
+New block: height 10297842 with 5 txs
+New block: height 10297843 with 1 txs
+```
+
+## Fetch historical market data (OHLC)
+
+The API client can also page through OHLC candles for building or evaluating price models:
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"time"
+
+	allora "github.com/allora-network/allora-sdk-go"
+)
+
+func main() {
+	client := allora.NewAPIClient(os.Getenv("ALLORA_API_KEY"))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Pages of BTC/USD candles since the given date; stop after the first page
+	fromDate := time.Now().UTC().Format("2006-01-02")
+	for page, err := range client.GetOHLCData(ctx, "btcusd", fromDate) {
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "failed to fetch OHLC data:", err)
+			os.Exit(1)
+		}
+		for _, bar := range page.Data[:3] {
+			fmt.Printf("%s %s [%s] open=%s high=%s low=%s close=%s\n",
+				bar.Ticker, bar.Date, bar.ExchangeCode, bar.Open, bar.High, bar.Low, bar.Close)
+		}
+		break
+	}
+}
+```
+
+Output:
+
+```
+btcusd 2026-07-30T22:09:00.000Z [TIINGO] open=64878.378628357044 high=64892.65615754596 low=64846.04535529084 close=64889.57305797366
+btcusd 2026-07-30T22:08:00.000Z [TIINGO] open=64821.23928651763 high=64904.40521717826 low=64813.484881886034 close=64881.548589323946
+btcusd 2026-07-30T22:07:00.000Z [TIINGO] open=64806.466592959274 high=64828.34495431894 low=64789.91922168581 close=64822.13862462402
+```
+
+Tickers are lowercase pairs such as `btcusd`, and `fromDate` is a `YYYY-MM-DD` string. Both `GetTopics()` and `GetOHLCData()` return Go 1.23+ iterators (`iter.Seq2`) that follow the API's continuation tokens automatically.
+
+## API client reference
+
+```go
+func NewAPIClient(apiKey string, opts ...APIClientOption) *apiClient
+```
+
+If `apiKey` is empty, a shared default key is used, which may be rate limited — always pass your own key in production. Options: `WithTimeout(d)`, `WithBackoff(baseDelay, maxDelay, jitter)`, `WithDefaultBackoff()`, `WithLogger(logger)`, `WithMetrics()`.
+
+| Method | Returns | Description |
+| :--- | :--- | :--- |
+| `GetTopics()` | `iter.Seq2[*Topic, error]` | Iterates every topic, following pagination automatically. |
+| `GetTopic(topicID uint64)` | `(*Topic, error)` | One topic, including `LatestNetworkInference` (`CombinedValue`, `NaiveValue`, `Timestamp`). |
+| `GetOHLCData(ctx, ticker, fromDate)` | `iter.Seq2[*OHLCResponse, error]` | Pages of OHLC candles for a ticker since `fromDate`. |
+
+## Troubleshoot
+
+- **`at least one endpoint must be specified` / `failed to create any valid clients`** — the chain client requires at least one endpoint with a `URL` and a valid `Protocol` (`config.ProtocolGRPC`, `config.ProtocolREST`, or `config.ProtocolTendermintRPC`). A `WebsocketURL` alone is not enough.
+- **`error closing active client: not started` logged on shutdown** — a harmless log line emitted by `client.Close()` when a CometBFT RPC endpoint was configured but only its WebSocket was used.
+- **gRPC `Unimplemented` errors mentioning an emissions `QueryService` version** — the deployed network runs a different emissions protobuf revision than your SDK release (the SDK currently targets emissions v10 on testnet). Upgrade with `go get -u github.com/allora-network/allora-sdk-go` — and see [Networks](/reference/networks) for the version deployed per network.
+- **HTTP 401/429 from `api.allora.network`** — check that `ALLORA_API_KEY` is set and valid; free keys are available at [developer.allora.network](https://developer.allora.network). On 429, back off and retry (`WithDefaultBackoff()` handles this for you).
+
+## Next
+
+- Compare SDKs and pick a language: [SDKs overview](/consume/sdk-overview)
+- Understand the inference bundle you are reading: [Allora API](/consume/api)
+- Query without an SDK: [RPC data access](/consume/rpc-grpc)
+- Build and submit predictions instead: [worker guide (Python SDK)](/build/worker/sdk-py)
