@@ -85,7 +85,7 @@ To deploy a reputer that provides inferences for multiple topics, you can duplic
 
 ### Worker Config
 
-The `config.example.json` file that was copied and edited in the previous steps also contains a JSON object for configuring and deploying a [worker](/build/worker/containerize). To ignore the worker and only deploy a reputer, delete the reputer sub-object from the `config.json` file.
+The `config.example.json` file that was copied and edited in the previous steps also contains a JSON object for the node's legacy inference-worker mode (deprecated — see [Migrate from the Offchain Node](/build/migrate-from-offchain-node)). To ignore the worker and only deploy a reputer, delete the worker sub-object from the `config.json` file.
 
 ## Create the Truth Server
 
