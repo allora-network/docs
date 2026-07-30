@@ -1,0 +1,205 @@
+import { Callout } from 'nextra/components'
+
+# Deploy a Reputer Node using Docker
+
+Deploying a reputer in the Allora network involves configuring the `config.example.json` file to ensure your reputer can interact with the network and provide accurate truth data.
+
+To build this setup, please follow these steps:
+
+## Prerequisites
+
+Ensure you have the following installed on your machine:
+
+- Git
+- Go (version 1.16 or later)
+- Docker
+
+## Clone the `allora-offchain-node` Repository
+
+Download the `allora-offchain-node` git repo:
+
+```bash
+git clone https://github.com/allora-network/allora-offchain-node
+cd allora-offchain-node
+```
+
+## Configure Your Environment
+
+1. Copy `config.example.json` and name the copy `config.json`.
+2. Open `config.json` and **update** the necessary fields inside the `wallet` sub-object and `worker` config with your specific values:
+
+### `wallet` Sub-object
+
+1. `nodeRpc`: The [RPC URL](/get-started/setup-wallet#rpc-url-and-chain-id) for the corresponding network the node will be deployed on
+2. `addressKeyName`: The name you gave your wallet key when [setting up your wallet](/get-started/setup-wallet)
+3. `addressRestoreMnemonic`: The mnemonic that was outputted when setting up a new key
+
+{/* <Callout type="info">
+`addressKeyName` and `addressRestoreMnemonic` are optional parameters. If you did not previously generate keys, keys will be generated for you when [running the node](/build/worker/containerize#generate-keys-and-export-variables).
+
+If you have existing keys that you wish to use, you will need to provide these variables.
+</Callout> */}
+
+### `reputer` Config
+
+1. `topicId`: The specific topic ID you created the reputer for.
+2. `SourceOfTruthEndpoint`: The endpoint exposed by your source of truth server to provide the truth data to the network.
+3. `Token`: The token for the specific topic you are verifying truth data for. This token should be included in the source of truth endpoint for retrieval.
+   - The `Token` variable is specific to the endpoint you expose in your `main.py` file. It is **not** related to any blockchain parameter and is only locally specific.
+4. `minStake`: The minimum stake required to participate as a reputer. This stake will be deducted from the reputer's wallet balance.
+
+<Callout>
+When placing your minimum stake, the system will verify the amount of funds you have already staked in the topic. If your staked amount is insufficient, it will automatically pull the necessary funds from your wallet to meet the required minimum.
+</Callout>
+
+<Callout type="warning">
+The `reputer` config is an array of sub-objects, each representing a different topic ID. This structure allows you to manage multiple topic IDs, each within its own sub-object.
+
+To deploy a reputer that provides inferences for multiple topics, you can duplicate the existing sub-object and add it to the `reputer` array. Update the `topicId`, `SourceOfTruthEndpoint`, `minStake` and `Token` fields with the appropriate values for each new topic:
+```json
+"worker": [
+      {
+          "topicId": 1,
+          "reputerEntrypointName": "api-worker-reputer",
+          "loopSeconds": 30,
+          "minStake": 100000,
+          "parameters": {
+              "SourceOfTruthEndpoint": "http://source:8888/truth/{Token}/{BlockHeight}",
+              "Token": "ethereum"
+          }
+      },
+      // reputer providing ground truth for topic ID 2
+      {
+          "topicId": 2,
+          "reputerEntrypointName": "api-worker-reputer",
+          "loopSeconds": 30,
+          "minStake": 100000,
+          "parameters": {
+              "SourceOfTruthEndpoint": "http://source:8888/truth/{Token}/{BlockHeight}",
+              "Token": "ethereum"
+          }
+      }
+    ],
+```
+</Callout>
+
+### Worker Config
+
+The `config.example.json` file that was copied and edited in the previous steps also contains a JSON object for configuring and deploying a [worker](/build/worker/containerize). To ignore the worker and only deploy a reputer, delete the reputer sub-object from the `config.json` file.
+
+## Create the Truth Server
+
+### Prepare the API Gateway
+
+Ensure you have an API gateway or server that can accept API requests to call your model.
+
+### Server Responsibilities
+
+- Accept API requests from `main.go`.
+- Respond with the corresponding inference obtained from the model.
+
+### Truth Relay
+
+Below is a sample structure of what your `main.go`, `main.py` and Dockerfile will look like.
+
+#### `main.go`
+
+`allora-offchain-node` comes preconfigured with an API adapter — see the [`adapter` directory](https://github.com/allora-network/allora-offchain-node/tree/dev/adapter) — whose `main.go` fetches the responses outputted from the Source of Truth Endpoint based on the `SourceOfTruthEndpoint` and `Token` provided in the section above.
+
+#### `main.py`
+
+`allora-offchain-node` comes preconfigured with a Flask application that uses a `main.py` file to expose the Source of Truth Endpoint. 
+
+The Flask application serves the request from `main.go`, which is routed to the `get_truth` function using the required arguments (`Token`, `blockHeight`). Before proceeding, ensure that all necessary packages are listed in the `requirements.txt` file.
+
+```python
+from flask import Flask
+from model import get_inference  # Importing the hypothetical model
+
+app = Flask(__name__)
+
+@app.route('/truth/<token>/<blockheight>', methods=['GET'])
+def get_truth(token, blockheight):
+    random_float = str(random.uniform(0.0, 100.0))
+    return random_float
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0')
+```
+
+<Callout type="warning">
+  The source of truth in `allora-offchain-node` is barebones and outputs a random number. Replace the body of `get_truth` with logic that fetches real data for your topic — for example, the price of an asset at the requested block height from a market-data API.
+</Callout>
+
+#### `Dockerfile`
+
+A sample Dockerfile has been created in `allora-offchain-node` that can be used to deploy your model on port 8000.
+
+```dockerfile
+FROM python:3.9-slim
+
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+EXPOSE 8000
+
+CMD ["python", "main.py"]
+```
+
+## Running the Node
+
+Now that the node is configured, let's deploy and register it to the network. To run the node, follow these steps:
+
+### Export Variables
+
+Execute the following command from the root directory:
+
+```sh
+chmod +x init.config
+./init.config 
+```
+
+This command will automatically export the necessary variables from the account created. These variables are used by the offchain node and are bundled with your provided `config.json`, then passed to the node as environment variables.
+
+<Callout>
+If you need to **make changes** to your `config.json` file after you ran the `init.config` command, rerun:
+
+```sh
+chmod +x init.config
+./init.config 
+```
+
+before proceeding.
+
+</Callout>
+
+### Request from Faucet
+
+Copy your Allora address and request some tokens from the [Allora Testnet Faucet](https://faucet.testnet.allora.network/) to register your worker in the next step successfully.
+
+### Deploy the Node
+
+```
+docker compose up --build
+```
+
+Both the offchain node and the source services will be started. They will communicate through endpoints attached to the internal DNS.
+
+A **successful** response from your Reputer should display:
+
+```bash
+{"level":"debug","msg":"Send Reputer Data to chain","txHash":"<tx-hash>","time":"<timestamp>","message":"Success"}
+```
+
+Congratulations! You've successfully deployed and registered your node on Allora.
+
+## Learn More
+
+For a guide based on the current `allora-offchain-node` configuration format — including the ground-truth and loss-function service contract, staking, and verification — see [Build a Reputer](/build/reputer/build-a-reputer).

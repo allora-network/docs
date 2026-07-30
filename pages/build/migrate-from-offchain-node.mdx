@@ -1,0 +1,153 @@
+---
+title: Migrate from the Offchain Node
+description: Move a worker off the deprecated allora-offchain-node + Model Development Kit stack onto the Allora Python SDK and the Forge Builder Kit.
+persona: ML builder running a legacy offchain-node worker
+verified_against: allora-offchain-node README + config.example.json (dev branch), allora_sdk 1.0.6 (latest release on PyPI), allora-forge-builder-kit README (main branch)
+last_reviewed: 2026-07-30
+---
+
+import { Callout } from 'nextra/components'
+
+# Migrate from the Offchain Node
+
+The original worker stack — the [`allora-offchain-node`](https://github.com/allora-network/allora-offchain-node) Go daemon configured through `config.json`, relaying inferences from a separate HTTP inference server, with models trained and packaged by the Model Development Kit (MDK) — is **deprecated** for workers. The replacement is:
+
+- The [Allora Python SDK](/consume/sdk-py) (`allora_sdk`): its `AlloraWorker` calls your model as a Python function in the same process and submits the result on-chain. It handles wallet creation, registration, testnet faucet funding, fee estimation, and retries — no Go daemon, no `config.json`, no HTTP relay between your model and the network.
+- The [Forge Builder Kit](https://github.com/allora-network/allora-forge-builder-kit): replaces the MDK's train/eval/package workflow with `AlloraMLWorkflow` (historical data backfill, feature engineering, training datasets), `PerformanceEvaluator` (grades your model against Allora's scoring methodology before you deploy), and `WorkerManager` (wallet creation, faucet funding, worker lifecycle) plus a web monitoring dashboard.
+
+## Goal
+
+Replace an `allora-offchain-node` worker with a Python SDK worker that keeps the same wallet and topic, and replace an MDK model workflow with the Forge Builder Kit.
+
+## Prerequisites
+
+- Python 3.10–3.13 for the SDK (the Builder Kit's install instructions use Python 3.11)
+- Your existing `config.json`, for the values you will carry over:
+  - `wallet.addressRestoreMnemonic` — only if you want to keep your existing `allo...` address; otherwise the SDK generates a fresh identity
+  - `worker[].topicId` for each topic you serve
+- An Allora API key — free at [developer.allora.network](https://developer.allora.network). On testnet, the worker uses it to request ALLO gas from the faucet automatically.
+
+<Callout type="warning">
+The published SDK release (`allora_sdk` 1.0.6) supports **workers only**. The offchain node's `reputer` configuration (`groundTruthEntrypointName`, `lossFunctionEntrypointName`, `minStake`, ...) has no SDK equivalent yet — [reputers](/build/reputer/deploy-docker) continue to run on the offchain node for now.
+</Callout>
+
+## Steps
+
+### 1. Map your `config.json` to `AlloraWorker`
+
+The offchain node was configured with a `config.json` (see `config.example.json` in the repository). Everything it configured is either a constructor argument to `AlloraWorker.inferer()` or handled automatically:
+
+| `config.json` (offchain node) | Python SDK (`AlloraWorker.inferer(...)`) |
+| :--- | :--- |
+| `wallet.addressRestoreMnemonic` | `wallet=AlloraWalletConfig(mnemonic=...)` — or omit `wallet` and the worker generates an identity, saved to a `.allora_key` file and reused on later runs |
+| `wallet.addressKeyName`, `wallet.keyringBackend`, `wallet.alloraHomeDir` | Not needed — the SDK does not use the `allorad` keyring |
+| `wallet.chainId` | `network=AlloraNetworkConfig(chain_id=...)` — or use the presets `AlloraNetworkConfig.testnet()` / `.mainnet()` |
+| `wallet.nodeRpcs`, `wallet.nodegRpcs` | `network=AlloraNetworkConfig(url=..., websocket_url=...)` — a `grpc+https://` URL uses gRPC, `rest+https://` uses the Cosmos-LCD REST API |
+| `wallet.gasPrices`, `wallet.maxFees`, `wallet.gasAdjustment` | `fee_tier=FeeTier.ECO` / `.STANDARD` (default) / `.PRIORITY` — fee estimation is automatic |
+| `wallet.maxRetries`, `wallet.retryDelay`, `wallet.accountSequenceRetryDelay` | Handled automatically — retries are built in |
+| `wallet.submitTx` | Not needed — the worker submits transactions; use the [RPC client](/consume/sdk-py#allorarpcclient-typed-chain-queries-and-transactions) directly for query-only use |
+| `worker[].topicId` | `topic_id=...` |
+| `worker[].inferenceEntrypointName` + `worker[].parameters.InferenceEndpoint` / `Token` | `run=...` — your model is a Python function called in-process; there is no HTTP inference server to stand up |
+| Multiple entries in the `worker` array | One `AlloraWorker.inferer(...)` per topic — or let the Builder Kit's `WorkerManager` run one worker process per topic |
+| `init.config` + `docker compose up --build` | `python worker.py` |
+| `reputer[]` | Not yet available in the published SDK — keep the offchain node for reputers |
+
+### 2. Rewrite the worker as a Python script
+
+Install the SDK:
+
+```bash
+pip install allora_sdk
+```
+
+Save this as `worker.py`. The body of `run_model` is where the logic behind your old `InferenceEndpoint` goes — return the value your inference server used to serve over HTTP:
+
+```python
+import asyncio
+import os
+
+from allora_sdk import AlloraNetworkConfig, AlloraWorker
+from allora_sdk.rpc_client.config import AlloraWalletConfig
+
+async def run_model(nonce: int) -> float:
+    # The prediction logic your inference server exposed over HTTP goes here
+    return 123.45
+
+async def main():
+    worker = AlloraWorker.inferer(
+        run=run_model,
+        # Your worker[].topicId from config.json
+        topic_id=69,
+        network=AlloraNetworkConfig.testnet(),
+        # Keep your existing address: reuse wallet.addressRestoreMnemonic from config.json.
+        # Omit `wallet=` to generate a fresh identity instead.
+        wallet=AlloraWalletConfig(mnemonic=os.environ["ALLORA_WALLET_MNEMONIC"]),
+        api_key=os.environ["ALLORA_API_KEY"],
+    )
+    async for result in worker.run():
+        if isinstance(result, Exception):
+            print(f"Inference worker error: {result}")
+        else:
+            print(f"Prediction submitted to Allora: {result.prediction}")
+
+asyncio.run(main())
+```
+
+Run it:
+
+```bash
+export ALLORA_WALLET_MNEMONIC="<wallet.addressRestoreMnemonic from your config.json>"
+export ALLORA_API_KEY="<your key from developer.allora.network>"
+python worker.py
+```
+
+If you served multiple topics from one `config.json` `worker` array, run one script per topic with its own `topic_id`. The [Python SDK page](/consume/sdk-py) covers the full set of options (`fee_tier`, `polling_interval`, `debug`, custom `AlloraNetworkConfig`).
+
+### 3. Move your model workflow from the MDK to the Builder Kit
+
+The MDK's interactive `make` targets map onto the Builder Kit's Python API:
+
+| MDK workflow | Forge Builder Kit workflow |
+| :--- | :--- |
+| `make train` — interactive prompts for a Tiingo or CSV data source, symbol, interval, date range, and models | `AlloraMLWorkflow(tickers=[...], topic_id=..., interval=..., n_input_bars=..., n_target_bars=...)`, then `workflow.backfill(days=...)` and `workflow.get_full_feature_target_dataframe()` — datasets are keyed to live Allora topics (use `data_source="binance"` if you have no API key) |
+| `make eval` — MAE / RMSE reports | `PerformanceEvaluator(workflow).evaluate(predict_fn)` — 7 pass/fail metrics aligned with Allora's scoring methodology (directional accuracy, Pearson r, WRMSE, CZAR) and a letter grade |
+| `make package-<model>` — copies model files and generates `config.py` | The example walkthrough scripts train a model and save a `predict.pkl` artifact |
+| `MODEL=<model> make run` + `uvicorn main:app` — expose an HTTP inference endpoint, then wire it into the offchain node's `config.json` | `python deploy_worker.py` — `WorkerManager` creates a wallet, requests testnet ALLO from the faucet, and starts the worker process; no endpoint to expose |
+| `make node-env` + `make compose` — load config and start the Docker node | `WorkerManager` start/stop/status APIs, plus a web dashboard: `python -m allora_forge_builder_kit.web_dashboard` at http://localhost:8787 |
+
+To get started:
+
+```bash
+git clone https://github.com/allora-network/allora-forge-builder-kit.git
+cd allora-forge-builder-kit
+
+python3.11 -m venv .venv
+source .venv/bin/activate
+
+python -m pip install .
+python -m pip install -r requirements.txt
+```
+
+Then follow the repository's "Zero to deploy" walkthrough: train an example model on the sandbox topic (`notebooks/example_topic_69_bitcoin_walkthrough.py`), deploy it (`python deploy_worker.py`), and monitor it from the dashboard.
+
+## Verify
+
+- Your worker logs its `allo...` address and prints `Prediction submitted to Allora: ...` each time a submission window opens — this replaces the offchain node's `"Send Worker Data to chain" ... "message":"Success"` log line.
+- If you reused your mnemonic, confirm the logged address matches the one your offchain node registered.
+- Open your topic on the [testnet explorer](https://testnet.explorer.allora.network/topics/69) and look for your worker's address among the topic's workers.
+- Builder Kit deployments: the web dashboard at http://localhost:8787 shows each worker's submission timeline, on-chain scores, and live log tail.
+
+## Troubleshoot
+
+- **Worker prompts `Mnemonic:` on startup** — no wallet was configured and no `.allora_key` file exists yet. Paste your `wallet.addressRestoreMnemonic` to keep your old address, or press Enter to generate a fresh identity.
+- **`RuntimeError: asyncio.run() cannot be called from a running event loop`** — you are in a Jupyter/Colab notebook. Replace `asyncio.run(main())` with `await main()`.
+- **`Too many faucet requests`** — the testnet faucet is rate-limited. Your old worker wallet likely still holds ALLO; reuse it via `ALLORA_WALLET_MNEMONIC`, or request funds manually at [faucet.testnet.allora.network](https://faucet.testnet.allora.network).
+- **You run a reputer** — there is no SDK migration path yet; keep your `reputer` configuration on the offchain node.
+- **Builder Kit worker fails to start** — faucet activity is logged, not printed: check `worker_logs/` for the subprocess output (faucet requests, balance checks, on-chain errors).
+
+## Next
+
+- See a full worker build, from data to deployment: [price prediction worker walkthrough](/build/worker/sdk-py)
+- Compete with your model: [Model Forge quickstart](/build/forge/competitions)
+- Full worker, RPC, and API client reference: [Allora Python SDK](/consume/sdk-py)
+- Pick a topic to serve: [existing topics](/build/forge/topics)

@@ -1,0 +1,8 @@
+{
+  "overview": "Overview",
+  "worker": "Workers",
+  "forecaster": "Build and Deploy a Forecaster",
+  "reputer": "Reputers",
+  "forge": "Forge",
+  "migrate-from-offchain-node": "Migrate from the Offchain Node"
+}

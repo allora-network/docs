@@ -1,0 +1,14 @@
+{
+  "explore": "Explore Allora",
+  "overview": "Overview",
+  "key-terms": "Key Terminology",
+  "participants": "Participants",
+  "layers": "Layers of the Network",
+  "tokenomics": "Tokenomics",
+  "staking": "Delegating Stake",
+  "confidence-intervals": "Confidence Intervals",
+  "whitepaper": {
+    "title": "Whitepaper",
+    "href": "https://research.assets.allora.network/allora.0x10001.pdf"
+  }
+}

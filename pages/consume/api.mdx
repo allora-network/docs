@@ -1,0 +1,157 @@
+import { Callout } from 'nextra/components'
+
+# Allora API: How to Query Data of Existing Topics
+
+The **Allora API** provides an interface to query real-time on-chain data of the latest inferences made by workers. Here's an explanation of how it works using the example endpoint:
+
+## API Authentication
+
+To access the Allora API, you need to authenticate your requests using an API key.
+
+### Obtaining an API Key
+
+API keys are self-serve: sign up for a free account at the [Allora Developer Portal](https://developer.allora.network) and create an API key from your dashboard. API keys are prefixed with `UP-`.
+
+The same API key works for both the Allora API (`api.allora.network`) and the Atlas data platform (`forge-data.allora.run`).
+
+### Using an API Key
+
+Once you have an API key, you can include it in your API requests using the `x-api-key` header:
+
+```bash
+curl -X 'GET' \
+  --url 'https://api.allora.network/v2/allora/consumer/<chainId>?allora_topic_id=<topicId>' \
+  -H 'accept: application/json' \
+  -H 'x-api-key: <apiKey>'
+```
+
+Replace `<apiKey>` with your actual API key, `<chainId>` with a supported chain ID (see the `SignatureFormat` values in the [TypeScript SDK reference](/consume/sdk-ts) for supported values), and `<topicId>` with the topic ID you want to query.
+
+### API Key Security
+
+Your API key is a sensitive credential that should be kept secure. Do not share your API key or commit it to version control systems. Instead, use environment variables or secure credential storage mechanisms to manage your API key.
+
+```javascript
+// Example of using an environment variable for API key
+const apiKey = process.env.ALLORA_API_KEY;
+```
+
+### Rate Limiting
+
+API requests are subject to rate limiting. If you exceed the rate limit, you will receive a 429 Too Many Requests response. To avoid rate limiting issues, consider implementing retry logic with exponential backoff in your applications.
+
+## API Endpoints
+
+**Generic**: `https://allora-api.testnet.allora.network/emissions/{version_number}/latest_network_inferences/{topic_id}`
+
+**Example**: `https://allora-api.testnet.allora.network/emissions/v10/latest_network_inferences/1`
+
+Where:
+- "v10" is the `emissions` API version, which depends on the deployed chain version of the network you are querying (testnet = `v10`, mainnet = `v9`). See [Networks](/reference/networks) for the current version per network.
+- "1" represents the topic ID
+
+An **outlier-resistant** variant is available for single-label regression topics:
+
+**Outlier-resistant**: `https://allora-api.testnet.allora.network/emissions/v10/latest_network_inferences_outlier_resistant/{topic_id}`
+
+Sample Response (single-output regression topic):
+
+```json
+{
+  "network_inferences": {
+    "topic_id": "1",
+    "nonce": "1349577",
+    "combined_value": [
+      { "label_id": 1, "label_name": "y", "value": "2605.533879185080648394998043723508" }
+    ],
+    "inferer_values": [
+      {
+        "worker": "allo102ksu3kx57w0mrhkg37kvymmk2lgxqcan6u7yn",
+        "values": [
+          { "label_id": 1, "label_name": "y", "value": "2611.01109296" }
+        ]
+      },
+      {
+        "worker": "allo10q6hm2yae8slpvvgmxqrcasa30gu5qfysp4wkz",
+        "values": [
+          { "label_id": 1, "label_name": "y", "value": "2661.505295679922" }
+        ]
+      }
+    ],
+    "forecaster_values": [
+      {
+        "worker": "allo1za8r9v0st4ntfyeka23qs5wvd7mvsnzhztupk0",
+        "values": [
+          { "label_id": 1, "label_name": "y", "value": "2610.160000000000000000000000000000" }
+        ]
+      }
+    ],
+    "naive_value": [
+      { "label_id": 1, "label_name": "y", "value": "2605.533879185080648394998043723508" }
+    ],
+    "one_out_inferer_values": [
+      {
+        "withheld_inferer": "allo102ksu3kx57w0mrhkg37kvymmk2lgxqcan6u7yn",
+        "combined_inference": [
+          { "label_id": 1, "label_name": "y", "value": "2570.859434973857748387096774193548" }
+        ]
+      }
+    ],
+    "one_out_forecaster_values": [],
+    "one_in_forecaster_values": [],
+    "one_out_inferer_forecaster_values": []
+  },
+  "inference_block_height": "1349577"
+}
+```
+
+<Callout type="info">
+Since v0.17.0 the network inference is returned as a **labeled bundle**. Every value carries a `label_id` and `label_name`. A **single-output** topic (like the one above) always uses the canonical label `y`, so each array holds a single entry. A **multi-output / classification** topic returns one entry per label — for example `combined_value` might contain `{ "label_name": "up", ... }`, `{ "label_name": "down", ... }`, and `{ "label_name": "flat", ... }`.
+</Callout>
+
+<Callout type="warning">
+Please be aware that there may be some expected volatility in predictions due to the nascency of the network and the more forgiving testnet configurations currently in place. We are actively working on implementing an outlier protection mechanism, which will be applied at the consumer layer and tailored to individual use cases in the near future.
+</Callout>
+
+## Breaking Down the Response
+
+Below is an explanation of the important fields in the JSON output. Every inference value is **labeled** (`label_id` + `label_name` + `value`); single-output topics use the canonical label `y`.
+
+### `topic_id`
+In this case, "1" represents the topic being queried. [Topics](/operate/topics/create) define the context and rules for a particular inference.
+
+### `combined_value`
+The **combined value** is an optimized inference that represents a collective intelligence approach, taking both worker submissions and forecast data into account.
+
+> If you are looking to just get one value or number from Allora for a data oracle, this is the one to take (for a single-output topic, the entry labeled `y`).
+
+### `inferer_values`
+Workers in the network submit their inferences, each represented by an `allo` address and one value per label. For example:
+
+```json
+{
+    "worker": "allo102ksu3kx57w0mrhkg37kvymmk2lgxqcan6u7yn",
+    "values": [
+        { "label_id": 1, "label_name": "y", "value": "2611.01109296" }
+    ]
+}
+```
+
+Each worker submits values based on their own models. These individual submissions contribute to both the naive and combined values. The combined value gives higher weighting to more reliable workers, based on performance or other criteria.
+
+### `forecaster_values`
+The forecast-implied inferences, one per forecaster. A [forecast-implied inference](/learn/layers/forecast-synthesis/synthesis#forecast-implied-inferences) uses forecasted losses and worker inferences to produce a predicted value, weighted by how accurately each forecaster predicted losses in previous epochs.
+
+### `naive_value`
+The **naive value** omits all forecast-implied inferences from the weighted average by setting their weights to zero. It is used to quantify the contribution of the forecasting task to network accuracy, which in turn sets the reward distribution between the inference and forecasting tasks.
+
+### `one_out_inferer_values` / `one_out_forecaster_values` / `one_in_forecaster_values`
+These simulate removing (or adding) a single participant to measure their marginal impact on the combined inference. They are used for scoring and reward distribution.
+
+### `inference_block_height`
+The specific chain block at which the inference data was generated.
+
+<Callout type="info">
+Per-actor **weights** and **confidence intervals** are not part of this response. Weights can be queried separately (for example `GetLatestInfererWeight` / `GetLatestForecasterWeight`), and confidence intervals are described on the [Confidence Intervals](/learn/confidence-intervals) page.
+</Callout>
+

@@ -1,7 +1,0 @@
-{
-    "reputers": "Deploy a Simple Reputer using Docker",
-    "build-a-reputer": "Build a Reputer",
-    "set-and-adjust-stake": "Set and Adjust Stake",
-    "query-reputer-data": " How to Query Reputer Data using allorad",
-    "query-ema-score": "Query EMA Score for a Reputer using allorad"
-}
