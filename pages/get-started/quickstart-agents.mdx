@@ -79,7 +79,8 @@ These are non-negotiable and apply to your entire session, not just this page.
   provided, **stop and ask** — do not scrape, guess, or fabricate one.
 - **Python 3.10+** for the submit path. If `python3` is older than 3.10, use
   a `python3.11`/`python3.12` binary explicitly, or provision one with
-  `uv venv --python 3.12 .venv`.
+  `uv venv --python 3.12 --seed .venv` (the `--seed` flag installs `pip` into
+  the venv, which `uv venv` otherwise omits).
 - **`curl`** for the read path and on-chain verification.
 
 ## Steps
@@ -198,6 +199,11 @@ Success criteria — all three must hold:
 - `tx_response.code` is `0`
 - the transaction's message `@type` is `/emissions.v10.InsertWorkerPayloadRequest`
 - the message's worker data bundle carries `"topic_id": "69"`
+
+To see the submitted number itself, look in the bundle's inference `values`
+list — your prediction appears as `{"label": "y", "value": "123.45"}`. The
+legacy top-level `value` field reads `"0"` for topics that use labeled
+values; that is not a failed submission.
 
 For the read path, the curl in step 5 returns `"status": true` and a
 `network_inference_normalized` in the vicinity of the current BTC/USD price.
