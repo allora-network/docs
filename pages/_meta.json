@@ -1,18 +1,26 @@
 {
-  "home": {
-    "title": "Home",
+  "get-started": {
+    "title": "Get Started",
     "type": "page"
   },
-  "devs": {
-    "title": "Developers",
+  "build": {
+    "title": "Build on Allora",
     "type": "page"
   },
-  "community": {
-    "title": "Community",
+  "consume": {
+    "title": "Consume Inference",
     "type": "page"
   },
-  "marketplace": {
-    "title": "Marketplace",
+  "operate": {
+    "title": "Operate the Network",
+    "type": "page"
+  },
+  "learn": {
+    "title": "Learn",
+    "type": "page"
+  },
+  "reference": {
+    "title": "Reference",
     "type": "page"
   }
 }
