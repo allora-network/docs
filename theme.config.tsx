@@ -4,6 +4,7 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { DocsThemeConfig, useConfig } from 'nextra-theme-docs'
 import AiButton from './components/AiButton.js'
+import PageMeta from './components/PageMeta'
 
 const config: DocsThemeConfig = {
   useNextSeoProps() {
@@ -57,6 +58,13 @@ const config: DocsThemeConfig = {
       </>
     )
   },
+  // Frontmatter-driven "Verified against … · reviewed …" badge on every page.
+  main: ({ children }) => (
+    <>
+      <PageMeta />
+      {children}
+    </>
+  ),
   primaryHue: { dark: 144.71, light: 145.41 },
   primarySaturation: { dark: 75.56, light: 55.78 },
   project: {
