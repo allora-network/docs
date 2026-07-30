@@ -44,6 +44,16 @@ module.exports = withNextra(
           destination: '/devs/workers/migrate-from-offchain-node',
           permanent: true,
         },
+        {
+          source: '/devs/workers/deploy-worker/build-and-deploy-worker-with-alibaba-cloud',
+          destination: '/devs/workers/deploy-worker/using-docker',
+          permanent: true,
+        },
+        {
+          source: '/devs/workers/deploy-worker/build-and-deploy-worker-with-node-runners',
+          destination: '/devs/workers/deploy-worker/using-docker',
+          permanent: true,
+        },
       ];
     },
   }
