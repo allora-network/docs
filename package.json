@@ -12,6 +12,7 @@
     "dev": "next",
     "build": "next build",
     "start": "next start",
-    "fixlinks": "node scripts/fixRelativeLinks.js"
+    "fixlinks": "node scripts/fixRelativeLinks.js",
+    "checklinks": "node scripts/checkExternalLinks.js"
   }
 }

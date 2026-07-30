@@ -1,6 +1,3 @@
 {
-  "using-docker": "Using Docker",
-  "build-and-deploy-worker-with-node-runners": "Using AWS Node Runners",
-  "build-and-deploy-worker-with-alibaba-cloud": "Using Alibaba Cloud",
-  "allora-mdk": "Using the Allora Model Development Kit"
+  "using-docker": "Using Docker"
 }

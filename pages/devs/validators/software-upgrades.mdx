@@ -36,12 +36,12 @@ where to download the upgrade binary version e.g.
 const UpgradeInfo = `'{"binaries":{"linux/amd64":"https://github.com/allora-network/allora-chain/releases/download/v9.9.9/allorad_amd64.tar.gz"}}'`
 ```
 
-3. Wire up the new upgrade handler to the chain by editing the `setupUpgradeHandlers` function in [app/upgrades.go](https://github.com/allora-network/allora-chain/blob/main/app/upgrades.go). You can see a reference for how to do this in the upgrade integration test [here](https://github.com/allora-network/allora-chain/blob/main/test/integration/upgrade.patch)
+3. Wire up the new upgrade handler to the chain by adding it to the `upgradeHandlers` list in [app/upgrades.go](https://github.com/allora-network/allora-chain/blob/main/app/upgrades.go), which the `setupUpgradeHandlers` function registers on the chain. The previous upgrade handlers already wired up in that file serve as a reference.
 4. If you're upgrading standard cosmos-sdk module versions you may have to tweak the `module.VersionMap` that the `CreateUpgradeHandler` returns/processes.
 5. If you're upgrading one of the Allora forked/created modules, you'll need to bump the `ConsensusVersion` for the module.
 6. In the module, have the `module.Configurator` do a `cfg.RegisterMigration` with the module name, the previous consensus 
 version that is being upgraded from, and the function to run to do the migration as a parameter.
-7. Write a function that process the kv store or does whatever other migrations are necessary. Examples [here](https://github.com/allora-network/allora-chain/blob/main/x/emissions/migrations/v2/migrations.go) and [here](https://github.com/evmos/evmos/blob/main/x/evm/migrations/v7/migrate.go).
+7. Write a function that process the kv store or does whatever other migrations are necessary. Examples [here](https://github.com/allora-network/allora-chain/blob/main/x/emissions/migrations/v2/migrate.go) and [here](https://github.com/evmos/evmos/blob/v20.0.0/x/evm/migrations/v7/migrate.go).
 8. Merge the PR, tag it appropriately and post it to the releases page.
 9. Create a Software Upgrade Proposal for validators to vote on. You can see a reference where this is done in the [proposeUpgrade](https://github.com/allora-network/allora-chain/blob/main/test/integration/upgrade_test.go) function in the integration tests.
 10. Convince all the validators to vote yes on the Software Upgrade Proposal, and run cosmovisor so that the upgrade will actually go through at the proposed block.
@@ -50,7 +50,7 @@ version that is being upgraded from, and the function to run to do the migration
 
 For those running the chain software, you will have to have to perform an upgrade as follows:
 
-1. Make sure you're running the `allorad` software with [Cosmovisor](https://docs.cosmos.network/main/build/tooling/cosmovisor)) managing the process, `DAEMON_NAME=allorad` and `DAEMON_HOME=/path/to/allorad/data/folder`. Hopefully you've already run `cosmovisor init /path/to/allorad-binary` and have the `/allorad/data/folder/cosmovisor` set.
+1. Make sure you're running the `allorad` software with [Cosmovisor](https://docs.cosmos.network/sdk/v0.50/build/tooling/cosmovisor)) managing the process, `DAEMON_NAME=allorad` and `DAEMON_HOME=/path/to/allorad/data/folder`. Hopefully you've already run `cosmovisor init /path/to/allorad-binary` and have the `/allorad/data/folder/cosmovisor` set.
 2. At some point the blockchain developers will provide you with a binary to put in that  `/allorad/data/folder/cosmovisor` folder to upgrade to. This may be optional if the `UpgradeInfo` is set correctly by the developers, but if you're the paranoid type you can always download the binary yourself ahead of the upgrade and put it in the right folder by hand.
 3. When the developers put up the upgrade proposal to governance, be helpful and vote to make it pass. You can do this via the CLI with `allorad tx gov vote $proposal_id yes --from $validator` or an example of doing this programmatically can be found in the integration test [voteOnProposal](https://github.com/allora-network/allora-chain/blob/main/test/integration/upgrade_test.go) function.
 4. At the block height of the upgrade, the old software will panic - cosmovisor will catch the panic and restart the process using the new binary for the upgrade instead. Monitor your logs appropriately to see the restart.
@@ -60,8 +60,8 @@ For those running the chain software, you will have to have to perform an upgrad
 This is probably the most helpful document to understand the full workflow of a cosmos-sdk chain
 upgrade: [Medium Blog Post Cosmos Dev Series: Cosmos Blockchain Upgrade](https://medium.com/web3-surfers/cosmos-dev-series-cosmos-sdk-based-blockchain-upgrade-b5e99181554c)
 
-Cosmos SDK Upgrade Module: [Documentation](https://docs.cosmos.network/main/build/modules/upgrade)
+Cosmos SDK Upgrade Module: [Documentation](https://docs.cosmos.network/sdk/v0.50/build/modules/upgrade)
 
-Cosmovisor Process Manager Software [Documentation](https://docs.cosmos.network/main/build/tooling/cosmovisor)
+Cosmovisor Process Manager Software [Documentation](https://docs.cosmos.network/sdk/v0.50/build/tooling/cosmovisor)
 
-Cosmos SDK Gov Module: [Documentation](https://docs.cosmos.network/main/build/modules/gov)
+Cosmos SDK Gov Module: [Documentation](https://docs.cosmos.network/sdk/v0.50/build/modules/gov)

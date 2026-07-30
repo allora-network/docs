@@ -10,7 +10,9 @@ To access the Allora API, you need to authenticate your requests using an API ke
 
 ### Obtaining an API Key
 
-You can obtain an API key through the Allora API key management system. Contact the Allora team on [Discord](https://discord.com/invite/allora) for access to API keys.
+API keys are self-serve: sign up for a free account at the [Allora Developer Portal](https://developer.allora.network) and create an API key from your dashboard. API keys are prefixed with `UP-`.
+
+The same API key works for both the Allora API (`api.allora.network`) and the Atlas data platform (`forge-data.allora.run`).
 
 ### Using an API Key
 
@@ -23,7 +25,7 @@ curl -X 'GET' \
   -H 'x-api-key: <apiKey>'
 ```
 
-Replace `<apiKey>` with your actual API key, `<chainId>` with the chain ID (e.g., `ethereum-11155111` for Sepolia), and `<topicId>` with the topic ID you want to query.
+Replace `<apiKey>` with your actual API key, `<chainId>` with a supported chain ID (see the `SignatureFormat` values in the [TypeScript SDK reference](/devs/sdk/allora-sdk-ts) for supported values), and `<topicId>` with the topic ID you want to query.
 
 ### API Key Security
 
