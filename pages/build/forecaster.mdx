@@ -10,7 +10,7 @@ import { Callout } from 'nextra/components'
 
 # Build and Deploy a Forecaster
 
-A **forecaster** is a worker that predicts how accurate other workers' inferences will be, instead of (or in addition to) answering the topic's question itself. For each inferer, it submits a **forecasted loss** — an estimate of the error that inferer's inference will show against the eventual ground truth. The network turns forecasted losses into [regrets and weights](/learn/layers/forecast-synthesis/forecast) and combines them into [forecast-implied inferences](/learn/layers/forecast-synthesis/synthesis#forecast-implied-inferences), making the network inference [context-aware](/learn/layers/forecast-synthesis/forecast#context-awareness) — better than any individual model's output. [Forecast and Synthesis](/learn/layers/forecast-synthesis) explains the mechanism end to end.
+A **forecaster** is a worker that predicts how accurate other workers' inferences will be, instead of (or in addition to) answering the topic's question itself. For each inferer, it submits a **forecasted loss** — an estimate of the error that inferer's inference will show against the eventual ground truth. The network turns forecasted losses into [regrets and weights](/learn/inference-synthesis#forecast) and combines them into [forecast-implied inferences](/learn/inference-synthesis#forecast-implied-inferences), making the network inference [context-aware](/learn/inference-synthesis#context-awareness) — better than any individual model's output. [Forecast and Synthesis](/learn/inference-synthesis) explains the mechanism end to end.
 
 <Callout type="warning">
 **Standalone forecaster tooling is not published yet.** The high-level [`AlloraWorker`](/consume/sdk-py) in the current Python SDK release (`allora_sdk` 1.0.6) automates the **inferer** role only; first-class forecaster support is in development on the SDK's public [dev branch](https://github.com/allora-network/allora-sdk-py/tree/dev) for an upcoming release. If you want to participate on Allora today, the smoothest path is running an inference worker — see the [Python SDK guide](/consume/sdk-py) or the [price prediction worker walkthrough](/build/worker/sdk-py).
@@ -46,7 +46,7 @@ forecast_elements = [
 ]
 ```
 
-Both fields are strings: the inferer's `allo...` address and your forecasted loss for its inference in the current epoch. Because `inference_value` is required, a forecaster built on the published SDK always infers *and* forecasts — a combination the network explicitly supports ([some workers do both](/learn/layers/forecast-synthesis/forecast#losses)).
+Both fields are strings: the inferer's `allo...` address and your forecasted loss for its inference in the current epoch. Because `inference_value` is required, a forecaster built on the published SDK always infers *and* forecasts — a combination the network explicitly supports ([some workers do both](/learn/inference-synthesis#losses)).
 
 ### 3. Write the forecaster
 
@@ -187,7 +187,7 @@ The script registers your address on the topic if needed, waits for the topic's 
 
 ## Next
 
-- How forecasts become weights and forecast-implied inferences: [Forecast](/learn/layers/forecast-synthesis/forecast) and [Synthesis](/learn/layers/forecast-synthesis/synthesis)
+- How forecasts become weights and forecast-implied inferences: [Forecast](/learn/inference-synthesis#forecast) and [Synthesis](/learn/inference-synthesis#synthesis)
 - Submit plain inferences with the high-level worker: [Allora Python SDK](/consume/sdk-py) or the [price prediction worker walkthrough](/build/worker/sdk-py)
 - Find topics with active inferers: [existing topics](/build/forge/topics)
 - Inspect your worker's on-chain data: [query worker data using allorad](/build/worker/query-worker-data)

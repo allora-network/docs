@@ -10,7 +10,7 @@ import { Callout } from 'nextra/components'
 
 # Build a Reputer
 
-[Reputers](/learn/layers/consensus/reputers) are the Allora Network's source of truth. Each epoch, a reputer fetches the network's inferences for its topic, compares them against ground truth obtained from its own data sources, computes losses using the topic's loss method, and submits the resulting loss bundle on-chain. Reputers must [stake ALLO](/build/reputer/set-and-adjust-stake), and rewards depend on accuracy relative to reputer consensus and on stake.
+[Reputers](/learn/consensus-and-rewards#reputer-rewards) are the Allora Network's source of truth. Each epoch, a reputer fetches the network's inferences for its topic, compares them against ground truth obtained from its own data sources, computes losses using the topic's loss method, and submits the resulting loss bundle on-chain. Reputers must [stake ALLO](/build/reputer/set-and-adjust-stake), and rewards depend on accuracy relative to reputer consensus and on stake.
 
 Reputers run on the [`allora-offchain-node`](https://github.com/allora-network/allora-offchain-node), which handles registration, staking, submission windows, and transaction retries. You supply two HTTP services: one that returns the ground truth and one that computes the loss.
 

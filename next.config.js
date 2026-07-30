@@ -69,13 +69,43 @@ const exactRedirects = {
   '/devs/topic-creators/query-topic-data': '/operate/topics/query',
 
   // ── /home exceptions (slugs that changed or left Learn) ──
-  '/home': '/learn/explore',
+  '/home': '/learn/what-is-allora',
   '/home/delegating-stake': '/learn/staking',
   '/home/release-notes': '/reference/release-notes',
   // The whitepaper page was an orphaned glossary stub; the nav already points
   // at the PDF, so the URL does too.
   '/home/whitepaper': 'https://research.assets.allora.network/allora.0x10001.pdf',
   '/learn/whitepaper': 'https://research.assets.allora.network/allora.0x10001.pdf',
+
+  // ── Learn consolidation: explore + overview → what-is-allora; the layers
+  // tree → inference-synthesis (consumption, forecast, synthesis) and
+  // consensus-and-rewards (consensus, worker/reputer/topic/total rewards).
+  // Exact /home/... rules are listed too so those URLs jump straight to the
+  // final destination instead of chaining through the /home/:path* rule.
+  '/learn/explore': '/learn/what-is-allora',
+  '/home/explore': '/learn/what-is-allora',
+  '/learn/overview': '/learn/what-is-allora',
+  '/home/overview': '/learn/what-is-allora',
+  '/learn/layers': '/learn/inference-synthesis',
+  '/home/layers': '/learn/inference-synthesis',
+  '/learn/layers/inference-consumption': '/learn/inference-synthesis#inference-consumption',
+  '/home/layers/inference-consumption': '/learn/inference-synthesis#inference-consumption',
+  '/learn/layers/forecast-synthesis': '/learn/inference-synthesis#forecast-and-synthesis',
+  '/home/layers/forecast-synthesis': '/learn/inference-synthesis#forecast-and-synthesis',
+  '/learn/layers/forecast-synthesis/forecast': '/learn/inference-synthesis#forecast',
+  '/home/layers/forecast-synthesis/forecast': '/learn/inference-synthesis#forecast',
+  '/learn/layers/forecast-synthesis/synthesis': '/learn/inference-synthesis#synthesis',
+  '/home/layers/forecast-synthesis/synthesis': '/learn/inference-synthesis#synthesis',
+  '/learn/layers/consensus': '/learn/consensus-and-rewards',
+  '/home/layers/consensus': '/learn/consensus-and-rewards',
+  '/learn/layers/consensus/workers': '/learn/consensus-and-rewards#worker-rewards',
+  '/home/layers/consensus/workers': '/learn/consensus-and-rewards#worker-rewards',
+  '/learn/layers/consensus/reputers': '/learn/consensus-and-rewards#reputer-rewards',
+  '/home/layers/consensus/reputers': '/learn/consensus-and-rewards#reputer-rewards',
+  '/learn/layers/consensus/topic-rewards': '/learn/consensus-and-rewards#topic-rewards',
+  '/home/layers/consensus/topic-rewards': '/learn/consensus-and-rewards#topic-rewards',
+  '/learn/layers/consensus/total-rewards': '/learn/consensus-and-rewards#total-rewards',
+  '/home/layers/consensus/total-rewards': '/learn/consensus-and-rewards#total-rewards',
 
   // ── /marketplace → Consume Inference ──
   '/marketplace': '/consume/integrations',

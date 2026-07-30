@@ -1,0 +1,131 @@
+# Inference Synthesis
+
+![layers-of-allora](/layers-of-allora.jpg)
+
+The Allora network operates through three distinct layers:
+
+- **Inference Consumption Layer**: Facilitates the exchange of inferences.
+- **Forecasting and Synthesis Layer**:
+    - Inference workers provide inferences.
+    - Forecasting workers use models to predict the accuracy of these inferences.
+    - The Inference Synthesis mechanism aggregates results for consumers.
+- **Consensus Layer**:
+    - Manages rewards and economics for network participants.
+    - Ensures a permissionless and secure environment for transactions.
+
+This page covers the first two layers: how inferences are exchanged, forecast, and synthesized into a single network inference. The consensus layer — rewards and economics — is covered in [Consensus and Rewards](/learn/consensus-and-rewards).
+
+## Inference Consumption
+
+### Request/Response Flow
+At it's core, Allora facilitates the exchange of inferences, enabling _Consumers_ to request them and _Workers_ to supply them. 
+
+![supply-demand](/exchange-inferences.jpg)
+
+Learn how to query data and inferences [offchain](/consume/api) and [onchain](/operate/topics/query-network-data) for a given [topic](/learn/key-terms#topics).
+
+### Topic Coordination
+
+Inferences are categorized using Topics. Anyone, including network participants, can permissionlessly create topics to coordinate network collaboration. 
+A single topic is stored inside a Topic Coordinator and is identified using a _rule set_, which consists of a target variable and a loss function which are used to score topic inferences.
+
+![supply-demand](/topic-coordinator.jpg)
+
+Inferences have a [topic life cycle](/operate/topics/lifecycle) that governs their stages from creation to conclusion.
+
+### Reputers
+
+As the number of workers in the network increases, some will naturally perform better than others due to the system's permissionless nature. 
+To maintain quality and help the network set the reward distribution, Reputers evaluate each worker's performance against the ground truth when it becomes available.
+
+![supply-demand](/reputers.jpg)
+
+The final architecture of the inference consumption layer shows how consumers request inferences, how workers supply them, and how reputers verify the accuracy of inference workers.
+
+## Forecast and Synthesis
+
+Inferences are scored by forecast workers and combined by the topic coordinator to deliver a single synthesized inference to the consumer that is a weighted combination of all individual inferences. 
+
+Let's dive into this process in the following sections.
+
+## Forecast
+
+### Context Awareness
+
+Some workers function to forecast the expected performance of other workers inferences' and make the network **Context Aware**. [Context awareness](/learn/key-terms#context-awareness) enables the aggregated inference produced by the network to be better than any individual model's output.
+
+Inference Synthesis is greatly enhanced due to the context awareness of the workers.
+
+![forecast-initial](/forecast-initial.jpg)
+
+### Losses
+
+Some workers forecast, some workers produce inferences and some do both. Forecast workers use their own data and models to predict the accuracy of produced inferences, generating **forecasted losses**.
+
+Forecasted losses allow the network to become context aware.
+
+![forecast-inference-workers](/forecast-inference-workers.jpg)
+
+### Regrets
+
+Forecasted losses are used to calculate **regret**, which indicates how much better or worse each inference is expected to be compared to previous inferences.
+Positive regret means an inference is expected to be more accurate than the network inference, while negative regret means it is expected to be less accurate.
+
+Regrets are used to generate weights, where more accurate inferences get higher weights.
+
+Losses and weights are collectively used to synthesize inferences. Let's dive into how inference synthesis works in the next section.
+
+## Synthesis
+
+Inference synthesis in Allora is a process that combines individual inferences from various workers to produce an aggregate inference. This process takes place at each epoch and involves both inference and forecasting tasks.
+
+### Normalization of Regrets
+
+Regrets are normalized to ensure weights are comparable and within a reasonable range.
+
+This allows the use of a single mapping function to map regrets to weights, independently of the absolute scale of the losses and regrets.
+The regret is normalized using its standard deviation across all workers, adjusted by a small constant 𝜖:
+
+$$
+\hat{R}_{ijk} = \frac{R_{ijk}}{\sigma_j(R_{ijk}) + \epsilon}
+$$
+
+- Here, 𝜎𝑗σ is the standard deviation of 𝑅𝑖𝑗𝑘 for a particular inference across all workers.
+- The small constant 𝜖 ensures numerical stability and avoids division by zero.
+
+#### Using Normalized Regrets for Weights
+
+The normalized regrets 𝑅𝑖𝑗𝑘 are then used to calculate the weights for each inference:
+
+$$
+w_{ijk} = \phi'_{p,c}(\hat{R}_{ijk})
+$$
+
+These weights determine how much each raw inference 𝐼𝑖𝑗 will contribute to the final network inference.
+
+
+### Forecast-Implied Inferences
+
+The Topic Coordinator takes the forecasted losses and normalized weights and produces forecast-implied inferences. A forecast-implied inference is a predicted value of a target variable that combines different 
+forecasters' predictions and workers' inferences, where each prediction is weighted based on how accurately the forecasters predicted losses in previous time steps, or _epochs_. 
+
+$$
+I_{ik} = \frac{\sum_j w_{ijk} I_{ij}}{\sum_j w_{ijk}}
+$$
+
+Here, 𝑤𝑖𝑗𝑘 are weights assigned to each inference based on the forecasted regret.
+
+### Final Network Inference
+
+The final inference for the network is a weighted combination of all individual inferences following a procedure similar to the generation of forecast-implied inferences discussed above, but using the actual regrets based on the losses provided by reputers instead of forecasted losses.
+This combined result is expected to be more accurate and reliable due to the weighting process.
+
+![synthesis-final](/synthesis-final.jpg)
+
+### Multi-Label Topics
+
+Since v0.17.0, synthesis is **label-aware**. For [multi-output topics](/operate/topics/create#topic-types-output-arity-and-labels), the process above runs independently for each label, and the result is returned as a **network inference bundle** — a set of labeled values rather than a single number. A single-output topic is simply the special case with one canonical label (`y`), so its bundle carries a single value.
+
+For **classification** topics that set `require_unity`, the per-label outputs are constrained to sum to one (within the topic's `unity_tolerance`), so the bundle represents a probability distribution across the labels.
+
+The **outlier-resistant** network inference is only computed for single-label regression topics; it is not produced for multi-label topics.
