@@ -1,5 +1,6 @@
 {
-  "overview": "Overview",
+  "index": "Overview",
+  "quickstart-worker": "Deploy a Worker in 10 Minutes",
   "setup-wallet": "Setup Wallet",
   "cli": "Installation",
   "basic-usage": "Basic Usage"

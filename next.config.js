@@ -2,7 +2,12 @@ const withNextra = require('nextra')({
   theme: 'nextra-theme-docs',
   themeConfig: './theme.config.tsx',
   latex: true,
-  defaultShowCopyCode: true
+  defaultShowCopyCode: true,
+  mdxOptions: {
+    // Inject snippets/* files into ```lang file=<path> fences at build time so
+    // documented code cannot drift from the runnable snippet files.
+    remarkPlugins: [require('./scripts/remarkIncludeCode')]
+  }
 })
 
 // Every path that existed before the six-section IA restructure 301s to its
@@ -12,7 +17,10 @@ const withNextra = require('nextra')({
 const permanent = true;
 
 const exactRedirects = {
-  '/': '/get-started/overview',
+  '/': '/get-started',
+
+  // ── Get Started landing moved from /get-started/overview to /get-started ──
+  '/get-started/overview': '/get-started',
 
   // ── pre-restructure redirects, retargeted to avoid chains ──
   '/devs/consumers/consumer-contracts': '/consume/api',
@@ -36,7 +44,7 @@ const exactRedirects = {
   '/devs/sdk/allora-sdk-py': '/consume/sdk-py',
 
   // ── /devs/get-started → Get Started / Build / Operate ──
-  '/devs/get-started/overview': '/get-started/overview',
+  '/devs/get-started/overview': '/get-started',
   '/devs/get-started/setup-wallet': '/get-started/setup-wallet',
   '/devs/get-started/cli': '/get-started/cli',
   '/devs/get-started/basic-usage': '/get-started/basic-usage',
@@ -94,7 +102,7 @@ const treeRedirects = [
   { source: '/marketplace/integrations/:path*', destination: '/consume/integrations/:path*', permanent },
   { source: '/home/:path*', destination: '/learn/:path*', permanent },
   // Backstops: anything else under the removed trees lands somewhere useful.
-  { source: '/devs/:path*', destination: '/get-started/overview', permanent },
+  { source: '/devs/:path*', destination: '/get-started', permanent },
   { source: '/marketplace/:path*', destination: '/consume/integrations', permanent },
   { source: '/community/:path*', destination: 'https://github.com/allora-network/docs/blob/main/CONTRIBUTING.md', permanent },
 ];
