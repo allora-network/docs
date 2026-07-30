@@ -78,7 +78,7 @@ The `reputer` section of `config.json` is an array with one entry per topic. Thi
 
 Whether the scalar or the `Labeled*` endpoints are used is decided by the topic's on-chain output arity: `SINGLE` topics use `GroundTruthEndpoint` and `LossFunctionService`, while multi-label (`MULTI`) topics — classification topics, for example — use `LabeledGroundTruthEndpoint` and `LabeledLossFunctionService`.
 
-To run a reputer only, configure just the `reputer` array — the `worker` section of the example config is for [inference workers](/devs/workers/deploy-worker) and can be removed.
+To run a reputer only, configure just the `reputer` array — the `worker` section of the example config is for [inference workers](/devs/workers/deploy-worker/using-docker) and can be removed.
 
 ### 4. Serve ground truth and losses over HTTP
 
