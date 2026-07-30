@@ -196,7 +196,7 @@ You will need an Allora API key: get one for free at [developer.allora.network](
 import asyncio
 import os
 
-from allora_sdk.api_client import AlloraAPIClient
+from allora_sdk.api_client import AlloraAPIClient, ChainID
 
 client = AlloraAPIClient(api_key=os.environ["ALLORA_API_KEY"])
 
@@ -214,7 +214,7 @@ asyncio.run(main())
 
 - `get_all_topics()` returns a list of `Topic` models with fields such as `topic_id`, `topic_name`, `description`, `epoch_length`, `loss_method`, `worker_count`, `reputer_count`, and `is_active`.
 - `get_inference_by_topic_id(topic_id)` returns an `Inference` model whose `inference_data` includes the raw `network_inference` and the decimal-adjusted `network_inference_normalized`.
-- The client defaults to testnet topics; pass `chain_id=ChainID.MAINNET` (from `allora_sdk.api_client`) to read mainnet topics.
+- The client defaults to testnet topics; pass `chain_id=ChainID.MAINNET` (imported above) to read mainnet topics.
 
 ## Command-line tools
 
