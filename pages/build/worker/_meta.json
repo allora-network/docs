@@ -1,7 +1,7 @@
 {
   "requirements": "System Requirements",
-  "sdk-py": "Build a Price Prediction Worker",
-  "containerize": "Deploy a Worker using Docker",
-  "query-worker-data": "How To Query Worker Data using allorad",
-  "query-ema-score": "Query EMA Score of a Worker using allorad"
+  "sdk-py": "Build a Worker with the Python SDK",
+  "containerize": "Deploy a Worker with Docker",
+  "monitoring": "Monitor a Worker",
+  "query-worker-data": "How To Query Worker Data using allorad"
 }

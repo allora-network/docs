@@ -79,7 +79,7 @@ The `reputer` section of `config.json` is an array with one entry per topic. Thi
 
 Whether the scalar or the `Labeled*` endpoints are used is decided by the topic's on-chain output arity: `SINGLE` topics use `GroundTruthEndpoint` and `LossFunctionService`, while multi-label (`MULTI`) topics — classification topics, for example — use `LabeledGroundTruthEndpoint` and `LabeledLossFunctionService`.
 
-To run a reputer only, configure just the `reputer` array — the `worker` section of the example config is for [inference workers](/build/worker/containerize) and can be removed.
+To run a reputer only, configure just the `reputer` array — the `worker` section of the example config is for the node's legacy inference-worker mode (see [Migrate from the Offchain Node](/build/migrate-from-offchain-node)) and can be removed.
 
 ### 4. Serve ground truth and losses over HTTP
 
@@ -120,20 +120,20 @@ allorad q emissions is-reputer-registered [topic_id] [address] --node https://al
 allorad q emissions stake-in-topic-reputer [address] [topic_id] --node https://allora-rpc.testnet.allora.network/
 ```
 
-`is-reputer-registered` should return `true`, and your stake should be at least the `minStake` you configured. Once the node is submitting loss bundles, track your EMA score and compare it against the lowest score in the topic's active set to confirm you are eligible for rewards — see [How to Query Reputer EMA Scores](/build/reputer/query-ema-score).
+`is-reputer-registered` should return `true`, and your stake should be at least the `minStake` you configured. Once the node is submitting loss bundles, track your EMA score and compare it against the lowest score in the topic's active set to confirm you are eligible for rewards — see [query EMA scores with `allorad`](/build/worker/monitoring#5-query-ema-scores-with-allorad).
 
 ## Troubleshoot
 
 - **Registration or staking fails with an insufficient-funds error** — the wallet must hold ALLO on the network you target. On testnet, request funds from the [faucet](https://faucet.testnet.allora.network/), then restart the node.
 - **The node fails at startup with a missing-endpoint error** — the topic's output arity requires an endpoint you have not configured. `SINGLE` topics need `GroundTruthEndpoint` and `LossFunctionService`; `MULTI` topics need `LabeledGroundTruthEndpoint` and `LabeledLossFunctionService`.
 - **Submissions are rejected for a whitelisted topic** — the node checks whether your address is whitelisted before submitting. If the topic enforces a reputer whitelist, ask the topic creator to whitelist your address.
-- **Registered and submitting, but no rewards** — verify your stake meets the chain's [`required_minimum_stake`](/reference/params/chain#required_minimum_stake); below it, your contributions are ignored. Also compare your EMA score against the topic's active set as shown in [How to Query Reputer EMA Scores](/build/reputer/query-ema-score).
+- **Registered and submitting, but no rewards** — verify your stake meets the chain's [`required_minimum_stake`](/reference/params/chain#required_minimum_stake); below it, your contributions are ignored. Also compare your EMA score against the topic's active set as shown in [query EMA scores with `allorad`](/build/worker/monitoring#5-query-ema-scores-with-allorad).
 - **Chain version errors** — the current node targets the v10 Allora chain emissions API and is not backward-compatible with v9 chains. Run the latest node release against a v10 network.
 
 ## Next
 
 - Manage your stake: [Set and Adjust Stake](/build/reputer/set-and-adjust-stake)
 - Query reputer data with `allorad`: [How to Query Reputer Data](/build/reputer/query-reputer-data)
-- Understand scoring and the active set: [How to Query Reputer EMA Scores](/build/reputer/query-ema-score)
+- Understand scoring and the active set: [query EMA scores with `allorad`](/build/worker/monitoring#5-query-ema-scores-with-allorad)
 - Running an inference worker too? The Python SDK supports workers today: [migrate a worker from the offchain node](/build/migrate-from-offchain-node)
 - Explore the Python SDK: [Allora Python SDK](/consume/sdk-py)

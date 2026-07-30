@@ -53,7 +53,7 @@ const exactRedirects = {
   '/devs/workers/migrate-from-offchain-node': '/build/migrate-from-offchain-node',
   '/devs/workers/deploy-forecaster': '/build/forecaster',
   '/devs/workers/query-worker-data': '/build/worker/query-worker-data',
-  '/devs/workers/query-ema-score': '/build/worker/query-ema-score',
+  '/devs/workers/query-ema-score': '/build/worker/monitoring',
 
   // ── /devs/reputers → Build on Allora ──
   '/devs/reputers': '/build/reputer',
@@ -61,7 +61,11 @@ const exactRedirects = {
   '/devs/reputers/build-a-reputer': '/build/reputer/build-a-reputer',
   '/devs/reputers/set-and-adjust-stake': '/build/reputer/set-and-adjust-stake',
   '/devs/reputers/query-reputer-data': '/build/reputer/query-reputer-data',
-  '/devs/reputers/query-ema-score': '/build/reputer/query-ema-score',
+  '/devs/reputers/query-ema-score': '/build/worker/monitoring',
+
+  // ── EMA-score pages consolidated into the worker monitoring guide ──
+  '/build/worker/query-ema-score': '/build/worker/monitoring',
+  '/build/reputer/query-ema-score': '/build/worker/monitoring',
 
   // ── /devs/topic-creators → Operate the Network ──
   '/devs/topic-creators/topic-life-cycle': '/operate/topics/lifecycle',
