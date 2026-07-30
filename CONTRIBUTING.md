@@ -17,6 +17,22 @@ line to commit messages to certify that they have the right to submit
 the code they are contributing to the project according to the
 [Developer Certificate of Origin (DCO)](https://developercertificate.org/).
 
+# Contributing to the docs site
+
+The documentation site ([docs.allora.network](https://docs.allora.network)) is
+built from this repository with [Nextra](https://nextra.site). To propose a
+change:
+
+1. Fork the repository and create a branch.
+2. Install dependencies with `yarn install` (NodeJS `v20.12.2`), then run
+   `yarn dev` and preview your changes at http://localhost:3000.
+3. Edit or add MDX pages under `pages/`. When adding, renaming, or removing a
+   page, update the sibling `_meta.json` so the sidebar stays in sync.
+4. Run `yarn build` and `yarn fixlinks` — both must pass before you open a
+   pull request. `yarn fixlinks` validates and rewrites relative links across
+   the site.
+5. Open a pull request, signing off each commit as described above.
+
 # Community & Resources
 
 [Our open-source repos](https://github.com/allora-network) all follow the
