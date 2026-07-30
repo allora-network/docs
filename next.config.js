@@ -72,6 +72,10 @@ const exactRedirects = {
   '/home': '/learn/explore',
   '/home/delegating-stake': '/learn/staking',
   '/home/release-notes': '/reference/release-notes',
+  // The whitepaper page was an orphaned glossary stub; the nav already points
+  // at the PDF, so the URL does too.
+  '/home/whitepaper': 'https://research.assets.allora.network/allora.0x10001.pdf',
+  '/learn/whitepaper': 'https://research.assets.allora.network/allora.0x10001.pdf',
 
   // ── /marketplace → Consume Inference ──
   '/marketplace': '/consume/integrations',
