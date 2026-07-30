@@ -1,4 +1,5 @@
 import asyncio
+import os
 
 from allora_sdk import AlloraNetworkConfig, AlloraWorker, RunContext
 
@@ -12,6 +13,7 @@ async def main():
     worker = AlloraWorker.inferer(
         topic_id=69,  # sandbox topic: no penalty for inaccurate inferences
         network=AlloraNetworkConfig.testnet(),
+        api_key=os.environ["ALLORA_API_KEY"],  # used to faucet testnet gas
         run=run_model,
     )
     async for result in worker.run():

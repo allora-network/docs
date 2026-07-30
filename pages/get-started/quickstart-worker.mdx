@@ -17,14 +17,16 @@ testnet and see it confirmed on-chain. The worker targets **topic 69**, the
 testnet sandbox ("PLAYGROUND: 1 day BTC/USD Price Prediction") — a topic for
 newcomers where inaccurate inferences carry no penalty.
 
-Everything is automatic: the SDK generates a wallet for you, requests testnet
-ALLO from the faucet for gas, registers your worker on the topic, and submits
-your model's prediction each epoch.
+Everything is automatic: the SDK generates a wallet for you, uses your API key
+to request testnet ALLO from the faucet for gas, registers your worker on the
+topic, and submits your model's prediction each epoch.
 
 ## Prerequisites
 
 - Python 3.10 or newer
-- No wallet, no funds, and no API key — testnet gas is fauceted automatically
+- A free Allora API key from
+  [developer.allora.network](https://developer.allora.network) — the worker uses
+  it to faucet testnet gas; no wallet setup and no funding steps
 
 ## Steps
 
@@ -51,6 +53,7 @@ value stands in for your model's prediction logic.
 ### 3. Run it
 
 ```bash
+export ALLORA_API_KEY="<your key from developer.allora.network>"
 python quickstart_worker.py
 ```
 
@@ -126,7 +129,8 @@ opens. Stop it with `Ctrl+C`.
 - **`unknown service emissions.v9.QueryService`** — your installed `allora_sdk`
   release predates the testnet's `emissions/v10` upgrade (see
   [Networks](/reference/networks)). Upgrade with `pip install --upgrade allora_sdk`.
-- **Faucet rate-limited** (`Too many faucet requests`) — request funds manually at
+- **Faucet rate-limited** (`Too many faucet requests`) — wait a few minutes and
+  rerun, or request funds manually at
   [https://faucet.testnet.allora.network](https://faucet.testnet.allora.network)
   for the address shown in your startup banner, then rerun the worker.
 - **Worker sits idle** (`Our unfulfilled nonces: -`) — the topic's current
