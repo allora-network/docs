@@ -4,3 +4,7 @@ node_modules
 
 # Local Netlify folder
 .netlify
+
+# Local agent working files (never committed)
+AGENTS.md
+CLAUDE.md
