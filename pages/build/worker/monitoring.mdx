@@ -106,7 +106,7 @@ wm.start_worker(topic_id=69, address="allo1...")
 
 ### 5. Query EMA scores with `allorad`
 
-The EMA score (Exponential Moving Average) reflects a participant's performance over time for a given topic, balancing recent and past achievements, and determines whether the participant stays in the **active set** (eligible for [rewards](/learn/layers/consensus/workers)) or remains in the **passive set**. Active participants have their EMA score updated based on their current performance; participants who do not contribute during a given [epoch](/learn/key-terms#epochs) receive an adjusted score using a "dummy" value, which determines whether they can re-enter the active set in future epochs. Read about the v0.3.0 release on [Merit-Based Sortitioning](/reference/release-notes#v030) for a deeper dive on what makes up the active and passive sets.
+The EMA score (Exponential Moving Average) reflects a participant's performance over time for a given topic, balancing recent and past achievements, and determines whether the participant stays in the **active set** (eligible for [rewards](/learn/consensus-and-rewards#worker-rewards)) or remains in the **passive set**. Active participants have their EMA score updated based on their current performance; participants who do not contribute during a given [epoch](/learn/key-terms#epochs) receive an adjusted score using a "dummy" value, which determines whether they can re-enter the active set in future epochs. Read about the v0.3.0 release on [Merit-Based Sortitioning](/reference/release-notes#v030) for a deeper dive on what makes up the active and passive sets.
 
 The commands below use the testnet RPC endpoint; swap in the mainnet endpoint from [networks](/reference/networks) as needed.
 
@@ -157,6 +157,6 @@ For the full catalog of worker-related chain queries — registration checks, pe
 ## Next
 
 - All worker chain queries: [query worker data using `allorad`](/build/worker/query-worker-data)
-- Understand how scores drive rewards: [worker rewards](/learn/layers/consensus/workers)
+- Understand how scores drive rewards: [worker rewards](/learn/consensus-and-rewards#worker-rewards)
 - Build or reconfigure your worker: [build a worker with the Python SDK](/build/worker/sdk-py)
 - Run it unattended: [deploy a worker with Docker](/build/worker/containerize)
