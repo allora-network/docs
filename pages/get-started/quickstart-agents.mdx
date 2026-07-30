@@ -87,6 +87,9 @@ These are non-negotiable and apply to your entire session, not just this page.
 
 ### 1. Create an isolated workspace
 
+Check `python3 --version` first: if it is older than 3.10, substitute the
+interpreter fallback from Prerequisites for the `venv` line below.
+
 ```bash
 mkdir allora-agent-quickstart && cd allora-agent-quickstart
 python3 -m venv .venv && source .venv/bin/activate
@@ -132,9 +135,9 @@ kill "$(cat worker.pid)"
 echo "TX_HASH=$TX_HASH"
 ```
 
-A `SANITY CHECK WARNING` in the log is expected: the placeholder `123.45` is
-far from the topic's consensus BTC/USD price. It does not block submission on
-the sandbox topic.
+A `SANITY CHECK WARNING` may appear in the log — the placeholder `123.45` is
+far from the topic's consensus BTC/USD price. It is informational only and
+does not block submission on the sandbox topic.
 
 ### 5. Read the network inference back
 
@@ -220,9 +223,11 @@ operator. Do not report `.allora_key` contents or the API key.
   `allora_sdk` release predates the testnet's `emissions/v10` upgrade.
   Upgrade with `pip install --upgrade allora_sdk`; see
   [Networks](/reference/networks) for the currently deployed chain version.
-- **Faucet fails or rate-limits** (`Too many faucet requests`) — request
+- **Faucet rate-limited** (`Too many faucet requests`) — the worker process
+  **exits** on this error, so the background job from step 3 is gone. Request
   funds directly, authenticated with your API key, for the wallet address
-  printed in the worker's startup banner:
+  printed in the worker's startup banner (one request per address — repeats
+  within a short window are themselves rate-limited):
 
   ```bash
   ADDR=$(grep -o 'allo1[0-9a-z]*' worker.log | head -1)
