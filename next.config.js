@@ -39,6 +39,11 @@ module.exports = withNextra(
           destination: '/devs/consumers/allora-api-endpoint',
           permanent: true,
         },
+        {
+          source: '/devs/workers/deploy-worker/allora-mdk',
+          destination: '/devs/workers/migrate-from-offchain-node',
+          permanent: true,
+        },
       ];
     },
   }

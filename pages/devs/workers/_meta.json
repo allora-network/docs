@@ -2,6 +2,7 @@
 
   "requirements": "System Requirements",
   "deploy-worker": "Build/Deploy an Inference Worker",
+  "migrate-from-offchain-node": "Migrate from the Offchain Node",
   "walkthroughs": "Walkthroughs",
   "deploy-forecaster": "Build and Deploy a Forecaster",
   "query-worker-data": "How To Query Worker Data using allorad",

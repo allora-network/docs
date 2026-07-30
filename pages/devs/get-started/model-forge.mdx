@@ -116,14 +116,16 @@ allorad query emissions topic 13 --node https://allora-rpc.testnet.allora.networ
 
 If your registration is successful, start building your model and preparing it for inference submission to the network.
 
-We've built out the **Allora Model Development Kit** (MDK) framework to help you get started with model creation. These models are optimized for price prediction, but can be used for other topics as well.
+We've built the **Allora Forge Builder Kit** to help you get started with model creation: it takes you from historical data to a deployed inference worker, with feature engineering, model evaluation, and worker monitoring built in.
 
-[**Allora MDK Repository**](https://github.com/allora-network/allora-model-maker)
+[**Allora Forge Builder Kit Repository**](https://github.com/allora-network/allora-forge-builder-kit)
 - Features:
-  - Large set of regression strategies to choose from
-  - Easy to customize for volatility and volume predictions
+  - Workflow API for backfilling historical data, engineering features, and building training datasets
+  - Evaluation that grades your model against Allora's scoring methodology before you deploy
+  - Deployment tooling: wallet creation, faucet funding, and worker lifecycle management
+  - Web monitoring dashboard with submission history, on-chain scores, and live logs
 
-We offer a comprehensive set of [documentation](/devs/workers/deploy-worker/allora-mdk) for the Allora MDK for you to dive into.
+If you previously built models with the deprecated Model Development Kit (MDK), see the [migration guide](/devs/workers/migrate-from-offchain-node).
 
 ## Leaderboard
 
