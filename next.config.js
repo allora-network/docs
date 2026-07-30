@@ -14,6 +14,31 @@ module.exports = withNextra(
           destination: '/home/explore',
           permanent: true,
         },
+        {
+          source: '/devs/consumers/consumer-contracts',
+          destination: '/devs/consumers/allora-api-endpoint',
+          permanent: true,
+        },
+        {
+          source: '/devs/consumers/consumer-contracts/dev-consumers',
+          destination: '/devs/consumers/allora-api-endpoint',
+          permanent: true,
+        },
+        {
+          source: '/devs/consumers/consumer-contracts/deploy-consumer',
+          destination: '/devs/consumers/allora-api-endpoint',
+          permanent: true,
+        },
+        {
+          source: '/devs/consumers/existing-consumers',
+          destination: '/devs/consumers/allora-api-endpoint',
+          permanent: true,
+        },
+        {
+          source: '/devs/consumers/walkthrough-use-topic-inference',
+          destination: '/devs/consumers/allora-api-endpoint',
+          permanent: true,
+        },
       ];
     },
   }
