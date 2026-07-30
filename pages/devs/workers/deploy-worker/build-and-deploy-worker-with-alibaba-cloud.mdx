@@ -126,13 +126,13 @@ If it shows the version you just installed (<Code>{CHAIN_VERSION_TESTNET_BARE}</
 
 ## 4. Configure the Allora Worker Node
 
-This guide uses the [basic-coin-prediction-node](https://github.com/allora-network/basic-coin-prediction-node) repository as an example.
+This guide uses the [allora-offchain-node](https://github.com/allora-network/allora-offchain-node) repository as an example.
 
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/allora-network/basic-coin-prediction-node.git
-cd basic-coin-prediction-node
+git clone https://github.com/allora-network/allora-offchain-node.git
+cd allora-offchain-node
 ```
 
 ![Cloning the Repository](/alibaba/picture4.jpg)
@@ -212,28 +212,22 @@ Edit `config.json` with your wallet information and worker configuration. Here's
 - Adjust `topicId` to match the topic you're participating in
 - Modify the `Token` parameter to match your target trading pair
 
-### Update Docker Image Version
+### Optional: Use a Prebuilt Docker Image
 
-In `docker-compose.yml`, update the offchain node image version:
+The `docker-compose.yaml` in `allora-offchain-node` builds the `node` service from source. To use a prebuilt image instead, replace `build: .` in the `node` service with a pinned image from [Docker Hub](https://hub.docker.com/r/alloranetwork/allora-offchain-node/tags):
 
-Change from:
 ```yml
-image: alloranetwork/allora-offchain-node:v0.6.0
-```
-
-To:
-```yml
-image: alloranetwork/allora-offchain-node:v0.12.0
+image: alloranetwork/allora-offchain-node:v0.14.1
 ```
 
 **Note:** It's acceptable if the minor version differs slightly from your allorad version.
 
 ### Customize the Inference Model
 
-The `app.py` file is the core of the worker node project. This example provides a basic machine learning model template that you can customize for your predictions.
+The worker's predictions come from a separate inference server: the `source` service in `docker-compose.yaml`, built from the [`adapter/api/source` folder](https://github.com/allora-network/allora-offchain-node/tree/dev/adapter/api/source). The bundled server is a barebones example — replace its `main.py` with your own model server. The example below is a complete inference server that you can customize for your predictions.
 
 <details>
-<summary>Click to view the example app.py code</summary>
+<summary>Click to view the example inference server code</summary>
 
 ```python
 # -*- coding: utf-8 -*-
@@ -449,6 +443,6 @@ Once your worker node is running successfully:
 
 - [Allora Network Documentation](https://docs.allora.network)
 - [Allora Forge Platform](https://forge.allora.network)
-- [Basic Coin Prediction Node Repository](https://github.com/allora-network/basic-coin-prediction-node)
+- [Allora Offchain Node Repository](https://github.com/allora-network/allora-offchain-node)
 - [Allora Chain Releases](https://github.com/allora-network/allora-chain/releases)
 

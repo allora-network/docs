@@ -44,6 +44,16 @@ module.exports = withNextra(
           destination: '/devs/workers/migrate-from-offchain-node',
           permanent: true,
         },
+        {
+          source: '/devs/workers/walkthroughs/walkthrough-price-prediction-worker/modelpy',
+          destination: '/devs/workers/walkthroughs/walkthrough-price-prediction-worker',
+          permanent: true,
+        },
+        {
+          source: '/devs/workers/walkthroughs/walkthrough-hugging-face-worker',
+          destination: '/devs/workers/walkthroughs/walkthrough-price-prediction-worker',
+          permanent: true,
+        },
       ];
     },
   }
