@@ -4,6 +4,7 @@
   "sdk-overview": "SDKs Overview",
   "sdk-ts": "TypeScript SDK",
   "sdk-py": "Python SDK",
+  "sdk-go": "Go SDK",
   "rpc-grpc": "RPC Data Access",
   "integrations": "Ecosystem Integrations"
 }
