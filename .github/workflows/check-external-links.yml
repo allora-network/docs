@@ -1,0 +1,26 @@
+name: Check External Links
+
+on:
+  pull_request:
+    branches:
+      - main
+  schedule:
+    # Nightly at 05:00 UTC, so repos going private/deleted are caught without a PR.
+    - cron: '0 5 * * *'
+
+jobs:
+  check-external-links:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    # The checker is plain Node (no dependencies), so no install step is needed.
+    - name: Run external link check script
+      run: node ./scripts/checkExternalLinks.js
