@@ -26,7 +26,7 @@ This page covers the first two layers: how inferences are exchanged, forecast, a
 ## Inference Consumption
 
 ### Request/Response Flow
-At it's core, Allora facilitates the exchange of inferences, enabling _Consumers_ to request them and _Workers_ to supply them. 
+At its core, Allora facilitates the exchange of inferences, enabling _Consumers_ to request them and _Workers_ to supply them. 
 
 ![supply-demand](/exchange-inferences.jpg)
 
@@ -98,7 +98,7 @@ $$
 \hat{R}_{ijk} = \frac{R_{ijk}}{\sigma_j(R_{ijk}) + \epsilon}
 $$
 
-- Here, 𝜎𝑗σ is the standard deviation of 𝑅𝑖𝑗𝑘 for a particular inference across all workers.
+- Here, 𝜎𝑗 is the standard deviation of 𝑅𝑖𝑗𝑘 for a particular inference across all workers.
 - The small constant 𝜖 ensures numerical stability and avoids division by zero.
 
 #### Using Normalized Regrets for Weights

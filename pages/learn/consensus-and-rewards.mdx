@@ -223,8 +223,8 @@ $$
 
 Where:
 - $$ T_i $$ is the performance score for the entire forecasting task.
-- $$ L_i^- $$ iis the network loss when including all forecast-implied inferences.
-- $$ L_i $$ is the network loss with the forecast task.
+- $$ L_i^- $$ is the network loss without any forecast-implied inferences (the inference task alone).
+- $$ L_i $$ is the network loss with the forecast task included.
 
 We then use this score to decide how much the forecast workers should get. The higher their score relative to inference workers, the higher the total reward allocated to forecasters:
 
