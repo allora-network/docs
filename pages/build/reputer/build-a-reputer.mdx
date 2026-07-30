@@ -10,7 +10,7 @@ import { Callout } from 'nextra/components'
 
 # Build a Reputer
 
-[Reputers](/home/layers/consensus/reputers) are the Allora Network's source of truth. Each epoch, a reputer fetches the network's inferences for its topic, compares them against ground truth obtained from its own data sources, computes losses using the topic's loss method, and submits the resulting loss bundle on-chain. Reputers must [stake ALLO](/devs/reputers/set-and-adjust-stake), and rewards depend on accuracy relative to reputer consensus and on stake.
+[Reputers](/learn/layers/consensus/reputers) are the Allora Network's source of truth. Each epoch, a reputer fetches the network's inferences for its topic, compares them against ground truth obtained from its own data sources, computes losses using the topic's loss method, and submits the resulting loss bundle on-chain. Reputers must [stake ALLO](/build/reputer/set-and-adjust-stake), and rewards depend on accuracy relative to reputer consensus and on stake.
 
 Reputers run on the [`allora-offchain-node`](https://github.com/allora-network/allora-offchain-node), which handles registration, staking, submission windows, and transaction retries. You supply two HTTP services: one that returns the ground truth and one that computes the loss.
 
@@ -23,8 +23,8 @@ Run a reputer for a topic with `allora-offchain-node`: configure the node, point
 - Git and Docker (with Docker Compose)
 - A wallet mnemonic — or let the node create keys for you on first run
 - ALLO on the target network to register and stake — on testnet, request funds from the [Allora Testnet Faucet](https://faucet.testnet.allora.network/)
-- The ID of the [topic](/devs/get-started/existing-topics) you want to provide ground truth for
-- The [`allorad` CLI](/devs/get-started/cli) for verification commands
+- The ID of the [topic](/build/forge/topics) you want to provide ground truth for
+- The [`allorad` CLI](/get-started/cli) for verification commands
 
 ## Steps
 
@@ -41,8 +41,8 @@ cp config.example.json config.json
 In `config.json`, fill in the `wallet` section:
 
 - `addressKeyName`: a wallet name of your choice — required; the node's `init.config` script exits with an error if it is empty.
-- `addressRestoreMnemonic`: the mnemonic of your existing [wallet](/devs/get-started/setup-wallet), or leave it empty to have a new key created automatically under `addressKeyName` — the generated address is written to `./data/env_file`, and you will need to fund it before the node can register and stake.
-- `nodeRpcs` and `nodegRpcs`: lists of RPC and gRPC endpoints for the target network (the example config points at testnet). See [Networks](/devs/reference/networks) for endpoints.
+- `addressRestoreMnemonic`: the mnemonic of your existing [wallet](/get-started/setup-wallet), or leave it empty to have a new key created automatically under `addressKeyName` — the generated address is written to `./data/env_file`, and you will need to fund it before the node can register and stake.
+- `nodeRpcs` and `nodegRpcs`: lists of RPC and gRPC endpoints for the target network (the example config points at testnet). See [Networks](/reference/networks) for endpoints.
 
 ### 3. Configure the reputer
 
@@ -73,13 +73,13 @@ The `reputer` section of `config.json` is an array with one entry per topic. Thi
 
 - `topicId`: the topic your reputer provides ground truth for.
 - `groundTruthEntrypointName` / `lossFunctionEntrypointName`: which adapter the node uses to reach your services. `apiAdapter` calls them over HTTP (see the [`adapter` directory](https://github.com/allora-network/allora-offchain-node/tree/dev/adapter)).
-- `minStake`: the stake (in `uallo`) the node ensures is placed for your reputer on the topic. If your existing stake is below this amount, the node pulls the difference from your wallet. Set it at or above the chain's [`required_minimum_stake`](/devs/reference/params/chain#required_minimum_stake) parameter — below that minimum, your contributions to reputation scoring are ignored and you earn no rewards.
+- `minStake`: the stake (in `uallo`) the node ensures is placed for your reputer on the topic. If your existing stake is below this amount, the node pulls the difference from your wallet. Set it at or above the chain's [`required_minimum_stake`](/reference/params/chain#required_minimum_stake) parameter — below that minimum, your contributions to reputation scoring are ignored and you earn no rewards.
 - `groundTruthParameters`: `GroundTruthEndpoint` is the URL of your ground-truth service; it supports the `{Token}`, `{TopicId}`, and `{BlockHeight}` template variables, where extra variables such as `Token` are defined alongside it in the same block.
 - `lossFunctionParameters`: `LossFunctionService` is the base URL of your loss service. `LossMethodOptions.loss_method` must be the loss method the topic declares in its on-chain configuration; any additional options (for example `"delta": "1.0"` for a Huber loss) are passed through to your loss service unchanged.
 
 Whether the scalar or the `Labeled*` endpoints are used is decided by the topic's on-chain output arity: `SINGLE` topics use `GroundTruthEndpoint` and `LossFunctionService`, while multi-label (`MULTI`) topics — classification topics, for example — use `LabeledGroundTruthEndpoint` and `LabeledLossFunctionService`.
 
-To run a reputer only, configure just the `reputer` array — the `worker` section of the example config is for [inference workers](/devs/workers/deploy-worker/using-docker) and can be removed.
+To run a reputer only, configure just the `reputer` array — the `worker` section of the example config is for [inference workers](/build/worker/containerize) and can be removed.
 
 ### 4. Serve ground truth and losses over HTTP
 
@@ -113,27 +113,27 @@ On startup the node registers your reputer on each configured topic and tops you
 
 ## Verify
 
-Check your reputer's registration and stake with `allorad`, as described in [How to Query Reputer Data](/devs/reputers/query-reputer-data):
+Check your reputer's registration and stake with `allorad`, as described in [How to Query Reputer Data](/build/reputer/query-reputer-data):
 
 ```bash
 allorad q emissions is-reputer-registered [topic_id] [address] --node https://allora-rpc.testnet.allora.network/
 allorad q emissions stake-in-topic-reputer [address] [topic_id] --node https://allora-rpc.testnet.allora.network/
 ```
 
-`is-reputer-registered` should return `true`, and your stake should be at least the `minStake` you configured. Once the node is submitting loss bundles, track your EMA score and compare it against the lowest score in the topic's active set to confirm you are eligible for rewards — see [How to Query Reputer EMA Scores](/devs/reputers/query-ema-score).
+`is-reputer-registered` should return `true`, and your stake should be at least the `minStake` you configured. Once the node is submitting loss bundles, track your EMA score and compare it against the lowest score in the topic's active set to confirm you are eligible for rewards — see [How to Query Reputer EMA Scores](/build/reputer/query-ema-score).
 
 ## Troubleshoot
 
 - **Registration or staking fails with an insufficient-funds error** — the wallet must hold ALLO on the network you target. On testnet, request funds from the [faucet](https://faucet.testnet.allora.network/), then restart the node.
 - **The node fails at startup with a missing-endpoint error** — the topic's output arity requires an endpoint you have not configured. `SINGLE` topics need `GroundTruthEndpoint` and `LossFunctionService`; `MULTI` topics need `LabeledGroundTruthEndpoint` and `LabeledLossFunctionService`.
 - **Submissions are rejected for a whitelisted topic** — the node checks whether your address is whitelisted before submitting. If the topic enforces a reputer whitelist, ask the topic creator to whitelist your address.
-- **Registered and submitting, but no rewards** — verify your stake meets the chain's [`required_minimum_stake`](/devs/reference/params/chain#required_minimum_stake); below it, your contributions are ignored. Also compare your EMA score against the topic's active set as shown in [How to Query Reputer EMA Scores](/devs/reputers/query-ema-score).
+- **Registered and submitting, but no rewards** — verify your stake meets the chain's [`required_minimum_stake`](/reference/params/chain#required_minimum_stake); below it, your contributions are ignored. Also compare your EMA score against the topic's active set as shown in [How to Query Reputer EMA Scores](/build/reputer/query-ema-score).
 - **Chain version errors** — the current node targets the v10 Allora chain emissions API and is not backward-compatible with v9 chains. Run the latest node release against a v10 network.
 
 ## Next
 
-- Manage your stake: [Set and Adjust Stake](/devs/reputers/set-and-adjust-stake)
-- Query reputer data with `allorad`: [How to Query Reputer Data](/devs/reputers/query-reputer-data)
-- Understand scoring and the active set: [How to Query Reputer EMA Scores](/devs/reputers/query-ema-score)
-- Running an inference worker too? The Python SDK supports workers today: [migrate a worker from the offchain node](/devs/workers/migrate-from-offchain-node)
-- Explore the Python SDK: [Allora Python SDK](/devs/sdk/allora-sdk-py)
+- Manage your stake: [Set and Adjust Stake](/build/reputer/set-and-adjust-stake)
+- Query reputer data with `allorad`: [How to Query Reputer Data](/build/reputer/query-reputer-data)
+- Understand scoring and the active set: [How to Query Reputer EMA Scores](/build/reputer/query-ema-score)
+- Running an inference worker too? The Python SDK supports workers today: [migrate a worker from the offchain node](/build/migrate-from-offchain-node)
+- Explore the Python SDK: [Allora Python SDK](/consume/sdk-py)

@@ -10,7 +10,7 @@ import { Callout } from 'nextra/components'
 
 # Walkthrough: Build a Price Prediction Worker
 
-This walkthrough starts from a minimal worker built with the [Allora Python SDK](/devs/sdk/allora-sdk-py), then swaps in a real price model: a gradient-boosted tree regressor that predicts the BTC/USD price 24 hours ahead. The modeling approach — multi-horizon log-return features, walk-forward validation, and converting a predicted log return back into a price — is adapted from the [Allora Forge Builder Kit](https://github.com/allora-network/allora-forge-builder-kit) notebooks.
+This walkthrough starts from a minimal worker built with the [Allora Python SDK](/consume/sdk-py), then swaps in a real price model: a gradient-boosted tree regressor that predicts the BTC/USD price 24 hours ahead. The modeling approach — multi-horizon log-return features, walk-forward validation, and converting a predicted log return back into a price — is adapted from the [Allora Forge Builder Kit](https://github.com/allora-network/allora-forge-builder-kit) notebooks.
 
 ## Goal
 
@@ -269,7 +269,7 @@ python worker.py
 
 ## Next
 
-- Explore the SDK's full surface — RPC queries, transactions, and the REST API client: [Allora Python SDK](/devs/sdk/allora-sdk-py)
-- Graduate from the sandbox: pick a real topic from [existing topics](/devs/get-started/existing-topics)
-- Productionize your worker: [deploy a worker with Docker](/devs/workers/deploy-worker/using-docker)
+- Explore the SDK's full surface — RPC queries, transactions, and the REST API client: [Allora Python SDK](/consume/sdk-py)
+- Graduate from the sandbox: pick a real topic from [existing topics](/build/forge/topics)
+- Productionize your worker: [deploy a worker with Docker](/build/worker/containerize)
 - Train and deploy a model end to end with the [Forge Builder Kit](https://github.com/allora-network/allora-forge-builder-kit)

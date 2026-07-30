@@ -12,7 +12,7 @@ import { Callout } from 'nextra/components'
 
 The original worker stack — the [`allora-offchain-node`](https://github.com/allora-network/allora-offchain-node) Go daemon configured through `config.json`, relaying inferences from a separate HTTP inference server, with models trained and packaged by the Model Development Kit (MDK) — is **deprecated** for workers. The replacement is:
 
-- The [Allora Python SDK](/devs/sdk/allora-sdk-py) (`allora_sdk`): its `AlloraWorker` calls your model as a Python function in the same process and submits the result on-chain. It handles wallet creation, registration, testnet faucet funding, fee estimation, and retries — no Go daemon, no `config.json`, no HTTP relay between your model and the network.
+- The [Allora Python SDK](/consume/sdk-py) (`allora_sdk`): its `AlloraWorker` calls your model as a Python function in the same process and submits the result on-chain. It handles wallet creation, registration, testnet faucet funding, fee estimation, and retries — no Go daemon, no `config.json`, no HTTP relay between your model and the network.
 - The [Forge Builder Kit](https://github.com/allora-network/allora-forge-builder-kit): replaces the MDK's train/eval/package workflow with `AlloraMLWorkflow` (historical data backfill, feature engineering, training datasets), `PerformanceEvaluator` (grades your model against Allora's scoring methodology before you deploy), and `WorkerManager` (wallet creation, faucet funding, worker lifecycle) plus a web monitoring dashboard.
 
 ## Goal
@@ -28,7 +28,7 @@ Replace an `allora-offchain-node` worker with a Python SDK worker that keeps the
 - An Allora API key — free at [developer.allora.network](https://developer.allora.network). On testnet, the worker uses it to request ALLO gas from the faucet automatically.
 
 <Callout type="warning">
-The published SDK release (`allora_sdk` 1.0.6) supports **workers only**. The offchain node's `reputer` configuration (`groundTruthEntrypointName`, `lossFunctionEntrypointName`, `minStake`, ...) has no SDK equivalent yet — [reputers](/devs/reputers/reputers) continue to run on the offchain node for now.
+The published SDK release (`allora_sdk` 1.0.6) supports **workers only**. The offchain node's `reputer` configuration (`groundTruthEntrypointName`, `lossFunctionEntrypointName`, `minStake`, ...) has no SDK equivalent yet — [reputers](/build/reputer/deploy-docker) continue to run on the offchain node for now.
 </Callout>
 
 ## Steps
@@ -45,7 +45,7 @@ The offchain node was configured with a `config.json` (see `config.example.json`
 | `wallet.nodeRpcs`, `wallet.nodegRpcs` | `network=AlloraNetworkConfig(url=..., websocket_url=...)` — a `grpc+https://` URL uses gRPC, `rest+https://` uses the Cosmos-LCD REST API |
 | `wallet.gasPrices`, `wallet.maxFees`, `wallet.gasAdjustment` | `fee_tier=FeeTier.ECO` / `.STANDARD` (default) / `.PRIORITY` — fee estimation is automatic |
 | `wallet.maxRetries`, `wallet.retryDelay`, `wallet.accountSequenceRetryDelay` | Handled automatically — retries are built in |
-| `wallet.submitTx` | Not needed — the worker submits transactions; use the [RPC client](/devs/sdk/allora-sdk-py#allorarpcclient-typed-chain-queries-and-transactions) directly for query-only use |
+| `wallet.submitTx` | Not needed — the worker submits transactions; use the [RPC client](/consume/sdk-py#allorarpcclient-typed-chain-queries-and-transactions) directly for query-only use |
 | `worker[].topicId` | `topic_id=...` |
 | `worker[].inferenceEntrypointName` + `worker[].parameters.InferenceEndpoint` / `Token` | `run=...` — your model is a Python function called in-process; there is no HTTP inference server to stand up |
 | Multiple entries in the `worker` array | One `AlloraWorker.inferer(...)` per topic — or let the Builder Kit's `WorkerManager` run one worker process per topic |
@@ -101,7 +101,7 @@ export ALLORA_API_KEY="<your key from developer.allora.network>"
 python worker.py
 ```
 
-If you served multiple topics from one `config.json` `worker` array, run one script per topic with its own `topic_id`. The [Python SDK page](/devs/sdk/allora-sdk-py) covers the full set of options (`fee_tier`, `polling_interval`, `debug`, custom `AlloraNetworkConfig`).
+If you served multiple topics from one `config.json` `worker` array, run one script per topic with its own `topic_id`. The [Python SDK page](/consume/sdk-py) covers the full set of options (`fee_tier`, `polling_interval`, `debug`, custom `AlloraNetworkConfig`).
 
 ### 3. Move your model workflow from the MDK to the Builder Kit
 
@@ -147,7 +147,7 @@ Then follow the repository's "Zero to deploy" walkthrough: train an example mode
 
 ## Next
 
-- See a full worker build, from data to deployment: [price prediction worker walkthrough](/devs/workers/walkthroughs/walkthrough-price-prediction-worker)
-- Compete with your model: [Model Forge quickstart](/devs/get-started/model-forge)
-- Full worker, RPC, and API client reference: [Allora Python SDK](/devs/sdk/allora-sdk-py)
-- Pick a topic to serve: [existing topics](/devs/get-started/existing-topics)
+- See a full worker build, from data to deployment: [price prediction worker walkthrough](/build/worker/sdk-py)
+- Compete with your model: [Model Forge quickstart](/build/forge/competitions)
+- Full worker, RPC, and API client reference: [Allora Python SDK](/consume/sdk-py)
+- Pick a topic to serve: [existing topics](/build/forge/topics)

@@ -3,7 +3,7 @@ import { CHAIN_VERSION_TESTNET } from "../../../components/versions";
 
 # Model Forge Quickstart
 
-The [Allora Model Forge Competition](https://forge.allora.network) is an open-source hackathon where participants attempt to create the best model for a given [topic](/devs/topic-creators/topic-life-cycle) on the Allora Network.
+The [Allora Model Forge Competition](https://forge.allora.network) is an open-source hackathon where participants attempt to create the best model for a given [topic](/operate/topics/lifecycle) on the Allora Network.
 
 - Inferences are submitted to the Allora Network.
 - Participants are scored based on the accuracy of their model compared to the ground truth, and rewarded accordingly.
@@ -65,7 +65,7 @@ Congratulations! You're now registered for the Allora Model Forge Competition.
 
 ## Topics
 
-The Allora Network is categorized into distinct [topics](/devs/topic-creators/how-to-create-topic) that serve as Schelling points for model-makers to submit inferences on.
+The Allora Network is categorized into distinct [topics](/operate/topics/create) that serve as Schelling points for model-makers to submit inferences on.
 
 Topics are assigned an ID and categorized by a specific Target Variable, Epoch, Loss Method, and Metadata. Let's quickly explain each in the context of the Forge Competition:
 
@@ -85,7 +85,7 @@ Topics are assigned an ID and categorized by a specific Target Variable, Epoch, 
 
 
 <Callout>
-[Additional fields that define a given topic](/devs/topic-creators/how-to-create-topic) can be pulled using the following [`allorad`](/devs/get-started/model-forge#download-the-allorad-cli-tool) command:
+[Additional fields that define a given topic](/operate/topics/create) can be pulled using the following [`allorad`](/build/forge/competitions#download-the-allorad-cli-tool) command:
 
 ```bash
 allorad query emissions topic <topic-id> --node <node-url>
@@ -125,7 +125,7 @@ We've built the **Allora Forge Builder Kit** to help you get started with model 
   - Deployment tooling: wallet creation, faucet funding, and worker lifecycle management
   - Web monitoring dashboard with submission history, on-chain scores, and live logs
 
-If you previously built models with the deprecated Model Development Kit (MDK), see the [migration guide](/devs/workers/migrate-from-offchain-node).
+If you previously built models with the deprecated Model Development Kit (MDK), see the [migration guide](/build/migrate-from-offchain-node).
 
 ## Leaderboard
 
@@ -136,7 +136,7 @@ The leaderboard is a live-updating list of the top performing models in the comp
 3. [5min ETH Volatility Prediction](https://forge.allora.network/competitions/3)
 
 <Callout>
-Don't forget to [connect your wallet](/devs/get-started/model-forge#successful-registration) to the Allora Forge site to view the leaderboard.
+Don't forget to [connect your wallet](/build/forge/competitions#successful-registration) to the Allora Forge site to view the leaderboard.
 </Callout>
 
 ## Detailed Performance Metrics

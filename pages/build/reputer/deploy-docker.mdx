@@ -30,12 +30,12 @@ cd allora-offchain-node
 
 ### `wallet` Sub-object
 
-1. `nodeRpc`: The [RPC URL](/devs/get-started/setup-wallet#rpc-url-and-chain-id) for the corresponding network the node will be deployed on
-2. `addressKeyName`: The name you gave your wallet key when [setting up your wallet](/devs/get-started/setup-wallet)
+1. `nodeRpc`: The [RPC URL](/get-started/setup-wallet#rpc-url-and-chain-id) for the corresponding network the node will be deployed on
+2. `addressKeyName`: The name you gave your wallet key when [setting up your wallet](/get-started/setup-wallet)
 3. `addressRestoreMnemonic`: The mnemonic that was outputted when setting up a new key
 
 {/* <Callout type="info">
-`addressKeyName` and `addressRestoreMnemonic` are optional parameters. If you did not previously generate keys, keys will be generated for you when [running the node](/devs/workers/deploy-worker/using-docker#generate-keys-and-export-variables).
+`addressKeyName` and `addressRestoreMnemonic` are optional parameters. If you did not previously generate keys, keys will be generated for you when [running the node](/build/worker/containerize#generate-keys-and-export-variables).
 
 If you have existing keys that you wish to use, you will need to provide these variables.
 </Callout> */}
@@ -85,7 +85,7 @@ To deploy a reputer that provides inferences for multiple topics, you can duplic
 
 ### Worker Config
 
-The `config.example.json` file that was copied and edited in the previous steps also contains a JSON object for configuring and deploying a [worker](/devs/workers/deploy-worker/using-docker). To ignore the worker and only deploy a reputer, delete the reputer sub-object from the `config.json` file.
+The `config.example.json` file that was copied and edited in the previous steps also contains a JSON object for configuring and deploying a [worker](/build/worker/containerize). To ignore the worker and only deploy a reputer, delete the reputer sub-object from the `config.json` file.
 
 ## Create the Truth Server
 
@@ -202,4 +202,4 @@ Congratulations! You've successfully deployed and registered your node on Allora
 
 ## Learn More
 
-For a guide based on the current `allora-offchain-node` configuration format — including the ground-truth and loss-function service contract, staking, and verification — see [Build a Reputer](/devs/reputers/build-a-reputer).
+For a guide based on the current `allora-offchain-node` configuration format — including the ground-truth and loss-function service contract, staking, and verification — see [Build a Reputer](/build/reputer/build-a-reputer).

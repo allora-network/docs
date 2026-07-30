@@ -25,7 +25,7 @@ curl -X 'GET' \
   -H 'x-api-key: <apiKey>'
 ```
 
-Replace `<apiKey>` with your actual API key, `<chainId>` with a supported chain ID (see the `SignatureFormat` values in the [TypeScript SDK reference](/devs/sdk/allora-sdk-ts) for supported values), and `<topicId>` with the topic ID you want to query.
+Replace `<apiKey>` with your actual API key, `<chainId>` with a supported chain ID (see the `SignatureFormat` values in the [TypeScript SDK reference](/consume/sdk-ts) for supported values), and `<topicId>` with the topic ID you want to query.
 
 ### API Key Security
 
@@ -47,7 +47,7 @@ API requests are subject to rate limiting. If you exceed the rate limit, you wil
 **Example**: `https://allora-api.testnet.allora.network/emissions/v10/latest_network_inferences/1`
 
 Where:
-- "v10" is the `emissions` API version, which depends on the deployed chain version of the network you are querying (testnet = `v10`, mainnet = `v9`). See [Networks](/devs/reference/networks) for the current version per network.
+- "v10" is the `emissions` API version, which depends on the deployed chain version of the network you are querying (testnet = `v10`, mainnet = `v9`). See [Networks](/reference/networks) for the current version per network.
 - "1" represents the topic ID
 
 An **outlier-resistant** variant is available for single-label regression topics:
@@ -118,7 +118,7 @@ Please be aware that there may be some expected volatility in predictions due to
 Below is an explanation of the important fields in the JSON output. Every inference value is **labeled** (`label_id` + `label_name` + `value`); single-output topics use the canonical label `y`.
 
 ### `topic_id`
-In this case, "1" represents the topic being queried. [Topics](/devs/topic-creators/how-to-create-topic) define the context and rules for a particular inference.
+In this case, "1" represents the topic being queried. [Topics](/operate/topics/create) define the context and rules for a particular inference.
 
 ### `combined_value`
 The **combined value** is an optimized inference that represents a collective intelligence approach, taking both worker submissions and forecast data into account.
@@ -140,7 +140,7 @@ Workers in the network submit their inferences, each represented by an `allo` ad
 Each worker submits values based on their own models. These individual submissions contribute to both the naive and combined values. The combined value gives higher weighting to more reliable workers, based on performance or other criteria.
 
 ### `forecaster_values`
-The forecast-implied inferences, one per forecaster. A [forecast-implied inference](/home/layers/forecast-synthesis/synthesis#forecast-implied-inferences) uses forecasted losses and worker inferences to produce a predicted value, weighted by how accurately each forecaster predicted losses in previous epochs.
+The forecast-implied inferences, one per forecaster. A [forecast-implied inference](/learn/layers/forecast-synthesis/synthesis#forecast-implied-inferences) uses forecasted losses and worker inferences to produce a predicted value, weighted by how accurately each forecaster predicted losses in previous epochs.
 
 ### `naive_value`
 The **naive value** omits all forecast-implied inferences from the weighted average by setting their weights to zero. It is used to quantify the contribution of the forecasting task to network accuracy, which in turn sets the reward distribution between the inference and forecasting tasks.
@@ -152,6 +152,6 @@ These simulate removing (or adding) a single participant to measure their margin
 The specific chain block at which the inference data was generated.
 
 <Callout type="info">
-Per-actor **weights** and **confidence intervals** are not part of this response. Weights can be queried separately (for example `GetLatestInfererWeight` / `GetLatestForecasterWeight`), and confidence intervals are described on the [Confidence Intervals](/home/confidence-intervals) page.
+Per-actor **weights** and **confidence intervals** are not part of this response. Weights can be queried separately (for example `GetLatestInfererWeight` / `GetLatestForecasterWeight`), and confidence intervals are described on the [Confidence Intervals](/learn/confidence-intervals) page.
 </Callout>
 

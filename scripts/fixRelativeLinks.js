@@ -40,9 +40,10 @@ async function findAndUpdateLinks(files) {
 
   for (const [filename, paths] of Object.entries(fileMap)) {
     if (paths.length > 1 && !filename.startsWith('index')) {
-      // There are duplicate index.mdx files, which shouldn't be too link-worthy anyway
-      console.log(`Duplicate filename detected: ${filename}. Files: ${paths.join(', ')}. Please rename to make them unique.`);
-      throw new Error('Duplicate filename detected');
+      // Sections legitimately share basenames (e.g. one overview.mdx each), so
+      // duplicates only disable auto-rewriting for that basename (handled below);
+      // links to them are still validated.
+      console.warn(`Warning: duplicate filename ${filename} (${paths.join(', ')}); links to it will not be auto-rewritten.`);
     }
   }
 
@@ -61,14 +62,18 @@ async function findAndUpdateLinks(files) {
       }
       const [fullMatch, linkPath] = match;
       let [resolvedPath, fragment] = linkPath.split('#');
-      const targetFile = path.resolve(dir, resolvedPath);
+      // Site-absolute links resolve against pages/; relative links against the file's dir.
+      const isAbsolute = resolvedPath.startsWith('/');
+      const targetFile = isAbsolute
+        ? path.join(directoryPath, resolvedPath)
+        : path.resolve(dir, resolvedPath);
 
       targetFileMDX = targetFile.endsWith('.mdx') ? targetFile : `${targetFile}.mdx`;
       if (!fs.existsSync(targetFileMDX)) {
         console.log(`Broken link found in ${file}: ${linkPath} does not exist.`);
         throw new Error('Broken link found');
       } else {
-        if ((fileMap[path.basename(targetFile)] ?? []).length === 1) {
+        if (!isAbsolute && (fileMap[path.basename(targetFile)] ?? []).length === 1) {
           try {
             let correctPath = path.relative(dir, fileMap[path.basename(targetFile)][0]) + (fragment ? `#${fragment}` : '');
             if (!correctPath.startsWith('../')) {
@@ -96,5 +101,6 @@ async function findAndUpdateLinks(files) {
     await findAndUpdateLinks(files);
   } catch (error) {
     console.error('An error occurred:', error);
+    process.exitCode = 1;
   }
 })();

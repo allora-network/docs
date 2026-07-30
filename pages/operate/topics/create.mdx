@@ -12,8 +12,8 @@ Developers can make topics for arbitrary categories of inferences so long as the
 
 ## Prerequisites:
 
-1. A wallet with sufficient funds to at least cover gas. Use [the faucet](/devs/get-started/setup-wallet) to get funds. 
-2. [Allorad CLI tool](/devs/get-started/cli#installing-allorad)
+1. A wallet with sufficient funds to at least cover gas. Use [the faucet](/get-started/setup-wallet) to get funds. 
+2. [Allorad CLI tool](/get-started/cli#installing-allorad)
 
 ## Explainer Video
 
@@ -86,7 +86,7 @@ type MsgCreateNewTopic struct {
 }
 ```
 
-Using the [`allorad` CLI](/devs/get-started/cli#installing-allorad) to create a topic:
+Using the [`allorad` CLI](/get-started/cli#installing-allorad) to create a topic:
 
 The command takes the following positional arguments, in order:
 
@@ -121,7 +121,7 @@ allorad tx emissions create-topic \
   --chain-id <CHAIN_ID>
 ```
 
-Be sure to swap out [`RPC_URL`](/devs/get-started/setup-wallet#rpc-url-and-chain-id), `YOUR_ADDRESS`, [`CHAIN_ID`](/devs/get-started/setup-wallet#rpc-url-and-chain-id) and all other arguments as appropriate with the desired values.
+Be sure to swap out [`RPC_URL`](/get-started/setup-wallet#rpc-url-and-chain-id), `YOUR_ADDRESS`, [`CHAIN_ID`](/get-started/setup-wallet#rpc-url-and-chain-id) and all other arguments as appropriate with the desired values.
 
 The example above creates a standard **single-output regression topic** — the historical default, and what most price/quantity prediction topics use. The last eleven arguments (`enable_worker_whitelist` through `label_case_sensitive`) configure whitelisting and the multi-label features introduced in v0.17.0; see the section below.
 

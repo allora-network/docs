@@ -1,12 +1,12 @@
 import { Callout, Code, Pre } from 'nextra/components'
-import { CHAIN_VERSION_MAINNET, CHAIN_VERSION_TESTNET } from '../../../components/versions'
+import { CHAIN_VERSION_MAINNET, CHAIN_VERSION_TESTNET } from '../../components/versions'
 
 # Allora CLI Spec
 
 Allora provides a CLI tools that allows network participants to perform different functions on the Allora Network:
 
 - `allorad` -  Used to read and write data to the chain, e.g. to create a wallet, create new topics or add/delegate stake to a reputer
-  - Refer to the [Allorad Reference](/devs/reference/allorad) section for a full list of `allorad` commands with their explanations
+  - Refer to the [Allorad Reference](/reference/allorad) section for a full list of `allorad` commands with their explanations
 
 ## Installing `allorad`
 
@@ -18,7 +18,7 @@ To install Go, follow one of the recommended methods below or consult the [offic
 
 ### Installation
 
-The command below installs {CHAIN_VERSION_TESTNET}, the version currently deployed on the testnet. If you are targeting mainnet, pass {CHAIN_VERSION_MAINNET} instead — see [Networks](/devs/reference/networks) for the version deployed on each network.
+The command below installs {CHAIN_VERSION_TESTNET}, the version currently deployed on the testnet. If you are targeting mainnet, pass {CHAIN_VERSION_MAINNET} instead — see [Networks](/reference/networks) for the version deployed on each network.
 
 <Pre hasCopyCode data-language="bash">
   <Code>{`curl -sSL https://raw.githubusercontent.com/allora-network/allora-chain/dev/install.sh | bash -s -- ${CHAIN_VERSION_TESTNET}`}</Code>

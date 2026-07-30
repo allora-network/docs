@@ -9,7 +9,7 @@ on-chain metadata (name), epoch length (in blocks), and category (price / log-re
 
 <Callout type="info">
 This page was generated from live chain state on **2026-07-30** by querying the
-[Cosmos LCD (REST) API](/devs/reference/networks) of each network (testnet `allora-testnet-1` via
+[Cosmos LCD (REST) API](/reference/networks) of each network (testnet `allora-testnet-1` via
 `emissions/v10`, mainnet `allora-mainnet-1` via `emissions/v9`). Only topics whose
 `is_topic_active` query returned `true` at that time are listed. Topics activate and deactivate
 over time, so [verify a topic's status](#verify-a-topics-status) before building against it.
@@ -93,7 +93,7 @@ The same prediction task can have different topic IDs on testnet and mainnet (fo
 ## Verify a topic's status
 
 Query the live chain to confirm a topic's current definition and active status. Note that the
-`emissions` API version segment differs by network (see [Networks](/devs/reference/networks)):
+`emissions` API version segment differs by network (see [Networks](/reference/networks)):
 
 ```bash
 # Testnet (emissions/v10)
@@ -107,4 +107,4 @@ curl -s https://allora-api.mainnet.allora.network/emissions/v9/is_topic_active/1
 
 ## Next
 
-[Install `allorad`](/devs/get-started/cli#installing-allorad) and [create your first topic](/devs/topic-creators/how-to-create-topic) by following the instructions in the hyperlinks provided.
+[Install `allorad`](/get-started/cli#installing-allorad) and [create your first topic](/operate/topics/create) by following the instructions in the hyperlinks provided.

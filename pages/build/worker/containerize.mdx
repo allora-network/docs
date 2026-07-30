@@ -3,7 +3,7 @@ import { Callout } from 'nextra/components'
 # Build and Deploy a Worker Node using Docker
 
 <Callout type="error">
-**Deprecated:** the `allora-offchain-node` stack described on this page is deprecated in favor of running a worker with the [Allora Python SDK](/devs/sdk/allora-sdk-py) and the [Forge Builder Kit](https://github.com/allora-network/allora-forge-builder-kit). For new workers — and to move an existing offchain-node worker — follow the [migration guide](/devs/workers/migrate-from-offchain-node).
+**Deprecated:** the `allora-offchain-node` stack described on this page is deprecated in favor of running a worker with the [Allora Python SDK](/consume/sdk-py) and the [Forge Builder Kit](https://github.com/allora-network/allora-forge-builder-kit). For new workers — and to move an existing offchain-node worker — follow the [migration guide](/build/migrate-from-offchain-node).
 </Callout>
 
 This document outlines a setup where the worker node is supported by an inference server. Communication occurs through an endpoint, allowing the worker to request inferences from the server.
@@ -34,12 +34,12 @@ cd allora-offchain-node
 
 ### `wallet` Sub-object
 
-1. `nodeRpc`: The [RPC URL](/devs/get-started/setup-wallet#rpc-url-and-chain-id) for the corresponding network the node will be deployed on
-2. `addressKeyName`: The name you gave your wallet key when [setting up your wallet](/devs/get-started/setup-wallet)
+1. `nodeRpc`: The [RPC URL](/get-started/setup-wallet#rpc-url-and-chain-id) for the corresponding network the node will be deployed on
+2. `addressKeyName`: The name you gave your wallet key when [setting up your wallet](/get-started/setup-wallet)
 3. `addressRestoreMnemonic`: The mnemonic that was outputted when setting up a new key
 
 {/* <Callout type="info">
-`addressKeyName` and `addressRestoreMnemonic` are optional parameters. If you did not previously generate keys, keys will be generated for you when [running the node](/devs/workers/deploy-worker/using-docker#generate-keys-and-export-variables).
+`addressKeyName` and `addressRestoreMnemonic` are optional parameters. If you did not previously generate keys, keys will be generated for you when [running the node](/build/worker/containerize#generate-keys-and-export-variables).
 
 If you have existing keys that you wish to use, you will need to provide these variables.
 </Callout> */}
@@ -82,7 +82,7 @@ To deploy a worker that provides inferences for multiple topics, you can duplica
 
 ### Reputer Config
 
-The `config.example.json` file that was copied and edited in the previous steps also contains a JSON object for configuring and deploying a [reputer](/devs/reputers/reputers). To ignore the reputer and only deploy a worker, delete the reputer sub-object from the `config.json` file.
+The `config.example.json` file that was copied and edited in the previous steps also contains a JSON object for configuring and deploying a [reputer](/build/reputer/deploy-docker). To ignore the reputer and only deploy a worker, delete the reputer sub-object from the `config.json` file.
 
 ## Create the Inference Server
 
@@ -91,7 +91,7 @@ The `config.example.json` file that was copied and edited in the previous steps 
 Ensure you have an API gateway or server that can accept API requests to call your model. 
 
 <Callout>
-The model in `allora-offchain-node` is barebones and outputs a random integer. For a full example that trains a real price model and serves its predictions, see the [price prediction worker walkthrough](/devs/workers/walkthroughs/walkthrough-price-prediction-worker).
+The model in `allora-offchain-node` is barebones and outputs a random integer. For a full example that trains a real price model and serves its predictions, see the [price prediction worker walkthrough](/build/worker/sdk-py).
 </Callout>
 
 ### Server Responsibilities
@@ -131,7 +131,7 @@ if __name__ == '__main__':
 ```
 
 <Callout type="warning">
-  The model in `allora-offchain-node` is barebones and outputs a random integer. For a full example that trains a real price model and serves its predictions, see the [price prediction worker walkthrough](/devs/workers/walkthroughs/walkthrough-price-prediction-worker).
+  The model in `allora-offchain-node` is barebones and outputs a random integer. For a full example that trains a real price model and serves its predictions, see the [price prediction worker walkthrough](/build/worker/sdk-py).
 </Callout>
 
 

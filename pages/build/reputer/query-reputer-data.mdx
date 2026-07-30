@@ -1,10 +1,10 @@
 # How to Query Reputer Data using `allorad`
 
-Below is a list of commands to understand how to pull information about reputers via [`allorad`](/devs/get-started/cli#installing-allorad):
+Below is a list of commands to understand how to pull information about reputers via [`allorad`](/get-started/cli#installing-allorad):
 
 ## Prerequisites
 
-- [`allorad` CLI](/devs/get-started/cli)
+- [`allorad` CLI](/get-started/cli)
 - A basic understanding of the Allora Network
 
 ## Query Functions
@@ -182,7 +182,7 @@ allorad q emissions [Command] --node <RPC_URL>
 
 - **RPC Method:** `GetListeningCoefficient`
 - **Command:** `listening-coefficient [topic_id] [reputer]`
-- **Description:** Returns the current [listening coefficient](/home/layers/consensus/reputers#solution-adjusted-stake) for a given reputer in a specific topic. The coefficient measures how much a reputer is "listening" or interacting with the network. If no coefficient exists, it defaults to `1`.
+- **Description:** Returns the current [listening coefficient](/learn/layers/consensus/reputers#solution-adjusted-stake) for a given reputer in a specific topic. The coefficient measures how much a reputer is "listening" or interacting with the network. If no coefficient exists, it defaults to `1`.
 - **Positional Arguments:**
     - `topic_id`: The identifier of the topic.
     - `reputer`: The address of the reputer whose listening coefficient is being queried.
