@@ -8,10 +8,11 @@ const readFile = util.promisify(fs.readFile);
 const relativeDirectoryPath = process.argv[2] || './pages';
 const directoryPath = path.resolve(relativeDirectoryPath);
 
-// Any github.com/allora-network/* link that does not resolve with a 200 for an
-// anonymous request is a hard failure: a private or deleted org repo must count
-// as a dead link. All other domains are warn-only.
-const hardFailPattern = /^https?:\/\/(www\.)?github\.com\/allora-network(\/|$)/i;
+// Any github.com/allora-network/* link (including raw.githubusercontent.com)
+// that does not resolve with a 200 for an anonymous request is a hard failure:
+// a private or deleted org repo must count as a dead link. All other domains
+// are warn-only.
+const hardFailPattern = /^https?:\/\/((www\.)?github\.com|raw\.githubusercontent\.com)\/allora-network(\/|$)/i;
 
 // Hosts that are known to block HEAD requests, anonymous clients, or bots with
 // non-2xx statuses even though the content exists. Warn-only hosts listed here
@@ -97,12 +98,43 @@ function shouldSkip(url) {
   } catch (error) {
     return 'unparseable URL';
   }
-  const hostname = parsed.hostname;
-  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0' || !hostname.includes('.')) {
+  const nonPublic = nonPublicHostReason(parsed.hostname);
+  if (nonPublic) {
+    return nonPublic;
+  }
+  if (flakyHostAllowlist.includes(parsed.hostname)) {
+    return 'allowlisted flaky host';
+  }
+  return null;
+}
+
+// Reject hosts that CI must never request: localhost, private/link-local IP
+// ranges (which include cloud metadata services), IPv6 literals, and internal
+// TLDs. This is a hostname-level guard — it does not resolve DNS, so it does
+// not defend against a public name pointing at a private address; it keeps
+// the checker from being pointed at internal services by a URL in a PR.
+function nonPublicHostReason(hostname) {
+  if (hostname === 'localhost' || hostname.endsWith('.localhost') || !hostname.includes('.')) {
     return 'local/internal host';
   }
-  if (flakyHostAllowlist.includes(hostname)) {
-    return 'allowlisted flaky host';
+  if (/\.(local|internal|lan|home|corp)$/i.test(hostname)) {
+    return 'local/internal host';
+  }
+  if (hostname.startsWith('[')) {
+    return 'IP-literal host'; // IPv6 literal
+  }
+  const ipv4 = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4) {
+    const [a, b] = [Number(ipv4[1]), Number(ipv4[2])];
+    const isPrivate =
+      a === 0 || a === 10 || a === 127 ||
+      (a === 100 && b >= 64 && b <= 127) ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 198 && (b === 18 || b === 19)) ||
+      a >= 224;
+    return isPrivate ? 'private-range IP host' : 'IP-literal host';
   }
   return null;
 }
@@ -137,22 +169,42 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+const maxRedirectHops = 5;
+
 async function requestStatus(url, method) {
-  const response = await fetch(url, {
-    method,
-    redirect: 'follow',
-    headers: { 'User-Agent': userAgent, 'Accept': '*/*' },
-    signal: AbortSignal.timeout(requestTimeoutMs),
-  });
-  // Discard any body; only the final status matters.
-  if (response.body) {
-    try {
-      await response.body.cancel();
-    } catch (error) {
-      // Ignore: some bodies are already consumed or locked.
+  // Follow redirects manually so every hop's destination is validated against
+  // the non-public-host guard before it is requested.
+  let current = url;
+  for (let hop = 0; hop <= maxRedirectHops; hop++) {
+    const response = await fetch(current, {
+      method,
+      redirect: 'manual',
+      headers: { 'User-Agent': userAgent, 'Accept': '*/*' },
+      signal: AbortSignal.timeout(requestTimeoutMs),
+    });
+    // Discard any body; only the final status matters.
+    if (response.body) {
+      try {
+        await response.body.cancel();
+      } catch (error) {
+        // Ignore: some bodies are already consumed or locked.
+      }
     }
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get('location');
+      if (!location) {
+        return response.status;
+      }
+      const next = new URL(location, current);
+      if (!/^https?:$/.test(next.protocol) || nonPublicHostReason(next.hostname)) {
+        throw new Error(`redirect to non-public destination blocked: ${next.href}`);
+      }
+      current = next.href;
+      continue;
+    }
+    return response.status;
   }
-  return response.status;
+  throw new Error(`too many redirects (>${maxRedirectHops})`);
 }
 
 async function checkUrl(url) {
