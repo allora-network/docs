@@ -1,20 +1,35 @@
-import { Cards, Card, Callout } from 'nextra/components'
+---
+title: Ecosystem Integrations
+description: Third-party agent frameworks with maintained Allora plugins for consuming inferences.
+persona: Agent developer
+verified_against: goat-sdk/goat@f2eedc2 (main), blorm-network/ZerePy (main), game-by-virtuals/game-node (main) — checked 2026-07-30
+last_reviewed: 2026-07-30
+---
 
-# Explore Allora's Marketplace
+# Ecosystem Integrations
 
-Allora's marketplace is a set of plugins for developers to build and publish integrations using the Allora network.
+Several agent frameworks ship plugins that let their agents consume Allora
+inferences — for example real-time price predictions — without running any
+Allora infrastructure. Each plugin is maintained upstream in the framework's
+own repository.
 
-## Integrations
+## Available integrations
 
-- ### [Eliza OS](https://github.com/elizaOS/eliza/tree/main/packages/plugin-allora)
-  A powerful operating system plugin that enables seamless interaction with Eliza-based systems.
+- ### [GOAT SDK](/consume/integrations/goat-sdk)
+  Allora plugin for GOAT (Great On-chain Agent Toolkit). Adds an Allora
+  price-prediction tool to GOAT-powered on-chain agents. [Documented here](/consume/integrations/goat-sdk)
+  and published as [`@goat-sdk/plugin-allora`](https://www.npmjs.com/package/@goat-sdk/plugin-allora).
 
-- ### [GOAT SDK](https://www.npmjs.com/package/@goat-sdk/plugin-allora)
-  Software Development Kit for building and deploying GOAT applications.
+- ### [ZerePy](https://github.com/blorm-network/ZerePy/blob/main/src/connections/allora_connection.py)
+  Python agent framework with a built-in Allora connection for fetching
+  inferences and price predictions. See the upstream
+  [Allora connection source](https://github.com/blorm-network/ZerePy/blob/main/src/connections/allora_connection.py).
 
-- ### [Zerepy SDK](https://github.com/blorm-network/ZerePy/blob/52d86b0151049ab2f2880e60207e6012ffd60829/src/connections/allora_connection.py#L15)
-  Python SDK for building and deploying Zerepy applications.
+- ### [Virtuals GAME](https://github.com/game-by-virtuals/game-node/tree/main/plugins/alloraPlugin)
+  Allora plugin for the Virtuals GAME agent framework (`game-node`). See the
+  upstream [plugin source](https://github.com/game-by-virtuals/game-node/tree/main/plugins/alloraPlugin).
 
-- ### [Virtuals SDK](https://github.com/game-by-virtuals/game-node/tree/main/plugins/alloraPlugin)
-  A plugin for the Game Agent that enables seamless interaction with Allora.
+## Next
 
+- Prefer a direct integration? Use the [Allora API](/consume/api) or the
+  [SDKs](/consume/sdk-overview).

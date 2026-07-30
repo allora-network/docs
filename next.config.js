@@ -88,6 +88,11 @@ const exactRedirects = {
 };
 
 const treeRedirects = [
+  // Eliza-OS integration removed (upstream no longer ships the plugin); these
+  // must precede the slug-preserving /marketplace/integrations rule so old
+  // Eliza URLs reach their final destination in a single hop.
+  { source: '/consume/integrations/eliza-os/:path*', destination: '/consume/integrations', permanent },
+  { source: '/marketplace/integrations/eliza-os/:path*', destination: '/consume/integrations', permanent },
   // Slug-preserving subtree moves.
   { source: '/devs/reference/:path*', destination: '/reference/:path*', permanent },
   { source: '/devs/validators/:path*', destination: '/operate/validators/:path*', permanent },
