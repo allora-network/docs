@@ -60,9 +60,10 @@ All pages live under https://docs.allora.network/. The site root redirects to /h
 
 - [Workers](https://docs.allora.network/devs/workers): How data scientists contribute AI/ML models to the network as inference workers.
 - [System Requirements](https://docs.allora.network/devs/workers/requirements): Hardware and software requirements for running a worker node.
-- [Build and Deploy a Worker Node using Docker](https://docs.allora.network/devs/workers/deploy-worker/using-docker): Run a worker node supported by an inference server using Docker.
-- [Walkthrough: Build and Deploy Price Prediction Worker Node](https://docs.allora.network/devs/workers/walkthroughs/walkthrough-price-prediction-worker): Build a worker node that predicts the future price of Ether, based on the basic-coin-prediction-node repository.
-- [Build and Deploy a Forecaster](https://docs.allora.network/devs/workers/deploy-forecaster): Run a forecaster that predicts how accurate inferers are, using the boilerplate allora-forecaster repository.
+- [Build and Deploy a Worker Node using Docker](https://docs.allora.network/devs/workers/deploy-worker/using-docker): Run a worker node supported by an inference server using Docker (deprecated in favor of the Python SDK).
+- [Migrate from the Offchain Node](https://docs.allora.network/devs/workers/migrate-from-offchain-node): Move a worker off the deprecated allora-offchain-node + Model Development Kit stack onto the Allora Python SDK and the Forge Builder Kit.
+- [Walkthrough: Build a Price Prediction Worker](https://docs.allora.network/devs/workers/walkthroughs/walkthrough-price-prediction-worker): Train a small BTC/USD price model and submit its predictions to Allora's testnet sandbox topic with the Python SDK.
+- [Build and Deploy a Forecaster](https://docs.allora.network/devs/workers/deploy-forecaster): What forecasters do on Allora, and how to submit forecasted losses to a topic with the published Python SDK's RPC client.
 - [How To Query Worker Data using allorad](https://docs.allora.network/devs/workers/query-worker-data): allorad query commands for information about workers.
 - [Query EMA Score of a Worker using allorad](https://docs.allora.network/devs/workers/query-ema-score): What worker EMA scores are and how to query them with allorad.
 
@@ -70,7 +71,7 @@ All pages live under https://docs.allora.network/. The site root redirects to /h
 
 - [Reputers](https://docs.allora.network/devs/reputers): What reputers do — sourcing ground truth and evaluating the accuracy of worker inferences.
 - [Deploy a Simple Reputer using Docker](https://docs.allora.network/devs/reputers/reputers): Configure and run a reputer node using Docker.
-- [Deploy a Pre-configured Reputer](https://docs.allora.network/devs/reputers/coin-prediction-reputer): Run the example coin-prediction reputer stack (reputer, truth, and updater containers).
+- [Build a Reputer](https://docs.allora.network/devs/reputers/build-a-reputer): Configure and run an Allora reputer node that serves ground truth and computes losses, stake ALLO on a topic, and verify your reputer's status.
 - [Set and Adjust Stake](https://docs.allora.network/devs/reputers/set-and-adjust-stake): How stake works for reputers and how to set and adjust it.
 - [How to Query Reputer Data using allorad](https://docs.allora.network/devs/reputers/query-reputer-data): allorad query commands for information about reputers.
 - [Query EMA Score for a Reputer using allorad](https://docs.allora.network/devs/reputers/query-ema-score): What reputer EMA scores are and how to query them with allorad.
