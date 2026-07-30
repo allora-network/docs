@@ -14,9 +14,11 @@ const { execFileSync } = require('child_process');
 //                     otherwise the first prose paragraph, clamped to ~1
 //                     sentence. Review and refine generated descriptions.
 // - persona:          mapped from the page's section (see PERSONA_MAP).
-// - verified_against: `docs content as of <today>` — i.e. no external-source
-//                     verification is claimed. Replace with a concrete
-//                     source + version when the page is properly verified.
+// - verified_against: `docs content as of <last_reviewed>` — i.e. no
+//                     external-source verification is claimed beyond the docs
+//                     state on the page's own review date. Replace with a
+//                     concrete source + version when the page is properly
+//                     verified.
 // - last_reviewed:    the date of the last git commit that substantively
 //                     changed the page. Pure renames and known site-wide
 //                     mechanical commits (moves, bulk link rewrites) are
@@ -85,13 +87,26 @@ function parseFrontmatter(lines) {
   return null;
 }
 
+// Normalizes a raw frontmatter scalar with YAML semantics: strips matching
+// quotes, drops trailing comments from unquoted values, and treats the YAML
+// null forms (`~`, `null`, `Null`, `NULL`) and comment-only values as empty,
+// mirroring checkFrontmatter.js — so the sweep fills in exactly the values
+// the checker rejects.
+function parseScalar(raw) {
+  const trimmed = raw.trim();
+  const quoted = trimmed.match(/^(["'])(.*)\1$/);
+  if (quoted) return quoted[2].trim();
+  const value = trimmed.replace(/(^|\s)#.*$/, '').trim();
+  if (/^(?:~|null|Null|NULL)$/.test(value)) return '';
+  return value;
+}
+
 function frontmatterKeys(fmLines) {
   const keys = {};
   fmLines.forEach((line, index) => {
     const match = line.match(/^([A-Za-z0-9_-]+)\s*:\s*(.*)$/);
     if (!match) return;
-    const value = match[2].trim().replace(/^(["'])(.*)\1$/, '$2').trim();
-    keys[match[1]] = { value, index };
+    keys[match[1]] = { value: parseScalar(match[2]), index };
   });
   return keys;
 }
@@ -266,7 +281,10 @@ function emitEntry(key, value) {
 
 function processFile(file) {
   const content = fs.readFileSync(file, 'utf8');
-  const lines = content.split('\n');
+  // Split on \r?\n (like checkFrontmatter.js) so CRLF files are recognized as
+  // already carrying frontmatter instead of getting a duplicate block
+  // prepended. Files the sweep rewrites are normalized to LF.
+  const lines = content.split(/\r?\n/);
   const fm = parseFrontmatter(lines);
   const fmLines = fm ? fm.lines.slice() : [];
   const keys = frontmatterKeys(fmLines);
@@ -277,12 +295,18 @@ function processFile(file) {
   if (missing.length === 0) return null;
 
   const title = 'title' in keys && keys.title.value !== '' ? keys.title.value : deriveTitle(bodyLines, file);
+  // The fallback verified_against claims nothing beyond the docs state on the
+  // page's own review date, so both keys are pinned to the same date: the
+  // existing last_reviewed value if the page has one, else the git-derived one.
+  let lastReviewedMemo =
+    'last_reviewed' in keys && keys.last_reviewed.value !== '' ? keys.last_reviewed.value : null;
+  const lastReviewed = () => (lastReviewedMemo ??= deriveLastReviewed(file));
   const derived = {
     title,
     description: () => deriveDescription(bodyLines, title),
     persona: () => derivePersona(relPath),
-    verified_against: () => `docs content as of ${today}`,
-    last_reviewed: () => deriveLastReviewed(file),
+    verified_against: () => `docs content as of ${lastReviewed()}`,
+    last_reviewed: lastReviewed,
   };
 
   missing.forEach(key => {

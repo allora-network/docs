@@ -41,6 +41,20 @@ function frontmatterLines(content) {
   return null; // unterminated block
 }
 
+// Normalizes a raw frontmatter scalar with YAML semantics: strips matching
+// quotes, drops trailing comments from unquoted values, and treats the YAML
+// null forms (`~`, `null`, `Null`, `NULL`) and comment-only values as empty —
+// so `persona: ~` or `persona: # TODO` fails the check instead of passing as
+// a non-empty string.
+function parseScalar(raw) {
+  const trimmed = raw.trim();
+  const quoted = trimmed.match(/^(["'])(.*)\1$/);
+  if (quoted) return quoted[2].trim();
+  const value = trimmed.replace(/(^|\s)#.*$/, '').trim();
+  if (/^(?:~|null|Null|NULL)$/.test(value)) return '';
+  return value;
+}
+
 function checkFile(file) {
   const content = fs.readFileSync(file, 'utf8');
   const fm = frontmatterLines(content);
@@ -52,8 +66,7 @@ function checkFile(file) {
   fm.forEach(line => {
     const match = line.match(/^([A-Za-z0-9_-]+)\s*:\s*(.*)$/);
     if (!match) return;
-    const value = match[2].trim().replace(/^(["'])(.*)\1$/, '$2').trim();
-    present[match[1]] = value;
+    present[match[1]] = parseScalar(match[2]);
   });
 
   return REQUIRED_KEYS.filter(key => !(key in present) || present[key] === '');
