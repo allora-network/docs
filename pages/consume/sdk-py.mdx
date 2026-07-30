@@ -62,7 +62,7 @@ async def main():
         if isinstance(result, Exception):
             print(f"Inference worker error: {result}")
         else:
-            print(f"Prediction submitted to Allora: {result.prediction}")
+            print(f"Prediction submitted to Allora: {result.submission}")
 
 asyncio.run(main())
 ```

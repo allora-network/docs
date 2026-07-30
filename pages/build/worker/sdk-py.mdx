@@ -57,7 +57,7 @@ async def main():
         if isinstance(result, Exception):
             print(f"Inference worker error: {result}")
         else:
-            print(f"Prediction submitted to Allora: {result.prediction}")
+            print(f"Prediction submitted to Allora: {result.submission}")
 
 asyncio.run(main())
 ```
@@ -243,7 +243,7 @@ async def main():
         if isinstance(result, Exception):
             print(f"Inference worker error: {result}")
         else:
-            print(f"Prediction submitted to Allora: {result.prediction}")
+            print(f"Prediction submitted to Allora: {result.submission}")
 
 asyncio.run(main())
 ```
@@ -366,7 +366,7 @@ async def main():
             # Your run function raised, or a network/RPC error occurred
             print(f"Worker error: {result}")
         else:
-            print(f"Submitted {result.prediction} (tx: {result.tx_result.txhash})")
+            print(f"Submitted {result.submission} (tx: {result.tx_result.txhash})")
 
 asyncio.run(main())
 ```
