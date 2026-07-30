@@ -40,7 +40,8 @@ cp config.example.json config.json
 
 In `config.json`, fill in the `wallet` section:
 
-- `addressKeyName` and `addressRestoreMnemonic`: the name and mnemonic of your [wallet](/devs/get-started/setup-wallet). Leave them empty to have keys created for you automatically — the generated address is written to `./data/env_file`, and you will need to fund it before the node can register and stake.
+- `addressKeyName`: a wallet name of your choice — required; the node's `init.config` script exits with an error if it is empty.
+- `addressRestoreMnemonic`: the mnemonic of your existing [wallet](/devs/get-started/setup-wallet), or leave it empty to have a new key created automatically under `addressKeyName` — the generated address is written to `./data/env_file`, and you will need to fund it before the node can register and stake.
 - `nodeRpcs` and `nodegRpcs`: lists of RPC and gRPC endpoints for the target network (the example config points at testnet). See [Networks](/devs/reference/networks) for endpoints.
 
 ### 3. Configure the reputer
