@@ -65,19 +65,51 @@ const config: DocsThemeConfig = {
   chat: {
     link: 'https://discord.com/invite/allora'
   },
-  // fixed-position container.
+  // Visible footer links plus the fixed-position AI button container.
   footer: {
     component: () => (
-      <div
-        style={{
-          position: "fixed",
-          right: "20px",
-          bottom: "20px",
-          zIndex: 1000,
-        }}
-      >
-        <AiButton />
-      </div>
+      <>
+        <footer
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            gap: "1.5rem",
+            padding: "1.5rem 1rem",
+            fontSize: "0.875rem",
+            opacity: 0.8,
+          }}
+        >
+          <a href="https://github.com/allora-network/docs/blob/main/CONTRIBUTING.md" target="_blank" rel="noreferrer">
+            Contribute
+          </a>
+          <a href="https://discord.gg/allora" target="_blank" rel="noreferrer">
+            Discord
+          </a>
+          <a href="https://twitter.com/AlloraNetwork" target="_blank" rel="noreferrer">
+            Twitter
+          </a>
+          <a href="https://research.allora.network" target="_blank" rel="noreferrer">
+            Research Forum
+          </a>
+          <a href="https://research.assets.allora.network/allora.0x10001.pdf" target="_blank" rel="noreferrer">
+            Whitepaper
+          </a>
+          <a href="https://app.allora.network/points/overview" target="_blank" rel="noreferrer">
+            Points Program
+          </a>
+        </footer>
+        <div
+          style={{
+            position: "fixed",
+            right: "20px",
+            bottom: "20px",
+            zIndex: 1000,
+          }}
+        >
+          <AiButton />
+        </div>
+      </>
     ),
   },
   sidebar: {
