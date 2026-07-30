@@ -3,6 +3,7 @@
   "quickstart-worker": "Deploy a Worker in 10 Minutes",
   "quickstart-forge": "Enter a Forge Competition",
   "quickstart-consume": "Consume an Inference in 2 Minutes",
+  "quickstart-agents": "Point Your Agent Here",
   "setup-wallet": "Setup Wallet",
   "cli": "Installation",
   "basic-usage": "Basic Usage"
