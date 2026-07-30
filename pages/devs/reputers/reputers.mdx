@@ -104,9 +104,7 @@ Below is a sample structure of what your `main.go`, `main.py` and Dockerfile wil
 
 #### `main.go`
 
-`allora-offchain-node` comes preconfigured with a `main.go` file inside the [`adapter/api-worker-reputer` folder](https://github.com/allora-network/allora-offchain-node/blob/dev/adapter/api-worker-reputer/main.go).
-
-The `main.go` file fetches the responses outputted from the Source of Truth Endpoint based on the `SourceOfTruthEndpoint` and `Token` provided in the section above.
+`allora-offchain-node` comes preconfigured with an API adapter — see the [`adapter` directory](https://github.com/allora-network/allora-offchain-node/tree/dev/adapter) — whose `main.go` fetches the responses outputted from the Source of Truth Endpoint based on the `SourceOfTruthEndpoint` and `Token` provided in the section above.
 
 #### `main.py`
 
@@ -130,7 +128,7 @@ if __name__ == '__main__':
 ```
 
 <Callout type="warning">
-  The source of truth in `allora-offchain-node` is barebones and outputs a random integer. Follow the source of truth built in [`coin-prediction-reputer`](/devs/reputers/coin-prediction-reputer) as an example for a reputer that uses CoinGecko to fetch price data.
+  The source of truth in `allora-offchain-node` is barebones and outputs a random number. Replace the body of `get_truth` with logic that fetches real data for your topic — for example, the price of an asset at the requested block height from a market-data API.
 </Callout>
 
 #### `Dockerfile`
@@ -204,4 +202,4 @@ Congratulations! You've successfully deployed and registered your node on Allora
 
 ## Learn More
 
-Learn more by directly checking out the code and README for [the example ETH price reputer](https://github.com/allora-network/coin-prediction-reputer).
+For a guide based on the current `allora-offchain-node` configuration format — including the ground-truth and loss-function service contract, staking, and verification — see [Build a Reputer](/devs/reputers/build-a-reputer).

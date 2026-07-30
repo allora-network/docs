@@ -64,6 +64,11 @@ module.exports = withNextra(
           destination: '/devs/workers/deploy-worker/using-docker',
           permanent: true,
         },
+        {
+          source: '/devs/reputers/coin-prediction-reputer',
+          destination: '/devs/reputers/build-a-reputer',
+          permanent: true,
+        },
       ];
     },
   }
