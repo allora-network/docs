@@ -198,12 +198,6 @@ function buildPullRequestBody(drifted, probeErrors) {
     }
   }
 
-  emitGithubOutputs({
-    drift: drifted.length > 0 ? 'true' : 'false',
-    networks: drifted.map(d => d.network).join(','),
-    probe_errors: probeErrors.map(p => p.network).join(','),
-  });
-
   if (drifted.length > 0 && args.write) {
     for (const { network, reported } of drifted) {
       manifest.networks[network].abci_version = reported;
@@ -220,6 +214,16 @@ function buildPullRequestBody(drifted, probeErrors) {
       console.log(`Wrote pull-request body to ${args.bodyFile}`);
     }
   }
+
+  // Emitted only after the manifest and body have actually been written, so a
+  // consumer that acts on `drift=true` can rely on those files existing. Any
+  // earlier failure leaves every output unset; the workflow therefore gates its
+  // failure step on this step's outcome rather than on these values.
+  emitGithubOutputs({
+    drift: drifted.length > 0 ? 'true' : 'false',
+    networks: drifted.map(d => d.network).join(','),
+    probe_errors: probeErrors.map(p => p.network).join(','),
+  });
 
   console.log('');
   if (drifted.length === 0) {
