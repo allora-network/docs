@@ -76,6 +76,20 @@ tooling can tell how fresh each page is.
 part of `yarn build` and in CI. `yarn frontmatter` fills in missing keys with
 derived defaults — always review what it generated before committing.
 
+## Generated files: llms.txt and llms-full.txt
+
+`public/llms.txt` and `public/llms-full.txt` are the machine-readable bundle AI
+agents fetch: an [llmstxt.org](https://llmstxt.org) index of every page with its
+title and description, and the full text of every page concatenated in
+navigation order. Both are generated from `pages/**` by
+`scripts/generateLlmsTxt.js`, which runs as part of `yarn build`, and both are
+committed because `public/` is served as-is.
+
+So whenever you add, remove, rename, retitle, or edit a page, run `yarn build`
+(or `yarn llms`) and commit the regenerated files. `yarn checkllms` verifies the
+committed files still match `pages/**` without rewriting them; CI runs the same
+check and fails the pull request if they have drifted.
+
 ## How-to page structure
 
 How-to pages use this section order after the frontmatter and the `#` heading:
@@ -101,6 +115,8 @@ Before opening a pull request:
 - [ ] `yarn build` passes.
 - [ ] `yarn fixlinks` passes (no broken internal links).
 - [ ] `_meta.json` is updated for any added, moved, or removed page.
+- [ ] `public/llms.txt` and `public/llms-full.txt` are regenerated and committed
+      (`yarn checkllms` passes).
 - [ ] Any removed or moved URL has a 301 redirect in `next.config.js`
       (`redirects()`).
 - [ ] Code snippets run as pasted against the version named in

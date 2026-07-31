@@ -21,5 +21,13 @@ jobs:
     - name: Install dependencies
       run: npm install
 
+    # Fails if public/llms.txt and public/llms-full.txt no longer match the page
+    # set under pages/ — i.e. a page was added, removed, renamed, retitled, or
+    # edited without regenerating the bundle. Runs before the link script, which
+    # rewrites .mdx files in place and would otherwise make the comparison
+    # reflect uncommitted edits. The checker is plain Node with no dependencies.
+    - name: Check generated llms.txt is up to date
+      run: node ./scripts/generateLlmsTxt.js --check
+
     - name: Run MDX link check script
       run: node ./scripts/fixRelativeLinks.js

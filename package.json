@@ -10,11 +10,13 @@
   },
   "scripts": {
     "dev": "next",
-    "build": "node scripts/checkFrontmatter.js && next build",
+    "build": "node scripts/checkFrontmatter.js && node scripts/generateLlmsTxt.js && next build",
     "start": "next start",
     "fixlinks": "node scripts/fixRelativeLinks.js",
     "checklinks": "node scripts/checkExternalLinks.js",
     "checkfm": "node scripts/checkFrontmatter.js",
-    "frontmatter": "node scripts/addFrontmatter.js"
+    "frontmatter": "node scripts/addFrontmatter.js",
+    "llms": "node scripts/generateLlmsTxt.js",
+    "checkllms": "node scripts/generateLlmsTxt.js --check"
   }
 }
