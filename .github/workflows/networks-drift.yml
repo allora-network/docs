@@ -5,6 +5,8 @@ on:
     # Daily at 06:00 UTC, so a chain upgrade is picked up without waiting for a PR.
     - cron: '0 6 * * *'
   workflow_dispatch:
+  push:  # TEMPORARY branch test-run trigger — revert before merge
+    branches: ['nick/engn-9027-p2-phase-lead-agent-reference-infra-t-26t-31-one-pr']
 
 permissions:
   contents: write
