@@ -1,0 +1,111 @@
+name: Check Network Version Drift
+
+on:
+  schedule:
+    # Daily at 06:00 UTC, so a chain upgrade is picked up without waiting for a PR.
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  BRANCH: networks-version-drift
+
+jobs:
+  networks-drift:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        # Full history so the drift branch can be checked out and pushed to
+        # without a shallow-clone dance.
+        fetch-depth: 0
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    # If a drift PR is already open, continue from its branch instead of the
+    # default branch. The drift check then compares against what that PR already
+    # proposes, so an unchanged chain is a no-op: no commit, no push, no PR
+    # churn. It also means a reviewer's own edits on that branch (notably the
+    # deployed_version bump the PR body asks for) are built on top of rather
+    # than discarded.
+    - name: Continue from the open drift pull request, if there is one
+      id: base
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        set -euo pipefail
+        if [ "$(gh pr list --head "$BRANCH" --state open --json number --jq 'length')" -gt 0 ] \
+           && git rev-parse --verify --quiet "origin/$BRANCH" > /dev/null; then
+          git checkout -B "$BRANCH" "origin/$BRANCH"
+          echo "existing=true" >> "$GITHUB_OUTPUT"
+          echo "Continuing from the open drift pull request on $BRANCH."
+        else
+          echo "existing=false" >> "$GITHUB_OUTPUT"
+          echo "No open drift pull request; starting from the default branch."
+        fi
+
+    # The drift checker is plain Node (no dependencies), so no install step is
+    # needed. With --write it rewrites public/api/networks.json in place and
+    # emits `drift` and `probe_errors` outputs. It exits non-zero when a network
+    # could not be reached, but the networks that did respond are still compared
+    # and can still get a PR — hence continue-on-error here, so that a partial
+    # outage does not skip the PR step.
+    #
+    # continue-on-error means this step can no longer fail the job on its own, so
+    # the last step below is what turns any non-success back into a red run. That
+    # step is gated on this step's *outcome*, not on an output, so it also covers
+    # failures that happen before any output is written (a malformed manifest, an
+    # empty networks object, any uncaught exception).
+    - name: Compare recorded versions against each network's RPC
+      id: drift
+      continue-on-error: true
+      run: node ./scripts/checkNetworkDrift.js --write --body-file "${RUNNER_TEMP}/networks-drift-body.md"
+
+    - name: Commit the manifest and open or update the pull request
+      if: steps.drift.outputs.drift == 'true'
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        EXISTING: ${{ steps.base.outputs.existing }}
+        TITLE: 'Network version drift: update public/api/networks.json'
+      run: |
+        set -euo pipefail
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add public/api/networks.json
+        git commit -m "Update deployed network versions in networks.json"
+        if [ "$EXISTING" = "true" ]; then
+          # Building on the open PR's branch, so this always fast-forwards.
+          git push origin "$BRANCH"
+          gh pr edit "$BRANCH" --title "$TITLE" --body-file "${RUNNER_TEMP}/networks-drift-body.md"
+        else
+          # No open PR, so any branch of this name is abandoned and safe to reset.
+          git checkout -B "$BRANCH"
+          git push --force origin "$BRANCH"
+          gh pr create --base main --head "$BRANCH" \
+            --title "$TITLE" --body-file "${RUNNER_TEMP}/networks-drift-body.md"
+        fi
+
+    # Catch-all: any non-success from the drift step ends in a red run. Gating on
+    # `outcome` rather than on `outputs.probe_errors` is deliberate — an unset
+    # output reads as the empty string, so an output-gated condition would be
+    # false exactly when the script died before reporting anything, silently
+    # skipping this step and leaving the job green.
+    - name: Fail the run if the drift check did not succeed
+      if: ${{ !cancelled() && steps.drift.outcome != 'success' }}
+      env:
+        PROBE_ERRORS: ${{ steps.drift.outputs.probe_errors }}
+      run: |
+        if [ -n "$PROBE_ERRORS" ]; then
+          echo "::error::Could not probe: ${PROBE_ERRORS}. Other networks were still compared; see the drift step log."
+        else
+          echo "::error::The drift check failed before it could report per-network results (malformed manifest, or an unexpected error). See the drift step log."
+        fi
+        exit 1
