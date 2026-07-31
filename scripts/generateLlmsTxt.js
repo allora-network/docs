@@ -137,16 +137,36 @@ function orderedKeys(dir) {
   const ordered = [];
   const seen = new Set();
 
+  const metaPath = path.relative(ROOT, path.join(dir, '_meta.json'));
+
   Object.keys(meta).forEach(key => {
-    seen.add(key);
-    if (isNonPageEntry(meta[key])) return;
+    // A page on disk is served at its URL no matter what _meta.json says about
+    // it, so `seen` may only swallow a key when there is genuinely nothing
+    // behind it. Marking a key seen before this check let a nav-only entry
+    // (external href, separator, menu) that happened to share a page's name
+    // mask that page out of both bundles without a warning.
     if (!onDisk.has(key)) {
-      console.warn(
-        `Warning: ${path.relative(ROOT, path.join(dir, '_meta.json'))} lists "${key}", ` +
-          'but no page or directory of that name exists; skipping.'
-      );
+      seen.add(key);
+      if (!isNonPageEntry(meta[key])) {
+        console.warn(
+          `Warning: ${metaPath} lists "${key}", but no page or directory of ` +
+            'that name exists; skipping.'
+        );
+      }
       return;
     }
+
+    if (isNonPageEntry(meta[key])) {
+      // The nav entry only changes where the sidebar points; the page itself is
+      // still live, so it stays in the bundle at its nav position.
+      console.warn(
+        `Warning: ${metaPath} maps "${key}" to a non-page entry (external href, ` +
+          'separator, or menu), but a page of that name exists and is still ' +
+          'served; including it.'
+      );
+    }
+
+    seen.add(key);
     ordered.push(key);
   });
 
@@ -343,6 +363,60 @@ function parseAttributes(raw) {
   return attributes;
 }
 
+// The canonical site URL of a page file, derived the same way the navigation
+// walk derives it: the path under pages/ without its extension, with `index`
+// standing for its directory.
+function urlForPageFile(file) {
+  const relative = path
+    .relative(PAGES_DIR, file)
+    .split(path.sep)
+    .join('/')
+    .replace(/\.mdx?$/, '');
+  const withoutIndex = relative === 'index' ? '' : relative.replace(/(^|\/)index$/, '');
+  return `/${withoutIndex}`.replace(/\/$/, '') || '/';
+}
+
+// Resolves a repo-relative markdown link (`./sibling`, `../other/page#anchor`)
+// against the page it appears on. Returns null unless it lands on a real page
+// under pages/, so a link this script does not understand is left exactly as
+// written rather than rewritten into a guess.
+function resolveRelativeLink(mdxFile, target) {
+  const hash = target.indexOf('#');
+  const pathPart = hash === -1 ? target : target.slice(0, hash);
+  const fragment = hash === -1 ? '' : target.slice(hash);
+  if (pathPart === '') return null;
+
+  const base = path.resolve(path.dirname(mdxFile), pathPart);
+  const candidates = [
+    base,
+    ...PAGE_EXTENSIONS.map(ext => base + ext),
+    ...PAGE_EXTENSIONS.map(ext => path.join(base, `index${ext}`)),
+  ];
+  const file = candidates.find(
+    candidate =>
+      /\.mdx?$/.test(candidate) && fs.existsSync(candidate) && fs.statSync(candidate).isFile()
+  );
+  if (!file) return null;
+
+  return `${SITE_URL}${urlForPageFile(file)}${fragment}`;
+}
+
+// llms-full.txt is read detached from the site, where a bare `/reference/networks`
+// or `./run-full-node` points nowhere. Site-absolute links get the base URL;
+// relative links are resolved against the page they appear on first — note that
+// scripts/fixRelativeLinks.js actively rewrites internal links into the `./`
+// form, so these are not a legacy handful but the repo's normal state.
+function absolutizeLinks(text, mdxFile) {
+  return text.replace(/\]\(([^)\s]+)\)/g, (whole, target) => {
+    // Absolute URLs, protocol-relative URLs, other schemes (mailto:, ipfs:) and
+    // same-page fragments are already meaningful on their own.
+    if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(target)) return whole;
+    if (target.startsWith('/')) return `](${SITE_URL}${target})`;
+    const resolved = resolveRelativeLink(mdxFile, target);
+    return resolved ? `](${resolved})` : whole;
+  });
+}
+
 function readSnippet(mdxFile, relativePath) {
   const snippetPath = path.resolve(path.dirname(mdxFile), relativePath);
   if (!fs.existsSync(snippetPath)) {
@@ -382,7 +456,9 @@ function mdxToMarkdown(mdxFile, bodyLines) {
   let fenceLength = 0;
   let skipFenceBody = false;
 
-  const emit = line => out.push(line);
+  // Each record carries whether it came from inside a fenced code block, so the
+  // whitespace cleanup at the end can leave code exactly as written.
+  const emit = text => out.push({ text, fenced: inFence });
 
   const emitContent = line => {
     let text = line;
@@ -394,7 +470,7 @@ function mdxToMarkdown(mdxFile, bodyLines) {
       text = text.replace(/\{([A-Za-z_$][A-Za-z0-9_$]*)\}/g, (whole, name) =>
         constants[name] !== undefined ? constants[name] : whole
       );
-      text = text.replace(/\]\((\/[^)\s]*)\)/g, (whole, target) => `](${SITE_URL}${target})`);
+      text = absolutizeLinks(text, mdxFile);
     }
     emit(text);
   };
@@ -506,7 +582,7 @@ function mdxToMarkdown(mdxFile, bodyLines) {
         const current = tabs[tabs.length - 1];
         const label = current.labels[current.index++];
         if (label) {
-          if (out.length > 0 && out[out.length - 1].trim() !== '') emit('');
+          if (out.length > 0 && out[out.length - 1].text.trim() !== '') emit('');
           emitContent(`${openTag[1]}**${label}**`);
           emitContent('');
         }
@@ -543,24 +619,35 @@ function mdxToMarkdown(mdxFile, bodyLines) {
     emitContent(line);
   }
 
-  // Collapse the blank-line runs that unwrapping leaves behind.
+  // Collapse the blank-line runs that unwrapping leaves behind, and trim
+  // trailing whitespace — but never inside a fenced code block. Code is quoted
+  // material: the Python snippets carry PEP 8 double blank lines between
+  // top-level definitions, and collapsing those means llms-full.txt no longer
+  // contains snippets/*.py verbatim.
   const collapsed = [];
-  out.forEach(line => {
-    if (line.trim() === '' && collapsed.length > 0 && collapsed[collapsed.length - 1].trim() === '') {
+  const isBlank = record => record.text.trim() === '';
+  out.forEach(record => {
+    if (record.fenced) {
+      collapsed.push(record);
       return;
     }
-    collapsed.push(line.replace(/\s+$/, ''));
+    const previous = collapsed[collapsed.length - 1];
+    if (isBlank(record) && previous && !previous.fenced && isBlank(previous)) return;
+    collapsed.push({ text: record.text.replace(/\s+$/, ''), fenced: false });
   });
 
-  while (collapsed.length > 0 && collapsed[0].trim() === '') collapsed.shift();
-  // The page's own H1 duplicates the title header we render above the body.
-  if (collapsed.length > 0 && /^#\s+/.test(collapsed[0])) {
-    collapsed.shift();
-    while (collapsed.length > 0 && collapsed[0].trim() === '') collapsed.shift();
-  }
-  while (collapsed.length > 0 && collapsed[collapsed.length - 1].trim() === '') collapsed.pop();
+  const trimmable = index =>
+    collapsed[index] && !collapsed[index].fenced && isBlank(collapsed[index]);
 
-  return collapsed.join('\n');
+  while (collapsed.length > 0 && trimmable(0)) collapsed.shift();
+  // The page's own H1 duplicates the title header we render above the body.
+  if (collapsed.length > 0 && !collapsed[0].fenced && /^#\s+/.test(collapsed[0].text)) {
+    collapsed.shift();
+    while (collapsed.length > 0 && trimmable(0)) collapsed.shift();
+  }
+  while (collapsed.length > 0 && trimmable(collapsed.length - 1)) collapsed.pop();
+
+  return collapsed.map(record => record.text).join('\n');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -641,10 +728,46 @@ function renderFull(pages) {
 // Entry point
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Every page file under pages/, found without consulting a single _meta.json.
+// The walk above is meta-driven; this is the independent list it is checked
+// against. Files whose name starts with `_` are Next.js/Nextra plumbing, not
+// routes.
+function pageFilesOnDisk(dir, out = []) {
+  fs.readdirSync(dir, { withFileTypes: true }).forEach(entry => {
+    if (entry.name.startsWith('_') || entry.name.startsWith('.')) return;
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) pageFilesOnDisk(full, out);
+    else if (PAGE_EXTENSIONS.some(ext => entry.name.endsWith(ext))) out.push(full);
+  });
+  return out;
+}
+
 function build() {
   const { rootPages, sections } = collectSections();
   const all = [...rootPages, ...sections.flatMap(section => section.pages)].map(loadPage);
   const byFile = new Map(all.map(page => [page.file, page]));
+
+  // Invariant: the nav-ordered walk must reach every page that exists. Anything
+  // it misses would be live on the site but absent from both bundles — and,
+  // because the check mode compares the committed files against this same walk,
+  // absent silently. Fail loudly instead, whatever the cause.
+  const missed = pageFilesOnDisk(PAGES_DIR).filter(file => !byFile.has(file));
+  if (missed.length > 0) {
+    console.error(
+      `llms.txt generation failed: ${missed.length} page(s) under pages/ were not ` +
+        'reached by the navigation walk, so they would be live on the site but ' +
+        'missing from llms.txt and llms-full.txt.\n'
+    );
+    missed
+      .map(file => path.relative(ROOT, file))
+      .sort()
+      .forEach(file => console.error(`  ${file}`));
+    console.error(
+      '\nCheck the _meta.json files on the path to those pages for an entry that ' +
+        'shadows them.'
+    );
+    process.exit(1);
+  }
 
   // A page with no description would ship a bare, useless index entry, so the
   // generator refuses to write one. scripts/checkFrontmatter.js enforces the
