@@ -1,0 +1,53 @@
+name: Propose Version Bumps
+
+# Checks upstream release feeds once a day and opens (or updates) a single pull
+# request when public/api/versions.json falls behind. The PR is a proposal for a
+# human to verify, never an auto-merge: the chain entries record the release each
+# network is actually running, which lags the newest allora-chain tag.
+#
+# Requires "Allow GitHub Actions to create and approve pull requests" in
+# Settings → Actions → General. No secrets beyond the default GITHUB_TOKEN.
+
+on:
+  schedule:
+    # 07:15 UTC daily.
+    - cron: '15 7 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  propose-bumps:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    # Plain Node (global fetch, no dependencies), so no install step is needed.
+    # GITHUB_TOKEN only lifts the anonymous GitHub API rate limit; every source
+    # the script reads is public.
+    - name: Check upstream releases
+      id: bump
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: node ./scripts/bumpVersions.js --write
+
+    - name: Open or update the bump pull request
+      if: steps.bump.outputs.changed == 'true'
+      uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+      with:
+        branch: automated/version-bump
+        delete-branch: true
+        commit-message: 'Propose version bumps in public/api/versions.json'
+        title: 'Propose version bumps in versions.json'
+        body: ${{ steps.bump.outputs.body }}
+        labels: automated
+        add-paths: public/api/versions.json

@@ -92,6 +92,37 @@ How-to pages use this section order after the frontmatter and the `#` heading:
 Code snippets must be copy-paste complete: no elisions, no interactive
 prompts, and environment-variable placeholders for secrets — never real keys.
 
+## Version strings
+
+Never type a current version number into a page. Every "the version we are on
+right now" string lives in `public/api/versions.json` (published at
+[/api/versions.json](https://docs.allora.network/api/versions.json)) and is
+rendered by the `Version` component:
+
+```mdx
+import { Version } from '../../components/Version'
+
+The testnet runs <Version of="chain-testnet"/>, and the release asset is
+named `allorad_<Version of="chain-testnet" bare/>_linux_amd64`.
+```
+
+`of` accepts any key in that file (`chain-testnet`, `chain-mainnet`,
+`allora-sdk`, `builder-kit`); `bare` drops the leading `v`. Where JSX cannot
+render — inside a template literal that builds a copy-paste command — import
+the constants from `components/versions.ts`, which read the same file.
+
+`yarn checkversions` fails if a version from `versions.json` is typed by hand
+anywhere in `pages/`, `components/` or `snippets/`; it also runs as part of
+`yarn build` and in CI. Mentions of *when* something changed ("since v0.17.0",
+"introduced in v0.17.0") are historical facts, not current versions — leave
+those literal. If the checker flags a historical mention it cannot recognise,
+add a `version-literal-ok: <reason>` comment on that line.
+
+A scheduled workflow opens a pull request when an upstream release moves ahead
+of `versions.json`. Those bumps are proposals: the chain entries describe what
+each network is actually running, which can lag the newest release tag, so a
+human confirms them before merging.
+
 ## PR checklist
 
 Before opening a pull request:
@@ -100,6 +131,8 @@ Before opening a pull request:
       (`yarn checkfm` passes).
 - [ ] `yarn build` passes.
 - [ ] `yarn fixlinks` passes (no broken internal links).
+- [ ] No current version is typed by hand; versions come from
+      `public/api/versions.json` (`yarn checkversions` passes).
 - [ ] `_meta.json` is updated for any added, moved, or removed page.
 - [ ] Any removed or moved URL has a 301 redirect in `next.config.js`
       (`redirects()`).

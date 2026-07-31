@@ -1,0 +1,212 @@
+const fs = require('fs');
+const path = require('path');
+
+// Guards the "one place for current versions" rule: every version string the
+// docs present as *current* must come from public/api/versions.json, via the
+// <Version of="..."/> component (components/Version.tsx) or the constants in
+// components/versions.ts that derive from it.
+//
+// This checker loads versions.json and fails if any of its values — with or
+// without a leading "v" — is typed by hand in pages/, components/ or snippets/.
+// Run via `yarn checkversions`; chained into `yarn build` after the frontmatter
+// check, and run in CI (.github/workflows/check-versions.yml). Exits non-zero on
+// any violation.
+//
+// Not every mention of a version number is a claim about the current version.
+// The exemptions below are deliberate and narrow:
+//
+//   1. Files that derive from versions.json by design (DERIVED_FILES).
+//   2. Files that are historical records by definition (HISTORICAL_FILES) — a
+//      changelog entry names the release it describes and must never move when
+//      the network upgrades.
+//   3. Frontmatter blocks. `verified_against` is a point-in-time attestation of
+//      what the content was checked against; it deliberately goes stale and is
+//      refreshed by a human at review time, not by a version bump.
+//   4. Historical constructions in prose ("since v0.17.0", "introduced in
+//      v0.17.0", "before v0.17.0"). These state *when* a behaviour changed and
+//      stay true forever; rewriting them to track the current release would
+//      make them wrong. See HISTORICAL_PREFIX.
+//   5. Any line carrying the escape hatch `version-literal-ok:` followed by a
+//      reason, for the cases the rules above do not cover.
+//
+// Everything else — "the currently deployed version is X", a table cell, an
+// install command, a pip pin — is a current-version claim and must use the
+// component or the constants.
+
+const ROOT = path.resolve(__dirname, '..');
+const VERSIONS_FILE = path.join(ROOT, 'public', 'api', 'versions.json');
+
+// Trees to scan, and the extensions worth scanning in each.
+const SCAN = [
+  { dir: 'pages', extensions: ['.mdx', '.md'] },
+  { dir: 'components', extensions: ['.js', '.jsx', '.ts', '.tsx'] },
+  { dir: 'snippets', extensions: null }, // every runnable snippet, whatever the language
+];
+
+// Files that legitimately reference the JSON's values because they read them
+// from the JSON (or describe the mechanism). Paths are repo-relative, POSIX.
+const DERIVED_FILES = new Set([
+  'components/Version.tsx',
+  'components/versions.ts',
+]);
+
+// Files whose version mentions are historical by nature. A changelog is the
+// canonical example: its headings *are* release numbers.
+const HISTORICAL_FILES = new Set([
+  'pages/reference/release-notes.mdx',
+]);
+
+// Words that mark a version reference as historical rather than current. Matched
+// immediately before the version, allowing markdown emphasis/backticks and a
+// heading marker in between (e.g. "Starting in **v0.17.0**", "## v0.17.0").
+const HISTORICAL_PREFIX =
+  /(?:^|[\s(])(?:since|starting\s+in|starting\s+with|introduced\s+in|added\s+in|new\s+in|as\s+of|before|prior\s+to|until|up\s+to|in|from|such\s+as\s+the)[\s]*[*`_]{0,2}$/i;
+
+const HEADING_PREFIX = /^\s{0,3}#{1,6}\s+[*`_]{0,2}$/;
+
+const ESCAPE_HATCH = /version-literal-ok:/;
+
+function readVersions() {
+  if (!fs.existsSync(VERSIONS_FILE)) {
+    console.error(`Version check failed: ${path.relative(ROOT, VERSIONS_FILE)} is missing.`);
+    process.exit(1);
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(fs.readFileSync(VERSIONS_FILE, 'utf8'));
+  } catch (error) {
+    console.error(`Version check failed: ${path.relative(ROOT, VERSIONS_FILE)} is not valid JSON.`);
+    console.error(`  ${error.message}`);
+    process.exit(1);
+  }
+
+  const entries = Object.entries(parsed);
+  if (entries.length === 0) {
+    console.error(`Version check failed: ${path.relative(ROOT, VERSIONS_FILE)} defines no versions.`);
+    process.exit(1);
+  }
+
+  entries.forEach(([key, value]) => {
+    if (typeof value !== 'string' || !/^v?\d+\.\d+\.\d+/.test(value)) {
+      console.error(
+        `Version check failed: ${path.relative(ROOT, VERSIONS_FILE)} key "${key}" ` +
+          `is not a version string (got ${JSON.stringify(value)}).`
+      );
+      process.exit(1);
+    }
+  });
+
+  return entries;
+}
+
+// One matcher per key: matches the value with an optional leading "v", not
+// preceded or followed by a character that would make it part of a longer
+// version (so "1.0.6" matches in "allora_sdk 1.0.6." but not in "11.0.61" or
+// "1.0.60"). A trailing "." is only disqualifying when a digit follows it, so
+// a version at the end of a sentence still matches.
+function buildMatchers(entries) {
+  return entries.map(([key, value]) => {
+    const bare = value.replace(/^v/, '');
+    const escaped = bare.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return { key, value, bare, pattern: new RegExp(`(?<![\\w.])v?${escaped}(?!\\w|\\.\\d)`, 'g') };
+  });
+}
+
+function listFiles(dir, extensions, collected) {
+  const absolute = path.join(ROOT, dir);
+  if (!fs.existsSync(absolute)) return collected;
+
+  fs.readdirSync(absolute, { withFileTypes: true }).forEach(entry => {
+    const relative = path.posix.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      listFiles(relative, extensions, collected);
+    } else if (!extensions || extensions.includes(path.extname(entry.name))) {
+      collected.push(relative);
+    }
+  });
+
+  return collected;
+}
+
+// Index of the last line of the leading `---` frontmatter block, or -1.
+function frontmatterEnd(lines) {
+  if (lines[0] !== '---') return -1;
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i] === '---') return i;
+  }
+  return -1;
+}
+
+function checkFile(relativePath, matchers) {
+  const lines = fs.readFileSync(path.join(ROOT, relativePath), 'utf8').split(/\r?\n/);
+  const lastFrontmatterLine = /\.mdx?$/.test(relativePath) ? frontmatterEnd(lines) : -1;
+  const violations = [];
+
+  lines.forEach((line, index) => {
+    if (index <= lastFrontmatterLine) return;
+    if (ESCAPE_HATCH.test(line)) return;
+
+    matchers.forEach(matcher => {
+      matcher.pattern.lastIndex = 0;
+      let match;
+      while ((match = matcher.pattern.exec(line)) !== null) {
+        const before = line.slice(0, match.index);
+        if (HISTORICAL_PREFIX.test(before) || HEADING_PREFIX.test(before)) continue;
+        violations.push({
+          file: relativePath,
+          line: index + 1,
+          key: matcher.key,
+          literal: match[0],
+          text: line.trim(),
+        });
+      }
+    });
+  });
+
+  return violations;
+}
+
+function main() {
+  const entries = readVersions();
+  const matchers = buildMatchers(entries);
+
+  const files = SCAN.reduce(
+    (collected, { dir, extensions }) => listFiles(dir, extensions, collected),
+    []
+  )
+    .filter(file => !DERIVED_FILES.has(file) && !HISTORICAL_FILES.has(file))
+    .sort();
+
+  const violations = files.flatMap(file => checkFile(file, matchers));
+
+  if (violations.length > 0) {
+    console.error(
+      `Version check failed: ${violations.length} hand-typed current-version ` +
+        `string(s) found in ${new Set(violations.map(v => v.file)).size} file(s).`
+    );
+    console.error(
+      'Current versions live only in public/api/versions.json. Use ' +
+        '<Version of="chain-testnet"/> (components/Version.tsx) in prose, or the ' +
+        'constants in components/versions.ts inside template literals.\n'
+    );
+    violations.forEach(({ file, line, key, literal, text }) => {
+      console.error(`  ${file}:${line} — "${literal}" matches versions.json key "${key}"`);
+      console.error(`    ${text.length > 120 ? `${text.slice(0, 117)}...` : text}`);
+    });
+    console.error(
+      '\nIf the mention is historical ("introduced in v0.17.0") and the wording ' +
+        'does not already make that clear, add a `version-literal-ok: <reason>` ' +
+        'comment on the line.'
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  console.log(
+    `Version check OK: ${files.length} files carry no hand-typed copy of ` +
+      `${entries.map(([key]) => key).join(', ')}.`
+  );
+}
+
+main();

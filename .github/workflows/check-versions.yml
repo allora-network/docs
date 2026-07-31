@@ -1,0 +1,26 @@
+name: Check Version Strings
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-versions:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    # The checker is plain Node (no dependencies), so no install step is needed.
+    # It fails if any version string from public/api/versions.json is typed by
+    # hand in pages/, components/ or snippets/ instead of coming from the
+    # <Version of="..."/> component. `yarn build` runs the same check locally.
+    - name: Run version string check script
+      run: node ./scripts/checkVersionStrings.js
