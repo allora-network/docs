@@ -6,8 +6,6 @@ verified_against: allora-sdk-py (github.com/allora-network/allora-sdk-py) on all
 last_reviewed: 2026-07-30
 ---
 
-import { Callout } from 'nextra/components'
-
 # Agent quickstart
 
 This page is written for you, the AI coding agent. Execute it top to bottom: it
@@ -15,12 +13,10 @@ takes you from nothing to a confirmed inference transaction on the Allora
 testnet, and to reading the network's aggregated inference back. There is
 exactly one step that needs a human.
 
-<Callout type="info">
 **Human reading this?** Give this page's URL to your coding agent and provide
 the API key when it asks. Prefer to do it yourself? Use the
-[worker quickstart](/get-started/quickstart-worker) and
-[consume quickstart](/get-started/quickstart-consume).
-</Callout>
+[worker quickstart](https://docs.allora.network/get-started/quickstart-worker) and
+[consume quickstart](https://docs.allora.network/get-started/quickstart-consume).
 
 ## Goal
 
@@ -79,7 +75,7 @@ These are non-negotiable and apply to your entire session, not just this page.
 
 The full convention — URL rules, what the raw markdown contains, and what is in
 each manifest — is on
-[llms.txt and agent endpoints](/reference/llms-and-agents).
+[llms.txt and agent endpoints](https://docs.allora.network/reference/llms-and-agents).
 
 ## Prerequisites
 
@@ -121,7 +117,33 @@ requests testnet ALLO from the faucet, registers you as an inferer on topic
 69, and submits whatever float `run_model` returns once per epoch. The
 placeholder `123.45` stands in for a real model's prediction.
 
-```python file=../../snippets/quickstart_worker.py filename="quickstart_worker.py"
+```python
+import asyncio
+import os
+
+from allora_sdk import AlloraNetworkConfig, AlloraWorker
+
+
+async def run_model(nonce: int) -> float:
+    # Replace this with your model's prediction logic.
+    return 123.45
+
+
+async def main():
+    worker = AlloraWorker.inferer(
+        topic_id=69,  # sandbox topic: no penalty for inaccurate inferences
+        network=AlloraNetworkConfig.testnet(),
+        api_key=os.environ["ALLORA_API_KEY"],  # used to faucet testnet gas
+        run=run_model,
+    )
+    async for result in worker.run():
+        if isinstance(result, Exception):
+            print(f"Inference worker error: {result}")
+        else:
+            print(f"Prediction submitted to Allora: {result.submission}")
+
+
+asyncio.run(main())
 ```
 
 ### 3. Run it without a prompt
@@ -182,7 +204,26 @@ you are already in instead of raw HTTP:
 npm init -y && npm install @alloralabs/allora-sdk tsx
 ```
 
-```typescript file=../../snippets/quickstart_consume.ts filename="quickstart-consume.ts"
+```typescript
+import { AlloraAPIClient, ChainSlug } from "@alloralabs/allora-sdk";
+
+async function main() {
+  const client = new AlloraAPIClient({
+    chainSlug: ChainSlug.TESTNET,
+    apiKey: process.env.ALLORA_API_KEY,
+    baseAPIUrl: "https://api.allora.network/v2",
+  });
+
+  const inference = await client.getInferenceByTopicID(69);
+  const data = inference.inference_data;
+  console.log(`Topic ${data.topic_id} network inference: ${data.network_inference_normalized}`);
+  console.log(`Timestamp: ${data.timestamp}`);
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
 ```
 
 Run with `npx tsx quickstart-consume.ts`. Import from the package root
@@ -191,7 +232,25 @@ snippet.
 
 **Python** (3.10+, same venv as above):
 
-```python file=../../snippets/quickstart_consume.py filename="quickstart_consume.py"
+```python
+import asyncio
+import os
+
+from allora_sdk.api_client import AlloraAPIClient, ChainID
+
+
+async def main():
+    client = AlloraAPIClient(
+        chain_id=ChainID.TESTNET,
+        api_key=os.environ["ALLORA_API_KEY"],
+    )
+    inference = await client.get_inference_by_topic_id(69)
+    data = inference.inference_data
+    print(f"Topic {data.topic_id} network inference: {data.network_inference_normalized}")
+    print(f"Timestamp: {data.timestamp}")
+
+
+asyncio.run(main())
 ```
 
 Run with `python quickstart_consume.py`.
@@ -202,7 +261,31 @@ Run with `python quickstart_consume.py`.
 go mod init allora-consume && go get github.com/allora-network/allora-sdk-go
 ```
 
-```go file=../../snippets/quickstart_consume.go filename="main.go"
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+	"os"
+
+	allora "github.com/allora-network/allora-sdk-go"
+)
+
+func main() {
+	client := allora.NewAPIClient(os.Getenv("ALLORA_API_KEY"))
+
+	topic, err := client.GetTopic(69)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if topic.LatestNetworkInference == nil {
+		log.Fatal("topic has no network inference yet")
+	}
+
+	fmt.Printf("%s (topic %d)\n", topic.TopicName, topic.TopicID)
+	fmt.Printf("Network inference: %s\n", topic.LatestNetworkInference.CombinedValue)
+}
 ```
 
 Run with `go run .`.
@@ -240,7 +323,7 @@ operator. Do not report `.allora_key` contents or the API key.
 - **`unknown service emissions.v9.QueryService`** — the installed
   `allora_sdk` release predates the testnet's `emissions/v10` upgrade.
   Upgrade with `pip install --upgrade allora_sdk`; see
-  [Networks](/reference/networks) for the currently deployed chain version.
+  [Networks](https://docs.allora.network/reference/networks) for the currently deployed chain version.
 - **Faucet rate-limited** (`Too many faucet requests`) — the worker process
   **exits** on this error, so the background job from step 3 is gone. Request
   funds directly, authenticated with your API key, for the wallet address
@@ -292,10 +375,10 @@ operator. Do not report `.allora_key` contents or the API key.
     references, for building models that survive out-of-sample validation.
 
 - **Compete.** Point your operator at
-  [Allora Forge competitions](/build/forge/competitions) to put the model on
+  [Allora Forge competitions](https://docs.allora.network/build/forge/competitions) to put the model on
   a live scored topic.
 - **Monitor.** Track submissions and scores with
-  [worker data queries](/build/worker/query-worker-data) and the
-  [monitoring guide](/build/worker/monitoring).
+  [worker data queries](https://docs.allora.network/build/worker/query-worker-data) and the
+  [monitoring guide](https://docs.allora.network/build/worker/monitoring).
 - **Mainnet** — only with explicit human confirmation (guardrail 4). Chain
-  IDs and endpoints are in [Networks](/reference/networks).
+  IDs and endpoints are in [Networks](https://docs.allora.network/reference/networks).

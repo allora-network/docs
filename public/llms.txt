@@ -83,4 +83,5 @@ Every page below is live at https://docs.allora.network/. The full text of all o
 - [Consensus Parameters](https://docs.allora.network/reference/params/consensus): Parameters that uniquely affect validators of the Allora Chain.
 - [Mint Parameters](https://docs.allora.network/reference/params/mint): Parameters from the minting module on Allora Network.
 - [Chain Parameters](https://docs.allora.network/reference/params/chain): A glossary and description of chain-level parameters.
+- [llms.txt and agent endpoints](https://docs.allora.network/reference/llms-and-agents): The machine-readable surfaces of these docs — llms.txt, llms-full.txt, per-page raw markdown under /raw/, and the JSON manifests under /api/.
 - [Allora Network Release Notes](https://docs.allora.network/reference/release-notes): Release notes for Allora Network chain releases.

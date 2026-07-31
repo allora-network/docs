@@ -29,5 +29,11 @@ jobs:
     - name: Check generated llms.txt is up to date
       run: node ./scripts/generateLlmsTxt.js --check
 
+    # Same contract for the per-page raw markdown under public/raw/: fails if a
+    # page was added, renamed, removed, or edited without regenerating it, and
+    # if public/raw/ still holds a file no page maps to.
+    - name: Check generated raw markdown is up to date
+      run: node ./scripts/generateRawMarkdown.js --check
+
     - name: Run MDX link check script
       run: node ./scripts/fixRelativeLinks.js

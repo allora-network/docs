@@ -1,0 +1,47 @@
+---
+title: Allora SDKs
+description: Choose the right Allora SDK — the Python worker framework for submitting predictions, or the Python, TypeScript, and Go clients for consuming inferences.
+persona: developer choosing an integration path
+verified_against: allora_sdk 1.0.6 (PyPI), "@alloralabs/allora-sdk" 0.1.1 (npm), allora-sdk-go v1.3.0
+last_reviewed: 2026-07-30
+---
+
+# Allora SDKs
+
+Allora ships SDKs in Python, TypeScript, and Go. Which one you need depends on which side of the network you are on:
+
+- **Building models?** Workers *produce* inferences. The [Python SDK](https://docs.allora.network/consume/sdk-py)'s `AlloraWorker` is the worker framework: it wraps wallet management, topic registration, submission windows, and transaction retries around your prediction function. Start with the [worker guide](https://docs.allora.network/build/worker/sdk-py).
+- **Consuming inferences?** Consumers *read* what the network produces — topics, network inferences, signed price predictions. All three SDKs cover this: pick the language that matches your stack from the table below, or start with the hands-on [Consume an inference in 2 minutes](https://docs.allora.network/get-started/quickstart-consume) quickstart.
+
+## Capabilities by language
+
+| Capability | [Python](https://docs.allora.network/consume/sdk-py) | [TypeScript](https://docs.allora.network/consume/sdk-ts) | [Go](https://docs.allora.network/consume/sdk-go) |
+| :--- | :---: | :---: | :---: |
+| Read topics and latest network inferences (Allora API) | ✓ | ✓ | ✓ |
+| Signed inferences for on-chain (EVM) verification | ✓ | ✓ | — |
+| Price prediction helpers (BTC/ETH by timeframe) | — | ✓ | — |
+| Typed chain queries (emissions and Cosmos modules) | ✓ | — | ✓ |
+| Chain event subscriptions (WebSocket) | ✓ | — | ✓ |
+| Endpoint load balancing and failover | — | — | ✓ |
+| Historical OHLC market data | — | — | ✓ |
+| Wallets and transaction submission | ✓ | — | ✓ |
+| Worker framework (submit predictions) | ✓ | — | — |
+
+## Installation
+
+| Language | Package | Install |
+| :--- | :--- | :--- |
+| Python | [`allora_sdk`](https://pypi.org/project/allora-sdk/) | `pip install allora_sdk` |
+| TypeScript | [`@alloralabs/allora-sdk`](https://www.npmjs.com/package/@alloralabs/allora-sdk) | `npm install @alloralabs/allora-sdk` |
+| Go | [`allora-sdk-go`](https://github.com/allora-network/allora-sdk-go) | `go get github.com/allora-network/allora-sdk-go` |
+
+All three use the same free API key from [developer.allora.network](https://developer.allora.network) for Allora API access.
+
+## Which should I use?
+
+- **ML builders** submitting predictions: the [Python SDK](https://docs.allora.network/consume/sdk-py) is the only SDK with the worker framework — follow the [worker guide](https://docs.allora.network/build/worker/sdk-py).
+- **Web and Node.js apps**: the [TypeScript SDK](https://docs.allora.network/consume/sdk-ts) is the lightest client and includes BTC/ETH price prediction helpers; like the Python client, it returns inferences with an EVM-verifiable signature.
+- **Backend services and infrastructure** (indexers, exchanges, monitoring): the [Go SDK](https://docs.allora.network/consume/sdk-go) pools gRPC/REST/CometBFT endpoints with load balancing and failover, and includes wallet and transaction helpers.
+- **Python apps** that only read data: the [Python SDK](https://docs.allora.network/consume/sdk-py)'s `AlloraAPIClient` and `AlloraRPCClient` cover the Allora API and typed chain queries without running a worker.
+
+No SDK in your language? The [Allora API](https://docs.allora.network/consume/api) and [RPC endpoints](https://docs.allora.network/consume/rpc-grpc) work from any HTTP or gRPC client.

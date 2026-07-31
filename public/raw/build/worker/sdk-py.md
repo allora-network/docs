@@ -1,0 +1,425 @@
+---
+title: Build a Worker with the Python SDK
+description: Build and configure an Allora inference worker with the Python SDK — plug in a real price model, then set up wallets, networks, fee tiers, and error handling.
+persona: ML builder
+verified_against: allora_sdk 1.0.6 (latest release on PyPI); github.com/allora-network/allora-sdk-py dev branch (upcoming-release section); allora-forge-builder-kit notebooks
+last_reviewed: 2026-07-30
+---
+
+# Build a Worker with the Python SDK
+
+The [Allora Python SDK](https://docs.allora.network/consume/sdk-py)'s `AlloraWorker` turns a Python function into a network participant: it creates a wallet, registers on a topic, listens for the topic's submission windows, calls your function, and submits the returned prediction on-chain — with fee estimation and retries built in.
+
+This guide builds a complete worker in two passes. First the walkthrough: start from a minimal worker, then swap in a real price model — a gradient-boosted tree regressor that predicts the BTC/USD price 24 hours ahead, adapted from the [Allora Forge Builder Kit](https://github.com/allora-network/allora-forge-builder-kit) notebooks. Then the configuration surface: wallets, networks, transaction fee tiers, and error handling.
+
+## Goal
+
+Run a worker that predicts the BTC/USD price 24 hours ahead and submits it to [Allora's testnet sandbox topic (ID 69)](https://testnet.explorer.allora.network/topics/69), configured with an explicit wallet, network, and fee tier.
+
+## Prerequisites
+
+- Python 3.10–3.13
+- An Allora API key — get one for free at [developer.allora.network](https://developer.allora.network). On testnet, the worker uses it to automatically request ALLO gas from the faucet.
+
+No Docker, no node infrastructure, and no manual wallet funding: `AlloraWorker` handles wallet creation, faucet requests, registration, and transaction submission for you.
+
+## Steps
+
+### 1. Install the SDK and model dependencies
+
+```bash
+pip install allora_sdk numpy pandas requests scikit-learn
+```
+
+### 2. Start with a minimal worker
+
+Save this as `worker.py`. It submits a placeholder value — the real model replaces it in step 5:
+
+```python
+import asyncio
+import os
+
+from allora_sdk import AlloraNetworkConfig, AlloraWorker
+
+async def run_model(nonce: int) -> float:
+    return 123.45  # placeholder -- the real model replaces this in step 5
+
+async def main():
+    worker = AlloraWorker.inferer(
+        run=run_model,
+        topic_id=69,
+        network=AlloraNetworkConfig.testnet(),
+        api_key=os.environ["ALLORA_API_KEY"],
+    )
+    async for result in worker.run():
+        if isinstance(result, Exception):
+            print(f"Inference worker error: {result}")
+        else:
+            print(f"Prediction submitted to Allora: {result.submission}")
+
+asyncio.run(main())
+```
+
+Run it:
+
+```bash
+export ALLORA_API_KEY="<your key from developer.allora.network>"
+python worker.py
+```
+
+On the first run, the worker walks you through network onboarding automatically:
+
+- It connects to Allora's **testnet**, where no real funds are exchanged.
+- It asks for a wallet mnemonic — press **Enter** to have one generated for you. Your identity (an `allo...` address) is saved to a `.allora_key` file in the working directory and reused on later runs.
+- If the wallet's balance is low, it requests a small amount of ALLO — the network's gas currency — from the testnet faucet, using your API key.
+- It registers the worker on [Allora's sandbox topic (ID 69)](https://testnet.explorer.allora.network/topics/69), a topic for newcomers to verify their setup. **There are no penalties for submitting inaccurate inferences to this topic.**
+
+The worker then listens for the topic's submission windows and calls `run_model` each time one opens. Once you have seen it submit (or you are satisfied the onboarding completed), press Ctrl-C once for a graceful shutdown and move on to the model.
+
+### 3. Build the price model
+
+Topic 69 asks for the BTC/USD price 24 hours ahead. Save this as `model.py`:
+
+```python
+"""Train a small BTC/USD price model for Allora's sandbox topic (ID 69).
+
+Topic 69 asks for the BTC/USD price 24 hours ahead. This script:
+1. fetches hourly BTC/USDT candles from Binance's public REST API,
+2. builds log-return features over several look-back horizons,
+3. trains a gradient-boosted tree model to predict the log return
+   24 hours ahead, with walk-forward validation,
+4. converts the predicted log return back into a price.
+"""
+
+import numpy as np
+import pandas as pd
+import requests
+from sklearn.ensemble import HistGradientBoostingRegressor
+from sklearn.model_selection import TimeSeriesSplit
+
+BINANCE_KLINES_URL = "https://api.binance.com/api/v3/klines"
+SYMBOL = "BTCUSDT"
+INTERVAL = "1h"                   # hourly candles
+CANDLES = 1000                    # max candles per request (~41 days of history)
+TARGET_BARS = 24                  # predict 24 hours ahead
+RETURN_HORIZONS = [1, 6, 12, 24]  # look-back horizons, in hours
+
+FEATURE_COLS = [f"log_return_{h}h" for h in RETURN_HORIZONS] + ["volatility_24h"]
+
+
+def fetch_candles(limit: int = CANDLES) -> pd.DataFrame:
+    """Fetch hourly OHLCV candles from Binance's public market data API."""
+    response = requests.get(
+        BINANCE_KLINES_URL,
+        params={"symbol": SYMBOL, "interval": INTERVAL, "limit": limit},
+        timeout=10,
+    )
+    response.raise_for_status()
+    columns = [
+        "open_time", "open", "high", "low", "close", "volume", "close_time",
+        "quote_volume", "n_trades", "taker_base_volume", "taker_quote_volume", "unused",
+    ]
+    df = pd.DataFrame(response.json(), columns=columns)
+    df["open_time"] = pd.to_datetime(df["open_time"], unit="ms", utc=True)
+    df["close"] = df["close"].astype(float)
+    return df[["open_time", "close"]]
+
+
+def build_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Add log-return features, rolling volatility, and the training target."""
+    out = df.copy()
+    log_close = np.log(out["close"])
+    for horizon in RETURN_HORIZONS:
+        out[f"log_return_{horizon}h"] = log_close.diff(horizon)
+    out["volatility_24h"] = log_close.diff().rolling(24).std()
+    # Target: the log return over the NEXT TARGET_BARS hours (NaN for recent rows)
+    out["target"] = log_close.shift(-TARGET_BARS) - log_close
+    return out
+
+
+def make_model() -> HistGradientBoostingRegressor:
+    return HistGradientBoostingRegressor(
+        max_iter=300,
+        learning_rate=0.05,
+        max_depth=3,
+        max_leaf_nodes=15,
+        random_state=42,
+    )
+
+
+def train() -> HistGradientBoostingRegressor:
+    """Train the model with walk-forward validation, then fit on all data."""
+    df = build_features(fetch_candles()).dropna()
+    print(f"Dataset: {len(df)} hourly samples "
+          f"({df['open_time'].iloc[0]} to {df['open_time'].iloc[-1]})")
+
+    # Walk-forward cross-validation with a TARGET_BARS embargo between
+    # train and test folds, so the target never leaks across the split.
+    tscv = TimeSeriesSplit(n_splits=3, gap=TARGET_BARS)
+    for fold, (train_idx, test_idx) in enumerate(tscv.split(df), start=1):
+        model = make_model()
+        model.fit(df.iloc[train_idx][FEATURE_COLS], df.iloc[train_idx]["target"])
+        preds = model.predict(df.iloc[test_idx][FEATURE_COLS])
+        actual = df.iloc[test_idx]["target"].to_numpy()
+        mae = np.mean(np.abs(preds - actual))
+        directional = np.mean(np.sign(preds) == np.sign(actual))
+        print(f"Fold {fold}: MAE (log return) = {mae:.5f} | "
+              f"directional accuracy = {directional:.1%}")
+
+    final_model = make_model()
+    final_model.fit(df[FEATURE_COLS], df["target"])
+    print(f"Final model trained on {len(df)} samples")
+    return final_model
+
+
+def predict_price(model: HistGradientBoostingRegressor) -> float:
+    """Predict the BTC/USD price TARGET_BARS hours from now."""
+    features = build_features(fetch_candles())
+    current_price = float(features["close"].iloc[-1])
+    predicted_log_return = float(model.predict(features[FEATURE_COLS].iloc[[-1]])[0])
+    # Convert the predicted log return back into a price
+    return current_price * float(np.exp(predicted_log_return))
+
+
+if __name__ == "__main__":
+    model = train()
+    price = predict_price(model)
+    print(f"Predicted BTC/USD price in {TARGET_BARS} hours: {price:,.2f}")
+```
+
+This is a teaching example, not a profitable trading model — on ~40 days of hourly data, expect directional accuracy near a coin flip. To engineer stronger features, search hyperparameters, and evaluate against the network's scoring metrics, use the [Forge Builder Kit](https://github.com/allora-network/allora-forge-builder-kit), which this example is adapted from. The model, look-back horizons, data source, and asset are all yours to swap out — the only contract with the network is that `run_model` returns your prediction as a `float`.
+
+### 4. Train and test the model locally
+
+This step needs no API key and touches nothing on-chain:
+
+```bash
+python model.py
+```
+
+You should see the dataset summary, one line per validation fold, and a test prediction — with numbers reflecting current market data:
+
+```text
+Dataset: 952 hourly samples (2026-06-20 02:00:00+00:00 to 2026-07-29 17:00:00+00:00)
+Fold 1: MAE (log return) = 0.02211 | directional accuracy = 37.4%
+Fold 2: MAE (log return) = 0.01550 | directional accuracy = 42.4%
+Fold 3: MAE (log return) = 0.01235 | directional accuracy = 51.7%
+Final model trained on 952 samples
+Predicted BTC/USD price in 24 hours: 65,279.19
+```
+
+### 5. Swap the model into the worker
+
+Replace `worker.py` with this version, which trains the model at startup and submits a fresh prediction every time a submission window opens:
+
+```python
+import asyncio
+import os
+
+from allora_sdk import AlloraNetworkConfig, AlloraWorker
+
+from model import predict_price, train
+
+# Train once at startup (retrain and restart as often as you like)
+model = train()
+
+async def run_model(nonce: int) -> float:
+    prediction = predict_price(model)
+    print(f"Predicted BTC/USD price in 24 hours: {prediction:,.2f}")
+    return prediction
+
+async def main():
+    worker = AlloraWorker.inferer(
+        run=run_model,
+        topic_id=69,
+        network=AlloraNetworkConfig.testnet(),
+        api_key=os.environ["ALLORA_API_KEY"],
+    )
+    async for result in worker.run():
+        if isinstance(result, Exception):
+            print(f"Inference worker error: {result}")
+        else:
+            print(f"Prediction submitted to Allora: {result.submission}")
+
+asyncio.run(main())
+```
+
+Run it again — it reuses the `.allora_key` identity from step 2:
+
+```bash
+python worker.py
+```
+
+The `run` function is the whole contract between your model and the network: it can be sync or async, it receives the submission window's nonce (a block height), and it returns the prediction as a `float` or `str`. Sync functions are run in an executor so a slow model does not block the worker's event loop.
+
+### 6. Configure the wallet
+
+With no `wallet` argument, the worker reads the mnemonic in `.allora_key` (creating it interactively on first run, as in step 2). For servers, CI, or [containers](https://docs.allora.network/build/worker/containerize), configure the wallet explicitly with `AlloraWalletConfig`:
+
+```python
+import os
+
+from allora_sdk.rpc_client.config import AlloraWalletConfig
+
+# One of the following:
+
+# A mnemonic phrase from an environment variable
+wallet = AlloraWalletConfig(mnemonic=os.environ["ALLORA_WALLET_MNEMONIC"])
+
+# A hex-encoded private key from an environment variable
+wallet = AlloraWalletConfig(private_key=os.environ["ALLORA_WALLET_PRIVATE_KEY"])
+
+# A file containing the mnemonic (what the worker uses by default as `.allora_key`)
+wallet = AlloraWalletConfig(mnemonic_file="/path/to/allora_key")
+
+# Or read PRIVATE_KEY / MNEMONIC / MNEMONIC_FILE / ADDRESS_PREFIX
+# from the environment in one call
+wallet = AlloraWalletConfig.from_env()
+```
+
+Pass the result as `AlloraWorker.inferer(wallet=wallet, ...)`. Credentials are tried in that order: an explicit `private_key` wins, then `mnemonic`, then `mnemonic_file` (falling back to `.allora_key` in the working directory).
+
+The mnemonic in `.allora_key` **is** your worker's identity and funds — never commit it, and keep a backup. Use environment variables or mounted files for secrets, never hardcoded strings. Run **one worker process per wallet**: transactions from one account must be submitted in strict sequence order, and two processes signing with the same key will conflict.
+
+### 7. Choose a network
+
+`AlloraNetworkConfig` ships presets, and every field can be overridden:
+
+```python
+from allora_sdk import AlloraNetworkConfig
+
+# Presets
+network = AlloraNetworkConfig.testnet()   # allora-testnet-1, with faucet support
+network = AlloraNetworkConfig.mainnet()   # allora-mainnet-1
+network = AlloraNetworkConfig.local()     # a local node on localhost:26657
+
+# Or specify everything yourself
+network = AlloraNetworkConfig(
+    chain_id="allora-testnet-1",
+    url="grpc+https://allora-grpc.testnet.allora.network:443",
+    websocket_url="wss://allora-rpc.testnet.allora.network/websocket",
+    fee_denom="uallo",
+    fee_minimum_gas_price=10.0,
+    faucet_url="https://faucet.testnet.allora.network",
+)
+```
+
+- The `url` scheme selects the wire protocol: `grpc+http(s)://` uses gRPC, `rest+http(s)://` uses the Cosmos-LCD REST API.
+- `websocket_url` powers the event subscriptions the worker uses to react to submission windows the moment they open; between events it also polls (`polling_interval`, default 120 seconds).
+- `faucet_url` is only set on the testnet preset — automatic gas top-ups are a testnet convenience. On mainnet, fund the worker's address with ALLO yourself.
+
+### 8. Choose a fee tier
+
+Every transaction the worker sends (registration, inference submission) pays gas. `fee_tier` controls how much you pay above the network minimum to prioritize inclusion within an epoch:
+
+```python
+from allora_sdk import FeeTier
+
+worker = AlloraWorker.inferer(
+    run=run_model,
+    topic_id=69,
+    fee_tier=FeeTier.PRIORITY,
+    api_key=os.environ["ALLORA_API_KEY"],
+)
+```
+
+| Tier | Gas price | Use when |
+| :--- | :--- | :--- |
+| `FeeTier.ECO` | Network minimum | Cost matters more than inclusion speed |
+| `FeeTier.STANDARD` (default) | 1.5× minimum | Everyday operation |
+| `FeeTier.PRIORITY` | 2.5× minimum | Submission windows are short or the chain is busy and you cannot afford to miss an epoch |
+
+Registration transactions are always sent at `PRIORITY` so your worker can start participating as soon as possible; the tier you pass applies to inference submissions.
+
+### 9. Handle errors
+
+`worker.run()` is an async generator that yields a result per submission attempt — either a `PredictionResult` (with `.prediction` and `.tx_result`, including the transaction hash) or an `Exception`. Handle both, and use `TxError` to distinguish on-chain rejections from model failures:
+
+```python
+import asyncio
+import os
+
+from allora_sdk import AlloraNetworkConfig, AlloraWorker
+from allora_sdk.rpc_client.tx_manager import TxError
+
+async def run_model(nonce: int) -> float:
+    return 123.45  # your model here
+
+async def main():
+    worker = AlloraWorker.inferer(
+        run=run_model,
+        topic_id=69,
+        network=AlloraNetworkConfig.testnet(),
+        api_key=os.environ["ALLORA_API_KEY"],
+    )
+    async for result in worker.run():
+        if isinstance(result, TxError):
+            # The chain rejected the transaction
+            print(f"Tx failed: code={result.code} {result.message} (tx: {result.tx_hash})")
+        elif isinstance(result, Exception):
+            # Your run function raised, or a network/RPC error occurred
+            print(f"Worker error: {result}")
+        else:
+            print(f"Submitted {result.submission} (tx: {result.tx_result.txhash})")
+
+asyncio.run(main())
+```
+
+What the worker already does for you:
+
+- **Exceptions from your `run` function** are caught and yielded — one bad prediction never crashes the worker loop.
+- **"Already submitted for this epoch"** rejections are recognized and logged as warnings; the nonce is marked done and not retried.
+- **Not whitelisted**: if the topic restricts who may submit and your wallet is not on the list, the worker logs `The wallet ... is not whitelisted on topic ...` and stops — contact the topic creator.
+- **Faucet rate limiting**: after a `429` from the testnet faucet the worker exits with an error; fund the wallet from another source or wait, then restart.
+- **Shutdown**: Ctrl-C (or SIGTERM, e.g. from a process manager) triggers a graceful shutdown; a second Ctrl-C force-exits. In notebooks, call `worker.stop()` or pass a `timeout` (seconds) to `worker.run(timeout=...)` to stop after a fixed run.
+- **Transient RPC errors** in the polling loop are logged and retried on the next cycle rather than raised.
+
+## Verify
+
+- The startup logs show the worker's wallet address and balance, and on the first run the faucet top-up.
+- Each time a submission window for the topic opens, the terminal prints `Predicted BTC/USD price in 24 hours: ...` followed by `Prediction submitted to Allora: ...`, and the log shows `✅ Successfully submitted: topic=69 nonce=...` with a transaction hash.
+- Open [testnet.explorer.allora.network/topics/69](https://testnet.explorer.allora.network/topics/69) and look for your worker's `allo...` address among the topic's workers.
+- Export your worker's submission history to CSV with the bundled CLI tool: `allora-export-txs --address <your allo... address>`.
+- For dashboards, on-chain scores, and EMA queries, see [Monitor a Worker](https://docs.allora.network/build/worker/monitoring).
+
+## Coming in the next SDK release
+
+The SDK's public [`dev` branch](https://github.com/allora-network/allora-sdk-py/tree/dev) extends `AlloraWorker` beyond the current release (`allora_sdk` 1.0.6). These features are **not yet published to PyPI**, and their APIs may still change:
+
+- **Auto-staking rewards**: pass `autostake=AutoStakeConfig(...)` to `AlloraWorker.inferer()` to automatically delegate the worker's settled rewards to a reputer (`AutoStakeTargetType.REPUTER`, an `allo1...` reputer registered on your topic) or to a validator (`AutoStakeTargetType.VALIDATOR`, an `allovaloper1...` operator address). The target is validated at startup, an optional `fee_reserve_uallo` keeps gas money unstaked, and each rewards-settlement event triggers one delegation:
+
+  ```python
+  from allora_sdk.worker.autostake import AutoStakeConfig, AutoStakeTargetType
+
+  worker = AlloraWorker.inferer(
+      run=run_model,
+      topic_id=69,
+      autostake=AutoStakeConfig(
+          target_type=AutoStakeTargetType.REPUTER,
+          target_address="allo1...",       # or AutoStakeTargetType.VALIDATOR with allovaloper1...
+          fee_reserve_uallo=1_000_000,     # keep this much of each reward for gas
+      ),
+  )
+  ```
+
+- **`RunContext` callbacks**: `run` functions receive a `RunContext` (with `.nonce`, `.topic_id`, and an RPC `.client` for chain queries) instead of a bare nonce, and can return a `dict[str, float]` for multi-value topics.
+- **Sanity checks**: submissions are compared against the network consensus with a z-score check (configurable via `SanityCheckConfig`), warning you if your prediction looks like the wrong unit or target variable.
+- **More roles**: `AlloraWorker.forecaster(...)` and `AlloraWorker.reputer(...)` counterparts to the inferer — see [Build and Deploy a Forecaster](https://docs.allora.network/build/forecaster) and [Build a Reputer](https://docs.allora.network/build/reputer/build-a-reputer) for the current state of each.
+
+## Troubleshoot
+
+- **`KeyError: 'ALLORA_API_KEY'`** — the environment variable is not set in the current shell. Run `export ALLORA_API_KEY="<your key>"` first; free keys are available at [developer.allora.network](https://developer.allora.network).
+- **Worker prompts `Mnemonic:` on startup** — no wallet was configured and no `.allora_key` file exists yet. Press Enter to generate a fresh identity, or configure one explicitly (step 6). Back up the resulting `.allora_key` file; delete it to start over with a new identity.
+- **gRPC `StatusCode.UNIMPLEMENTED` with `unknown service emissions.vN.QueryService`** — the network has been upgraded to a newer protobuf revision than the one bundled with your installed SDK release. Upgrade with `pip install --upgrade allora_sdk`; if the newest release still fails, the deployed network is ahead of the latest SDK release — check the [SDK issue tracker](https://github.com/allora-network/allora-sdk-py/issues).
+- **`RuntimeError: asyncio.run() cannot be called from a running event loop`** — you are in a notebook (Jupyter/Colab), where an event loop is already running. Replace `asyncio.run(main())` with `await main()`.
+- **`Too many faucet requests`** — the testnet faucet is rate-limited. Send ALLO to your worker's address from another wallet, or request funds manually at [faucet.testnet.allora.network](https://faucet.testnet.allora.network).
+- **`The wallet ... is not whitelisted on topic ...`** — the topic restricts submitters and stops the worker. Pick an open topic (the sandbox topic 69 has no whitelist) or contact the topic creator.
+- **`requests.exceptions.HTTPError: 451`** from `model.py` — Binance's public API is unavailable in some regions. Swap `fetch_candles` for any other candle source; the rest of the pipeline only needs a DataFrame with `open_time` and `close` columns.
+
+## Next
+
+- Productionize your worker: [deploy it with Docker](https://docs.allora.network/build/worker/containerize)
+- Watch it work: [monitor a worker](https://docs.allora.network/build/worker/monitoring) — dashboards, logs, and on-chain EMA scores
+- Graduate from the sandbox: pick a real topic from [existing topics](https://docs.allora.network/build/forge/topics)
+- Explore the SDK's full surface — RPC queries, transactions, and the REST API client: [Allora Python SDK](https://docs.allora.network/consume/sdk-py)
+- Train and deploy a model end to end with the [Forge Builder Kit](https://github.com/allora-network/allora-forge-builder-kit)
