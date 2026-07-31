@@ -6,11 +6,13 @@ const path = require('path');
 // <Version of="..."/> component (components/Version.tsx) or the constants in
 // components/versions.ts that derive from it.
 //
-// This checker loads versions.json and fails if any of its values — with or
-// without a leading "v" — is typed by hand in pages/, components/ or snippets/.
-// Run via `yarn checkversions`; chained into `yarn build` after the frontmatter
-// check, and run in CI (.github/workflows/check-versions.yml). Exits non-zero on
-// any violation.
+// This checker does two things. First, it loads versions.json and fails if any
+// of its values — with or without a leading "v" — is typed by hand in pages/,
+// components/ or snippets/. Second, it fails if versions.json and
+// public/api/networks.json disagree about the release a network is running (see
+// checkManifestsAgree below). Run via `yarn checkversions`; chained into
+// `yarn build` after the frontmatter check, and run in CI
+// (.github/workflows/check-versions.yml). Exits non-zero on any violation.
 //
 // Not every mention of a version number is a claim about the current version.
 // The exemptions below are deliberate and narrow:
@@ -35,6 +37,7 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
 const VERSIONS_FILE = path.join(ROOT, 'public', 'api', 'versions.json');
+const NETWORKS_FILE = path.join(ROOT, 'public', 'api', 'networks.json');
 
 // Trees to scan, and the extensions worth scanning in each.
 const SCAN = [
@@ -98,6 +101,102 @@ function readVersions() {
   });
 
   return entries;
+}
+
+function readNetworks() {
+  const relative = path.relative(ROOT, NETWORKS_FILE);
+
+  if (!fs.existsSync(NETWORKS_FILE)) {
+    console.error(`Version check failed: ${relative} is missing.`);
+    process.exit(1);
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(fs.readFileSync(NETWORKS_FILE, 'utf8'));
+  } catch (error) {
+    console.error(`Version check failed: ${relative} is not valid JSON.`);
+    console.error(`  ${error.message}`);
+    process.exit(1);
+  }
+
+  if (!parsed.networks || typeof parsed.networks !== 'object' || Array.isArray(parsed.networks)) {
+    console.error(`Version check failed: ${relative} has no "networks" object.`);
+    process.exit(1);
+  }
+
+  return parsed.networks;
+}
+
+// versions.json's `chain_<network>` keys and networks.json's per-network
+// `deployed_version` are two hand-maintained copies of one fact: the
+// allora-chain release that network is running. Nothing keeps them in step on
+// its own — the version-bump job never writes the chain keys (a release tag
+// says nothing about what a network actually deployed) and the network-drift
+// job only ever rewrites `abci_version`. Meanwhile
+// pages/reference/networks.mdx takes its prose from the first file and its
+// table from the second, so a divergence publishes a page that contradicts
+// itself. Hence this check: the two files must move together, in one commit.
+const CHAIN_KEY = /^chain_(.+)$/;
+
+function checkManifestsAgree(entries) {
+  const networks = readNetworks();
+  const problems = [];
+  let compared = 0;
+
+  entries.forEach(([key, value]) => {
+    const match = CHAIN_KEY.exec(key);
+    if (!match) return;
+    const name = match[1];
+    const network = networks[name];
+
+    if (!network) {
+      problems.push(
+        `versions.json has "${key}", but networks.json defines no network "${name}" ` +
+          `(it defines: ${Object.keys(networks).join(', ') || 'none'}).`
+      );
+      return;
+    }
+
+    compared++;
+    if (network.deployed_version !== value) {
+      problems.push(
+        `versions.json "${key}" is ${JSON.stringify(value)}, but networks.json ` +
+          `networks.${name}.deployed_version is ${JSON.stringify(network.deployed_version)}.`
+      );
+    }
+  });
+
+  const keys = new Set(entries.map(([key]) => key));
+  Object.entries(networks).forEach(([name, network]) => {
+    if (network.deployed_version === undefined) return;
+    if (keys.has(`chain_${name}`)) return;
+    problems.push(
+      `networks.json network "${name}" records deployed_version ` +
+        `${JSON.stringify(network.deployed_version)}, but versions.json has no "chain_${name}" key.`
+    );
+  });
+
+  return { problems, compared };
+}
+
+function reportManifestProblems(problems) {
+  console.error(
+    `Version check failed: public/api/versions.json and public/api/networks.json ` +
+      `disagree about ${problems.length === 1 ? 'a deployed network version' : 'deployed network versions'}.`
+  );
+  console.error(
+    'Both files record the allora-chain release each network is running, and ' +
+      'nothing updates them for you: the version-bump job never writes the ' +
+      'chain_* keys, and the network-drift job only rewrites abci_version. ' +
+      'pages/reference/networks.mdx renders its prose from versions.json and its ' +
+      'table from networks.json, so the two must be updated together.\n'
+  );
+  problems.forEach(problem => console.error(`  ${problem}`));
+  console.error(
+    '\nUpdate both files in the same commit: set versions.json "chain_<network>" ' +
+      'and networks.json networks.<network>.deployed_version to the same value.'
+  );
 }
 
 // One matcher per key: matches the value with an optional leading "v", not
@@ -180,6 +279,16 @@ function main() {
 
   const violations = files.flatMap(file => checkFile(file, matchers));
 
+  // Both classes of problem are reported in one run, so a maintainer fixing the
+  // manifests is not sent back for a hand-typed literal on the next build.
+  const { problems, compared } = checkManifestsAgree(entries);
+
+  if (problems.length > 0) {
+    reportManifestProblems(problems);
+    if (violations.length > 0) console.error('');
+    process.exitCode = 1;
+  }
+
   if (violations.length > 0) {
     console.error(
       `Version check failed: ${violations.length} hand-typed current-version ` +
@@ -200,12 +309,14 @@ function main() {
         'comment on the line.'
     );
     process.exitCode = 1;
-    return;
   }
+
+  if (process.exitCode === 1) return;
 
   console.log(
     `Version check OK: ${files.length} files carry no hand-typed copy of ` +
-      `${entries.map(([key]) => key).join(', ')}.`
+      `${entries.map(([key]) => key).join(', ')}; versions.json and networks.json ` +
+      `agree on ${compared} deployed network version(s).`
   );
 }
 
