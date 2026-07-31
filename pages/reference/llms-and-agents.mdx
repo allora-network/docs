@@ -48,26 +48,38 @@ curl -s https://docs.allora.network/llms.txt
 
 The complete text of every page, concatenated in the same navigation order.
 Each page is introduced by a thematic break, its title as an H1, the canonical
-URL it came from, and its description:
+URL it came from, and its description (indented here so this example cannot be
+mistaken for a real page boundary — in the file itself these lines start at
+column 0):
 
 ```
----
+  ---
 
-# Page title
+  # Page title
 
-Source: https://docs.allora.network/path
+  Source: https://docs.allora.network/<page path>
 
-One-line description.
+  One-line description.
 
-...page body as markdown...
+  ...page body as markdown...
 ```
-
-Split on the `Source:` lines to recover per-page boundaries, or fetch the
-individual raw file instead.
 
 ```bash
 curl -s https://docs.allora.network/llms-full.txt
 ```
+
+To recover per-page boundaries, split on lines matching
+`^Source: https://docs.allora.network/` — one per page, in the same order as
+`llms.txt`, each preceded by the page's H1. Counting them is a cheap check that
+you have the whole file:
+
+```bash
+curl -s https://docs.allora.network/llms-full.txt |
+  grep -c '^Source: https://docs.allora.network/'
+```
+
+Anything indented, or inside a fenced code block, is page content rather than a
+delimiter. If you only need one page, fetch its raw file instead.
 
 ## Raw markdown for one page
 
@@ -83,13 +95,21 @@ Take the page's path, prefix it with `/raw/`, and append `.md`:
 | `/get-started/quickstart-worker` | `/raw/get-started/quickstart-worker.md` |
 | `/build/worker/sdk-py` | `/raw/build/worker/sdk-py.md` |
 | `/reference/params/chain` | `/raw/reference/params/chain.md` |
+| `/build/reputer` | `/raw/build/reputer.md` |
 
-A section landing page — a URL that names a section rather than a page inside
-it, such as `/get-started` — is at `/raw/<section>/index.md`, mirroring the
-`index` file it is built from:
+That rule covers landing pages too: `/build/reputer` is a section landing page
+with `/build/reputer/build-a-reputer` and its siblings beneath it, and its raw
+file is still `/raw/build/reputer.md`.
+
+The one shape it does not cover is a landing page whose source file is named
+`index`, which keeps that name under `/raw/`. Today `/get-started` is the only
+one: it is at `/raw/get-started/index.md`, and `/raw/get-started.md` does not
+exist. So the complete two-step rule is **append `.md`; on a 404, retry with
+`/index.md`**:
 
 ```bash
-curl -s https://docs.allora.network/raw/get-started/index.md
+curl -sf https://docs.allora.network/raw/get-started.md ||
+  curl -s https://docs.allora.network/raw/get-started/index.md
 ```
 
 The mapping is total: every page listed in `llms.txt` has exactly one raw file,
@@ -132,11 +152,12 @@ stands on its own:
 - **Links are absolute.** Internal links become full
   `https://docs.allora.network/...` URLs, because a detached `.md` file has no
   page to resolve `./sibling` against.
-- **Interactive components are dropped.** Callouts, tabs, and card grids are
-  unwrapped to their text content. Components that render live data — the
-  topic tables on
-  [Existing Allora Network Topics](/build/forge/topics), for instance — are
-  not expanded; fetch `/api/topics.json` for that data instead.
+- **Layout components are unwrapped.** Callouts, tabs, and card grids become
+  their text content; a component that occupies a line of its own is dropped.
+  One left-over: a component used *inline in a sentence* survives as its
+  literal tag. Components that render live data are never expanded either — the
+  topic tables on [Existing Allora Network Topics](/build/forge/topics), for
+  instance, are absent; fetch `/api/topics.json` for that data instead.
 - **Version placeholders are resolved.** Prose that interpolates a version
   constant carries the version string itself.
 
@@ -151,10 +172,10 @@ prose.
 
 ### /api/topics.json
 
-Every topic currently **active** on each network, regenerated nightly from live
-chain state by a scheduled job that queries each network's Cosmos LCD (REST)
-API and keeps only topics whose `is_topic_active` query returns `true`. It is
-the same data the [Existing Allora Network Topics](/build/forge/topics) page
+Every topic currently **active** on each network. A nightly job queries each
+network's Cosmos LCD (REST) API, keeps only topics whose `is_topic_active`
+query returns `true`, and proposes the regenerated file for review. It is the
+same data the [Existing Allora Network Topics](/build/forge/topics) page
 renders.
 
 ```bash
@@ -194,8 +215,9 @@ curl -s https://docs.allora.network/api/topics.json
 are per chain: the same prediction task has different IDs on testnet and
 mainnet.
 
-Because the file is refreshed on a schedule, treat it as up to 24 hours behind
-the chain. Confirm a topic before building against it:
+The `generated_at` field says when the published copy was built — read it
+rather than assuming a cadence, and confirm a topic against the chain before
+building against it:
 
 ```bash
 curl -s https://allora-api.testnet.allora.network/emissions/v10/is_topic_active/69
@@ -203,9 +225,9 @@ curl -s https://allora-api.testnet.allora.network/emissions/v10/is_topic_active/
 
 ### /api/networks.json
 
-The network endpoints manifest: the endpoints and chain IDs of each Allora
-network in machine-readable form — the same set [Networks](/reference/networks)
-documents in prose.
+The network endpoints manifest: endpoints and chain IDs for each Allora
+network, in machine-readable form. [Networks](/reference/networks) is the prose
+reference on the same subject.
 
 ```bash
 curl -s https://docs.allora.network/api/networks.json
@@ -229,9 +251,12 @@ integration fails a pull request whose generated files no longer match its
 pages. They therefore ship with the page edit that caused them, never behind
 it.
 
-The manifests under `/api/` are refreshed from live network state on a schedule
-instead of at build time; `topics.json` records when it was last regenerated in
-its `generated_at` field.
+The manifests under `/api/` are not tied to the page build. They are maintained
+by scheduled checks against their upstream source that propose an update when
+it changes, so a manifest is as current as the last proposal that was accepted
+— which is why `topics.json` publishes its own `generated_at`. Read the
+freshness metadata a manifest carries rather than assuming a cadence, and for
+anything you are about to spend gas on, confirm it against the chain.
 
 ## Related
 
