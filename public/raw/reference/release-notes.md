@@ -1,0 +1,403 @@
+---
+title: Allora Network Release Notes
+description: Release notes for Allora Network chain releases.
+persona: Builder or operator
+verified_against: docs content as of 2026-07-16
+last_reviewed: 2026-07-16
+---
+
+# Allora Network Release Notes
+
+## v0.17.0
+
+### Key Features and Improvements
+
+#### Topics
+- **Multi-label & classification topics**: Topics can now be typed as regression or classification (`topic_type`) and emit either a single value or a vector of labeled outputs (`output_arity`). Multi-output topics carry a per-topic label registry, with an optional `label_whitelist`, a `max_labels_per_submission` cap, a `label_default_value` for sparse submissions, and an immutable `label_case_sensitive` flag.
+- **Classification unity constraint**: Classification topics can require their per-label outputs to sum to one (`require_unity`) within a configurable `unity_tolerance`.
+- **New topic & module parameters**: `create-topic`/`update-topic` accept the new label-registry fields, and three new module params bound label sizes (`max_canonical_label_byte_length`, `max_topic_label_whitelist_size`, `max_epoch_label_registry_size`).
+
+#### Network Inference
+- **Labeled network inferences**: Network inferences are now stored and served as a `NetworkInferenceBundle` of labeled values, supporting multi-label topics. Single-output topics use a canonical `y` label.
+- **Unified event**: A single `EventNetworkInferenceBundle` (with an `outlier_resistant` flag) replaces the separate network-inference and outlier-resistant events.
+- **Outlier-resistant scope**: Outlier-resistant network inferences are computed only for single-label regression topics; the outlier-resistant query now returns an error for multi-label topics.
+
+#### Queries and CLI (breaking)
+- **v10 emissions API**: Emissions queries and transactions move to the `emissions/v10` package and REST namespace.
+- **Worker latest-inference query renamed**: `GetWorkerLatestInferenceByTopicId` → `GetWorkerLatestInputInferenceByTopicId` (REST `.../latest_input_inference`), now returning an `InputInference`.
+- **Wider p_norm range**: The allowed `p_norm` range for topics was increased.
+
+### Bug Fixes and Other Improvements
+- **AutoCLI**: Fixed parameter advertising, fixed dry-run and auto-gas handling, and added keyring simulation.
+- **Events**: Clamp `Dec` magnitudes in emissions events to keep event payloads compact.
+
+### Upgrade
+- **v0.17.0 upgrade**: The `x/emissions` consensus version is bumped to 15. The migration backfills regression/single-output defaults on existing topics and converts stored network inferences to the new labeled bundle format.
+
+## v0.16.0
+
+### Key Features and Improvements
+
+#### Math
+- **Regret normalization update**: Regret normalization now uses median absolute deviation (MAD), with adjusted quantiles.
+
+#### Maintenance
+- **Upgrade testing**: Improved testing for a more reliable upgrade process.
+
+#### Internal Refactor
+- **Keeper refactor**: a big refactor of the keeper internals.
+
+## v0.15.0
+
+### Key Features and Improvements
+
+#### Scheduler and Settings
+- **Enforce recommended consensus settings** to increase network stability.
+- **x/scheduler module**: New module for task scheduling.
+
+#### Topic Management
+- **Topic configuration updates**: Topic creators can update certain topic config settings
+- **Per-topic c_norm**: c_norm is now a configurable per-topic field instead of a global parameter for better topic customization and performance.
+
+#### Queries and Ownership
+- **Open submission window queries**: New queries on open submission windows to improve submission window management on clients.
+- **Transfer ownership**: Workers can now transfer ownership of rewards.
+
+### Bug Fixes and Other Improvements
+
+- **OOIF matrix**: Fix matrix for events with value bundle to avoid potential issues with event parsing.
+- **Active topic set**: Fix a theoretical active topic set issue.
+
+### Security
+
+- **CometBFT**: Upgrade to v0.38.19.
+
+## v0.14.0
+
+### Key Features and Improvements
+
+#### Mint Module
+- **Mint foundation coins**: Align foundation coins to the Allora Foundation account (#887).
+
+## v0.13.0
+
+### Key Features and Improvements
+
+#### Tokenomics update
+
+- **Tokenomics adjustments**: Updated distribution, vesting and emission schedules.
+
+#### Security
+
+- **CometBFT update**: Upgraded the consensus engine to v0.38.19 to benefit from performance enhancements and security fixes.
+
+## v0.12.0
+
+### Key Features and Improvements
+
+#### Database and Performance Enhancements
+- **PebbleDB Integration**: Enabled PebbleDB for improved database performance and reliability.
+
+#### Monitoring and Events
+- **Network Inferences Event**: New `EventNetworkInferences` event is now emitted when closing worker nonce, providing better visibility into network state changes.
+- **Mint Module Metrics**: Emit mint module metrics with improved naming conventions and additional monitoring capabilities.
+
+### Bug Fixes and Other Improvements
+
+#### Reward and Stake Management
+- **Ecosystem Account Refunds**: System now prevents rewards accumulation on a scenario when topic is active but no work is submitted.
+- **Stake Management**: Topic weights are now properly updated during stake removal operations.
+- **Monthly Reward Calculation**: Fixed the occurrence and calculation of monthly PreviousPercentageRewardToStakedReputers.
+
+#### Math Improvements
+
+- **More Performant Math**: Improved performance of some mathematical calculations by using architecture-independent deterministic math operations.
+
+## v0.11.0
+
+### Key Features and Improvements
+
+#### Bug fixes and other improvements
+
+- **Nonce Management**: Enhances the closing of worker and reputer nonces by ensuring critical cleanup operations are performed.
+
+- **Payload Validations**: Introduces new validations against payloads submitted by workers and reputers, ensuring consistent data.
+
+- **Network Losses**: Mitigate the presence of invalid loss bundles by filtering them instead of invalidating the network losses completely.
+
+## v0.10.0
+
+### Key Features and Improvements
+
+#### Network Inferences
+
+- **Consistent Network Inferences**: Network Inferences are now stored onchain instead of being calculated at query time, providing consistent results and reducing query gas.
+
+- **Removed Network Inference On-chain Computations (API-Breaking Change)**: Weights and confidence intervals are no longer provided on-chain - they can be calculated offchain out of chain data.
+
+#### Stability and Security
+
+- **More Consistent Submission Window Handling**: Submission window boundaries are now applied more consistently.
+
+- **Input Layer Type-based Validation**: New input types apply validation at the type layer, improving data integrity and chain stability.
+
+- **Topic Weight Calculation**: Topic weights are now calculated more efficiently and accurately, fixing inaccuracies between topics with varying epoch lengths.
+
+- **Topic Rewards Volatility Reduction**: Topic rewards are now better adjusted to epoch-length-based cadence, reducing volatility and providing a more stable and predictable rewards distribution.
+
+#### Bug fixes and other improvements
+
+- **Security**: Fixes against potential attacks scenarios.
+
+- **Fix floating point ln calculation**: Fixing architecture-dependent ln calculation rounding issues.
+
+- **Emissions**: Preventing ecosystem rewards from being issued after supply cap is reached.
+
+- **Cosmos SDK Patch**: Update cosmos-sdk and IBC to fix ISA-2025-001
+
+#### Efficiency improvements
+
+- **Log rework**: Fixed lazy logging resulting in a considerable reduction of computation time in some cases.
+
+- **EMA calculation improvement**: Prevent unneeded computation under some scenarios.
+
+## v0.9.0
+
+### Key Features and Improvements
+
+#### Revamped Reward and Scoring Mechanism
+
+- **Scoring and Rewards Improvements**: The scoring and rewards mechanism has been revamped to be more robust and fair.
+
+- **Outlier Impact**: Outlier submissions are now naturally penalized more heavily, ensuring that the network is not affected by a small number of high-impact submissions.
+
+- **Normalized Standard deviations**: A common stddev is used for actors on each topic on inference synthesis, ensuring that the scoring is more consistent.
+
+- **Weights Transparency**: Inferer and Forecaster weights, and their respective stddevs are now stored onchain per-topic and can be queried.
+
+#### New Emitted Events
+
+- **New Events**: Latest worker weights and common stddev events are now emitted.
+
+#### Bug Fixes
+
+- **Rewards block event emission**: Reward events are now emitted on the block of their related nonce, aligned with scores and related events.
+
+## v0.8.0
+
+### Key Features and Improvements
+
+#### Enhanced Reward and Scoring Systems
+
+- **Outlier Detection for Inference Submissions**: Introduced mechanisms to detect and manage outliers in inference submissions, ensuring higher accuracy and fairness in scoring.
+
+- **EMA Score Initialization**: Actors now have initialized Exponential Moving Average (EMA) scores, improving consistency and predictability in performance evaluation.
+
+- **Initial EMA Score Generation**: Enabled support for initial EMA score calculations with queries and events, further refining reward distribution.
+
+#### Advanced Governance and Role Management
+
+- **Global Roles and Bulk Operations**: Added global worker, reputer, and admin roles with bulk operation capabilities, streamlining role management and network administration.
+
+- **Emission Flag for Mint Module**: Introduced a boolean flag for enabling or disabling emissions within the Mint Module, offering greater control over network emissions.
+
+- **Sortition Penalties Based on Liveness**: Implemented penalties based on liveness metrics, promoting consistent participation and penalizing inactivity.
+
+#### Improved Developer Tooling and Migration Processes
+
+- **Fuzzer Whitelist Awareness**: Enhanced the fuzzer to be whitelist-aware, ensuring more targeted and reliable testing scenarios.
+
+- **Install Script Improvements**: Updated the install script to handle release asset naming conventions, simplifying developer setup for new releases.
+
+- **Backward Compatibility for Transactions**: Enabled clients to unmarshal old transactions, maintaining compatibility with previous network versions.
+
+#### Documentation and Maintenance Updates
+
+- **Default Module Parameter Values**: Set research-approved default values for module parameters, aligning implementation with theoretical models.
+
+- **Preservation of `codec.go` Files**: Ensured `codec.go` files are retained during proto generation, improving developer experience and code stability.
+
+### Bug Fixes
+
+- **Score Normalization**: Adjusted score normalization to account for a broader range of samples, enhancing scoring accuracy and reliability.
+
+- **Whitepaper Alignment**: Corrected reward fraction calculations to match Whitepaper specifications, addressing discrepancies in implementation.
+
+### Security Enhancements
+
+- **IBC MsgTransfer Validation**: Strengthened security by ensuring funds transferred via IBC MsgTransfer are reliably received, mitigating potential vulnerabilities.
+
+---
+
+## v0.7.0
+
+**Release Date: December 2024**
+
+### Key Features and Improvements
+
+#### Enhanced Reward Distribution Management
+
+- Optimized Topic Initialization: Initial regret values for topics have been adjusted (#670), improving accuracy in reward cycles and minimizing extreme variations for new topics.
+
+- Reputer Listening Coefficients: A new strategy for handling reputer listening coefficients (#683) ensures better responsiveness in reward cycles, addressing inefficiencies in past implementations.
+
+- Expanded Governance and Module Permissions
+Burner Permission Added to Governance Module: The governance module now supports burner permissions, enhancing flexibility in token management within proposals (#685).
+Fee Market and Fee Grant Module Integration: Introduced a fee market and fee grant module (#627), enabling advanced transaction fee mechanisms and improving usability.
+
+#### Advanced Sortition and Migration Updates
+
+- Whitelist Features: Added whitelist support for admins, topic creators, workers, and reputers, alongside the x/emissions v6 migration and chain upgrade (#663). This ensures better control over permissions and enhances network security.
+
+- Optimistic Execution and CometBFT Upgrade: Implemented optimistic execution with CometBFT v0.38.15 (#678), offering faster and more efficient block processing.
+
+- Circuit Breaker for AnteHandler: The new CircuitBreakerDecorator (#689) introduces an additional layer of safety during transaction execution.
+
+#### Improved Tooling and Developer Experience
+
+- Fuzzer Enhancements: Linter integration and fuzzer improvements ensure state transitions add up to 100% (#654).
+Setup now runs through all state transitions once before starting fuzzing (#650), with additional bug fixes and probability configuration options (#653).
+
+- CLI Query Alignment: Refined CLI query commands to standardize user experience (#686).
+
+- Migration Tests and Upgrade Guides: Updated migration tests (#693) and added an upgrade guide to contributing documentation (#697).
+
+### Bug Fixes
+
+- Stake Validation: Implemented nil amount validation for stakes and added robust test coverage (#668).
+
+- Reputer Nonce Boundaries: Resolved boundary issues in nonce submissions, ensuring accurate validation (#687).
+
+- Investor Token Unlocks: Adjusted investor token unlock mechanisms to ensure strictly monotonically increasing amounts (#690).
+
+### Documentation and Maintenance
+
+- Documentation Enhancements: Added detailed documentation to CONTRIBUTING.md (#698), improving developer onboarding and alignment with governance and emissions modules.
+
+- Mint Module Updates: Fixed inconsistencies in the mint module's GenesisState and proto definitions, with a no-op v3 migration (#695).
+
+### Security Enhancements
+
+- IBC MsgTransfer Validation: Ensured that funds sent via IBC MsgTransfer are securely received (#682), addressing a critical security concern.
+
+## v0.6.0
+
+**Release Date: October 2024**
+
+### Key Features and Improvements
+
+#### Reward Distribution Management
+- A new field keeps track of the sum of active topics' weights over time, ensuring more accurate reward distribution.
+- Rewards are now accumulated across blocks rather than being recalculated every block.
+- The network now handles inactive or reactivated topics more efficiently, ensuring the total weights are always accurate for reward calculations.
+
+#### Runaway Negative Regret Calculations
+- The network now tracks initial regrets more carefully, particularly for fast-iteration topics, where regrets previously became excessively negative.
+- By only including experienced participants in regret calculations, it prevents a "runaway effect" where negative regrets grow too large.
+- New participants will have their regrets based on more stable values from established users, helping to balance the regret system and encourage continuous participation without penalizing newcomers too harshly.
+
+#### Improved Merit-Based Sortitioning
+- The network now has enhanced merit-based sortitioning by calculating participants' percentile rankings using instantaneous scores instead of Exponential Moving Averages (EMAs).
+- This change allows for quicker cycling through participants, ensuring that high-performing actors can be selected faster for rewards and network involvement.
+- The faster update to scores improves responsiveness, allowing new talent to enter the active set more easily and giving the network more up-to-date performance data, all while maintaining a merit-based selection process.
+
+## v0.5.0
+
+**Release Date**: September 2024
+
+The Allora Network v0.5.0 is now live! This version introduces several major updates designed to enhance user experience, improve network performance, and bolster system stability. Below are the key features, improvements, and bug fixes included in this release.
+
+### Key Features and Improvements
+
+#### Fixes from v0.4.0 Upgrade Migration
+- Resolved issues related to the incomplete migration of topic fields from the v0.4.0 upgrade. This fix ensures smoother transitions between versions and enhances data integrity during future upgrades.
+
+#### New RPC Endpoint for Emission Rate Control
+- A new RPC endpoint has been introduced to give administrators the ability to recalculate inflation rates and manage target emission rates more frequently than the standard monthly recalculation. This provides greater flexibility and control over token emissions.
+
+#### Refined Topic Management
+- **Rewardable Topics as Active Topics**: v0.5.0 merges the categories of rewardable and active topics, with rewardable topics now serving as the primary active ones. This simplifies topic management and includes renaming of core functions to improve clarity and system efficiency.
+
+#### Event Monitoring for Research and Insights
+- New event triggers have been added to enable a research monitoring suite. These event triggers will assist researchers and developers in tracking network behaviors and studying system performance with deeper insights.
+
+### Bug Fixes
+
+#### Handling NaN (Not a Number) Issues
+- Fixed issues related to NaN values appearing in various calculations:
+  - NaN values in maps during migrations have been cleared.
+  - Protection against NaN in the Exponential Moving Average (EMA) calculations has been added, ensuring accurate scoring and reward computations.
+
+#### Improved Migration Testing
+- Enhanced migration tests have been introduced to catch issues surrounding Initial Regrets, improving the reliability of future upgrades by addressing potential edge cases.
+
+#### Reputation System Improvements
+- Adjustments have been made to how block heights and score calculations are handled within the reputation system. This prevents redundant score submissions and ensures a fair reward distribution across the network.
+
+### Security Enhancements
+
+#### Max Length Limits on Topic Creation
+- Maximum string length limits have been enforced for new topics to prevent overflow issues and mitigate the risk of malicious input, contributing to a more secure system environment.
+
+#### Idempotent Payload Submission
+- Simplified submission conditions for inference payloads. Duplicate submissions are now handled in an idempotent manner, preventing them from affecting the system's behavior or causing erroneous calculations.
+
+## v0.4.0
+
+**Release Date**: September 2024
+
+This version focuses on implementing key fixes from the June 2024 Sherlock.xyz audit, enhancing active topic management, and refining the scoring system. Below are the critical updates, new features, and fixes included in this release.
+
+### Key Features and Improvements
+
+#### Scalable Management of Active Topics
+- **Active Topic Queries**: Introduced scalable solutions for managing active topics with new queries such as `GetActiveTopicsAtBlock` and `GetNextChurningBlockByTopicId`. These additions enhance the network's ability to efficiently retrieve topic statuses at specific blocks and predict future churn events for each topic.
+
+#### Exponential Moving Average for Scores
+- **Smoother Scoring**: Transitioned to using an **Exponential Moving Average (EMA)** for score calculations, replacing the previous instantaneous score values from each epoch. This change smooths out score fluctuations and ensures a more representative scoring system over time.
+
+### Removed
+
+#### Deprecated Unpartitioned Active Topic Queries
+- As part of the new scalable topic management system, the outdated `GetActiveTopics` query and paginated versions were removed. This helps streamline how active topics are stored and queried in the system.
+
+### Bug Fixes
+
+#### Reward Conversion to cosmosInt
+- Implemented a check to prevent **zero-rewards** after conversion to `cosmosInt`, ensuring rewards are correctly handled and distributed.
+
+#### InsertPayload Error Handling
+- Improved error handling in the `InsertPayload` function, along with enhanced testing for error scenarios. This strengthens payload processing and prevents errors from affecting the overall system.
+
+#### Reputer Window Limit Fix
+- Fixed the **Reputer window upper limit** to ensure that reputation calculations do not exceed the intended thresholds.
+
+#### Worker Nonce Window Timing
+- Resolved an issue where the **worker nonce window** was prematurely closing as soon as it opened, preventing proper timing of nonce submissions.
+
+### Security Enhancements
+
+#### Signature Verification for Payloads
+- Added checks to ensure that signatures on **Worker or Reputer Payloads** match the corresponding `Inferer`, `Forecaster`, or `Reputer` inside the bundle. This prevents unauthorized manipulation of payloads and strengthens overall network security.
+
+## v0.3.0
+
+**Release Date**: August 2024
+
+The Allora Network v0.3.0 introduced a significant update focused on enhancing participant selection through a merit-based system. This update addresses the need to balance limited on-chain compute resources while ensuring fair opportunities for new participants. Below are the key features, changes, and improvements implemented in this release.
+
+### Key Changes Implemented
+
+#### The Need for Merit-Based Sortition
+- To manage the constraints of on-chain compute while avoiding a "rich get richer" scenario, Allora Network introduced **merit-based sortition**. This process selects high-quality participants each epoch based on their past performance, measured by a running average of their scores. At the same time, lower-performing participants are cycled out, allowing new talent to demonstrate its value.
+
+#### Active and Passive Sets Management
+- **Active Set**: A group of high-performing participants whose data is used to calculate network inferences and receive rewards. The chain determines who qualifies for the active set by calculating a running average of each participant's scores.
+- **Passive Set**: Participants who are not in the active set move into the passive set. While their data isn't used for final rewards, their inferences are still tracked and considered for future inclusion in the active set, giving them a chance to re-enter based on improved performance.
+
+#### Score Calculation Using Exponential Moving Averages (EMAs)
+- **EMA-Based Score Calculation**: Scores for each participant are calculated using an Exponential Moving Average (EMA). This method smooths out individual performance over time, preventing large score fluctuations from one epoch to the next, and ensuring a more stable evaluation process.
+
+### Merit-Based Participant Selection
+
+The merit-based sortition system helps maintain the quality of network inferences while giving fresh talent the opportunity to participate and prove their value. This mechanism is designed to strike a balance between performance-based selection and inclusivity for new participants.

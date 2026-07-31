@@ -10,7 +10,7 @@
   },
   "scripts": {
     "dev": "next",
-    "build": "node scripts/checkFrontmatter.js && node scripts/generateLlmsTxt.js && next build",
+    "build": "node scripts/checkFrontmatter.js && node scripts/generateLlmsTxt.js && node scripts/generateRawMarkdown.js && next build",
     "start": "next start",
     "fixlinks": "node scripts/fixRelativeLinks.js",
     "checklinks": "node scripts/checkExternalLinks.js",
@@ -18,6 +18,8 @@
     "frontmatter": "node scripts/addFrontmatter.js",
     "topics": "node scripts/generateTopics.js",
     "llms": "node scripts/generateLlmsTxt.js",
-    "checkllms": "node scripts/generateLlmsTxt.js --check"
+    "checkllms": "node scripts/generateLlmsTxt.js --check",
+    "raw": "node scripts/generateRawMarkdown.js",
+    "checkraw": "node scripts/generateRawMarkdown.js --check"
   }
 }
