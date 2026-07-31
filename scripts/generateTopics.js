@@ -113,22 +113,64 @@ async function mapWithConcurrency(items, worker) {
   return results;
 }
 
+/**
+ * Every response shape is asserted before its values are used. A renamed or
+ * dropped field must fail the run loudly: silently coercing a missing
+ * `is_active` to `false` would publish an empty table and the nightly job
+ * would open a green PR deleting every row.
+ */
+function fail(net, message) {
+  throw new Error(
+    `${net.network}: ${message}. Refusing to publish a topics table from this ` +
+      `response — re-check ${net.lcd}/emissions/${net.emissions_api} by hand.`
+  );
+}
+
+/** A Cosmos LCD numeric field: a string of digits (or a plain number). */
+function requireUint(net, value, where) {
+  const parsed = typeof value === 'string' && /^\d+$/.test(value) ? Number(value) : value;
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    fail(net, `${where} is not an unsigned integer (got ${JSON.stringify(value)})`);
+  }
+  return parsed;
+}
+
+function requireString(net, value, where) {
+  if (typeof value !== 'string') {
+    fail(net, `${where} is not a string (got ${JSON.stringify(value)})`);
+  }
+  return value;
+}
+
 async function fetchNetworkTopics(net) {
   const base = `${net.lcd}/emissions/${net.emissions_api}`;
   const sandboxIds = new Set(SANDBOX_TOPIC_IDS[net.network] || []);
 
-  const { next_topic_id: nextTopicId } = await getJson(`${base}/next_topic_id`);
-  const highestId = Number(nextTopicId) - 1;
-  if (!Number.isInteger(highestId) || highestId < 1) {
-    throw new Error(`${net.network}: unusable next_topic_id ${JSON.stringify(nextTopicId)}`);
+  const nextTopicIdResponse = await getJson(`${base}/next_topic_id`);
+  if (!nextTopicIdResponse || !('next_topic_id' in nextTopicIdResponse)) {
+    fail(net, 'next_topic_id response has no next_topic_id field');
+  }
+  const highestId = requireUint(net, nextTopicIdResponse.next_topic_id, 'next_topic_id') - 1;
+  if (highestId < 1) {
+    fail(net, `next_topic_id is ${nextTopicIdResponse.next_topic_id}, so no topic exists`);
   }
 
   const candidateIds = Array.from({ length: highestId }, (_, i) => i + 1);
   const activeFlags = await mapWithConcurrency(candidateIds, async id => {
-    const { is_active: isActive } = await getJson(`${base}/is_topic_active/${id}`);
-    return isActive === true;
+    const response = await getJson(`${base}/is_topic_active/${id}`);
+    if (!response || typeof response.is_active !== 'boolean') {
+      fail(net, `is_topic_active/${id} returned no boolean is_active field`);
+    }
+    return response.is_active;
   });
   const activeIds = candidateIds.filter((_, i) => activeFlags[i]);
+
+  // Sanity floor: a network with zero active topics is far more likely a query
+  // or response-shape regression than reality, and publishing it would wipe the
+  // table. Refuse to write rather than silently emptying the page.
+  if (activeIds.length === 0) {
+    fail(net, `0 of ${highestId} topics reported active`);
+  }
 
   process.stdout.write(
     `${net.network} (${net.chain_id}, emissions/${net.emissions_api}): ` +
@@ -136,17 +178,25 @@ async function fetchNetworkTopics(net) {
   );
 
   const topics = await mapWithConcurrency(activeIds, async id => {
-    const { topic } = await getJson(`${base}/topics/${id}`);
-    if (!topic) throw new Error(`${net.network}: topic ${id} returned no topic object`);
+    const response = await getJson(`${base}/topics/${id}`);
+    const topic = response && response.topic;
+    if (!topic || typeof topic !== 'object') {
+      fail(net, `topics/${id} returned no topic object`);
+    }
+    const topicId = requireUint(net, topic.id, `topics/${id}.id`);
+    if (topicId !== id) {
+      fail(net, `topics/${id} returned topic id ${topicId}`);
+    }
+    const metadata = requireString(net, topic.metadata, `topics/${id}.metadata`);
     return {
       network: net.network,
       chain_id: net.chain_id,
-      id: Number(topic.id),
-      metadata: topic.metadata,
-      epoch_length: Number(topic.epoch_length),
-      loss_method: topic.loss_method,
-      category: categoryFor(topic.metadata),
-      sandbox: sandboxIds.has(Number(topic.id)),
+      id: topicId,
+      metadata,
+      epoch_length: requireUint(net, topic.epoch_length, `topics/${id}.epoch_length`),
+      loss_method: requireString(net, topic.loss_method, `topics/${id}.loss_method`),
+      category: categoryFor(metadata),
+      sandbox: sandboxIds.has(topicId),
     };
   });
 

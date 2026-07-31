@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-30T23:51:18Z",
+  "generated_at": "2026-07-31T14:57:07Z",
   "source": "Cosmos LCD (REST) emissions API: next_topic_id, is_topic_active, topics",
   "networks": [
     {
@@ -14,7 +14,7 @@
       "chain_id": "allora-mainnet-1",
       "emissions_api": "v9",
       "lcd": "https://allora-api.mainnet.allora.network",
-      "active_topic_count": 13
+      "active_topic_count": 15
     }
   ],
   "topics": [
@@ -533,6 +533,26 @@
       "chain_id": "allora-mainnet-1",
       "id": 21,
       "metadata": "ETH/USD - Volatility - 15m",
+      "epoch_length": 60,
+      "loss_method": "mse",
+      "category": "volatility",
+      "sandbox": false
+    },
+    {
+      "network": "mainnet",
+      "chain_id": "allora-mainnet-1",
+      "id": 22,
+      "metadata": "XRP/USD - Volatility - 15m",
+      "epoch_length": 60,
+      "loss_method": "mse",
+      "category": "volatility",
+      "sandbox": false
+    },
+    {
+      "network": "mainnet",
+      "chain_id": "allora-mainnet-1",
+      "id": 23,
+      "metadata": "SOL/USD - Volatility - 15m",
       "epoch_length": 60,
       "loss_method": "mse",
       "category": "volatility",

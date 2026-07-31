@@ -19,6 +19,11 @@ const COLUMNS = [
 const BADGE_CLASS =
   'nx-ml-2 nx-rounded nx-border nx-px-1 nx-text-xs nx-font-semibold nx-uppercase nx-text-gray-500'
 
+// The classes nextra-theme-docs adds when it maps a markdown `table` onto the
+// shared Table component, so a table rendered from data is indistinguishable
+// from one written as markdown (top margin, themed horizontal scrollbar).
+const TABLE_CLASS = 'nextra-scrollbar nx-mt-6 nx-p-0 first:nx-mt-0'
+
 /** ISO date (YYYY-MM-DD) of the run that last changed the topic data. */
 export const topicsGeneratedOn = topicsData.generated_at.slice(0, 10)
 
@@ -57,7 +62,7 @@ export function TopicsTable({ network }) {
   }
 
   return (
-    <Table>
+    <Table className={TABLE_CLASS}>
       <thead>
         <Tr>
           {COLUMNS.map(column => (
