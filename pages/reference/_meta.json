@@ -3,5 +3,6 @@
   "allorad": "allorad",
   "module-accounts": "Module Accounts",
   "params": "Parameters",
+  "llms-and-agents": "llms.txt & Agent Endpoints",
   "release-notes": "Release Notes"
 }
