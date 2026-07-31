@@ -1,0 +1,130 @@
+{
+  "_readme": [
+    "Per-snippet settings for scripts/runSnippets.js. Snippets are discovered from",
+    "snippets/ automatically -- a new .py/.ts/.js/.go file runs with the defaults",
+    "(mode 'exit', 120s, no credentials) without being listed here. Add an entry",
+    "only to change that.",
+    "",
+    "Keys:",
+    "  mode            'exit' (must exit 0 before the timeout) or 'long-running'",
+    "                  (a worker loop with no natural end).",
+    "  expect          Regex the snippet MUST print to pass. This is the whole",
+    "                  point of the suite: these are happy-path programs whose",
+    "                  output the pages show, so 'it printed the documented",
+    "                  result' is the bar. Required for mode 'long-running' --",
+    "                  a process that never exits can only be judged by its",
+    "                  output, and 'still alive' is not evidence that it worked.",
+    "                  When a long-running snippet prints it, the runner stops",
+    "                  there and passes rather than idling out the window.",
+    "  failOn          Regex that fails the run on sight. The worker loop catches",
+    "                  its own exceptions and prints them instead of crashing, so",
+    "                  without this a worker that failed every submission would",
+    "                  stay alive and be reported green.",
+    "  timeoutSeconds  How long the snippet gets.",
+    "  requires        Credentials the snippet needs: 'apiKey' -> ALLORA_API_KEY,",
+    "                  'wallet' -> ALLORA_WALLET_MNEMONIC. The runner refuses to",
+    "                  start if a required variable is unset, and writes the",
+    "                  mnemonic to .allora_key in the run directory so the worker",
+    "                  never prompts on a CI runner's absent stdin. That file is",
+    "                  deleted when the run ends, however it ends.",
+    "  pip / npm       Extra packages for the clean toolchain.",
+    "  files           Sibling snippets to copy in under a different name, for",
+    "                  snippets that import a companion module.",
+    "  skip / reason   Opt a file out of execution. A reason is mandatory in",
+    "                  review: an unexplained skip is a silent coverage hole.",
+    "",
+    "An entry naming a file that no longer exists is a hard error, so exclusions",
+    "cannot outlive the snippet they were written for.",
+    "",
+    "'toolchain' is what the pages tell readers to install, and nothing else --",
+    "if a snippet needs a package that is not listed here or in its own 'pip'/",
+    "'npm', the page is missing an install step."
+  ],
+  "toolchain": {
+    "pip": ["allora_sdk"],
+    "npm": ["@alloralabs/allora-sdk", "tsx"],
+    "goModule": "github.com/allora-network/allora-sdk-go"
+  },
+  "snippets": {
+    "containerize_worker.py": {
+      "mode": "long-running",
+      "timeoutSeconds": 420,
+      "requires": ["apiKey", "wallet"],
+      "expect": "Prediction submitted to Allora:",
+      "failOn": "Inference worker error:"
+    },
+    "forecaster.py": {
+      "mode": "long-running",
+      "timeoutSeconds": 600,
+      "requires": ["wallet"],
+      "expect": "submitted in transaction"
+    },
+    "migrate_worker.py": {
+      "mode": "long-running",
+      "timeoutSeconds": 420,
+      "requires": ["apiKey", "wallet"],
+      "expect": "Prediction submitted to Allora:",
+      "failOn": "Inference worker error:"
+    },
+    "quickstart_consume.go": {
+      "requires": ["apiKey"],
+      "expect": "Network inference: "
+    },
+    "quickstart_consume.py": {
+      "requires": ["apiKey"],
+      "expect": "network inference: "
+    },
+    "quickstart_consume.ts": {
+      "requires": ["apiKey"],
+      "expect": "network inference: "
+    },
+    "quickstart_worker.py": {
+      "mode": "long-running",
+      "timeoutSeconds": 420,
+      "requires": ["apiKey", "wallet"],
+      "expect": "Prediction submitted to Allora:",
+      "failOn": "Inference worker error:"
+    },
+    "sdk_go_topics.go": {
+      "timeoutSeconds": 180,
+      "requires": ["apiKey"],
+      "expect": "Active topics: "
+    },
+    "sdk_py_worker.py": {
+      "mode": "long-running",
+      "timeoutSeconds": 420,
+      "requires": ["apiKey", "wallet"],
+      "expect": "Prediction submitted to Allora:",
+      "failOn": "Inference worker error:"
+    },
+    "sdk_ts_price.ts": {
+      "requires": ["apiKey"],
+      "expect": "Signature: 0x"
+    },
+    "worker_minimal.py": {
+      "mode": "long-running",
+      "timeoutSeconds": 420,
+      "requires": ["apiKey", "wallet"],
+      "expect": "Prediction submitted to Allora:",
+      "failOn": "Inference worker error:"
+    },
+    "worker_model.py": {
+      "skip": true,
+      "reason": "trains on candles from a third-party market-data API (api.binance.com) whose availability depends on the runner's egress region; a block there would be reported as a docs failure it is not. Run it locally: python model.py.",
+      "timeoutSeconds": 600,
+      "expect": "Predicted BTC/USD price in 24 hours:",
+      "pip": ["numpy", "pandas", "requests", "scikit-learn"]
+    },
+    "worker_with_model.py": {
+      "skip": true,
+      "reason": "imports worker_model.py, so it inherits the same third-party market-data dependency. Unskip both together once the runner's egress is known to reach that API.",
+      "mode": "long-running",
+      "timeoutSeconds": 900,
+      "requires": ["apiKey", "wallet"],
+      "expect": "Prediction submitted to Allora:",
+      "failOn": "Inference worker error:",
+      "pip": ["numpy", "pandas", "requests", "scikit-learn"],
+      "files": { "model.py": "worker_model.py" }
+    }
+  }
+}

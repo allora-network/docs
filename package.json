@@ -16,6 +16,7 @@
     "checklinks": "node scripts/checkExternalLinks.js",
     "checkfm": "node scripts/checkFrontmatter.js",
     "frontmatter": "node scripts/addFrontmatter.js",
+    "runsnippets": "node scripts/runSnippets.js",
     "topics": "node scripts/generateTopics.js",
     "llms": "node scripts/generateLlmsTxt.js",
     "checkllms": "node scripts/generateLlmsTxt.js --check"

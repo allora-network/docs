@@ -106,6 +106,42 @@ How-to pages use this section order after the frontmatter and the `#` heading:
 Code snippets must be copy-paste complete: no elisions, no interactive
 prompts, and environment-variable placeholders for secrets — never real keys.
 
+## Runnable code snippets
+
+Any complete program a reader is told to save and run lives in `snippets/` as a
+real file, and the page embeds it with a `file=` fence rather than a copy:
+
+````mdx
+```python file=../../snippets/quickstart_worker.py
+```
+````
+
+The build inlines the file's contents (`scripts/remarkIncludeCode.js`), so the
+page can never drift from the file, and a typo in the path fails `yarn build`
+instead of shipping an empty code block. Includes must resolve inside
+`snippets/`.
+
+Everything in `snippets/` is executed against testnet each night by
+`.github/workflows/snippets-nightly.yml`, which builds a clean toolchain per
+language, runs `node scripts/runSnippets.js`, and opens an issue with the
+failing snippet and its error when a run fails. New snippets are picked up
+automatically; `scripts/snippets.config.json` carries per-snippet settings and is
+the only place a snippet can be opted out of execution — with a written reason.
+
+A snippet passes only when it prints the result its page documents (its `expect`
+pattern). Exiting 0 is not enough, and for a worker loop neither is staying
+alive: the loop catches its own exceptions and prints them, so a worker whose
+registration or submission failed would otherwise look perfectly healthy. Give
+every new snippet an `expect` — the runner refuses to run a non-terminating one
+without it.
+
+To run the suite yourself, export `ALLORA_API_KEY` and `ALLORA_WALLET_MNEMONIC`
+(a funded testnet wallet) and run `yarn runsnippets`. `yarn runsnippets --list`
+prints the plan without running anything.
+
+Fragments, config excerpts, and shell one-liners stay inline — only programs
+that are meant to run belong in `snippets/`.
+
 ## PR checklist
 
 Before opening a pull request:
@@ -121,6 +157,8 @@ Before opening a pull request:
       (`redirects()`).
 - [ ] Code snippets run as pasted against the version named in
       `verified_against`.
+- [ ] Any complete runnable program lives in `snippets/` and is embedded with a
+      `file=` fence (`yarn runsnippets --list` shows it).
 - [ ] Commits are signed off (DCO, see above).
 
 # Community & Resources
