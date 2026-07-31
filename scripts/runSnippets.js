@@ -12,11 +12,17 @@
 // snippet overrides (including opting a file out of execution) live in
 // scripts/snippets.config.json.
 //
+// A snippet passes only when it prints the result its page documents (its
+// `expect` pattern). Merely exiting 0, or merely staying alive, is not enough:
+// the worker loop catches its own exceptions and prints them, so a worker whose
+// registration or submission failed would otherwise look perfectly healthy.
+//
 // Usage:
 //   node scripts/runSnippets.js                 # run everything
 //   node scripts/runSnippets.js --list          # print the plan, run nothing
 //   node scripts/runSnippets.js --only=quickstart_consume.py
 //   node scripts/runSnippets.js --report=out.md # machine-readable failure report
+//   node scripts/runSnippets.js --keep-work-dir # keep logs/venv (never the key)
 //   node scripts/runSnippets.js --snippets-dir=/tmp/x --config=/tmp/x.json
 //
 // Credentials come from the environment and are never logged:
@@ -32,7 +38,60 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
+const { redact } = require('./redactSecrets');
+
 const REPO_ROOT = path.resolve(__dirname, '..');
+
+// ---------------------------------------------------------------------------
+// Cleanup
+//
+// The run directories hold .allora_key, i.e. the funded wallet's mnemonic in
+// plaintext. Contributors are invited to run this locally, so leaving that
+// behind in the system temp directory is not acceptable. Removal is
+// unconditional -- --keep-work-dir keeps the logs and the venv for debugging,
+// but never the key.
+// ---------------------------------------------------------------------------
+
+const keyFiles = new Set();
+let workDirToRemove = null;
+let cleanedUp = false;
+
+function registerWorkDir(dir, keep) {
+  workDirToRemove = keep ? null : dir;
+}
+
+function cleanup() {
+  if (cleanedUp) return;
+  cleanedUp = true;
+  for (const file of keyFiles) {
+    try {
+      fs.rmSync(file, { force: true });
+    } catch {
+      /* best effort -- a leftover directory is recoverable, a crash here is not */
+    }
+  }
+  keyFiles.clear();
+  if (workDirToRemove) {
+    try {
+      fs.rmSync(workDirToRemove, { recursive: true, force: true });
+    } catch {
+      /* best effort */
+    }
+  }
+}
+
+process.on('exit', cleanup);
+for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+  process.on(signal, () => {
+    cleanup();
+    process.exit(130);
+  });
+}
+process.on('uncaughtException', err => {
+  cleanup();
+  console.error(err);
+  process.exit(2);
+});
 
 // Extension -> how to run it. `setup` prepares the shared toolchain once.
 const LANGUAGES = {
@@ -68,6 +127,7 @@ function parseArgs(argv) {
     list: false,
     only: null,
     report: null,
+    keepWorkDir: false,
     snippetsDir: path.join(REPO_ROOT, 'snippets'),
     configPath: path.join(REPO_ROOT, 'scripts', 'snippets.config.json'),
   };
@@ -77,6 +137,7 @@ function parseArgs(argv) {
     else if (arg.startsWith('--report=')) opts.report = arg.slice('--report='.length);
     else if (arg.startsWith('--snippets-dir=')) opts.snippetsDir = path.resolve(arg.slice('--snippets-dir='.length));
     else if (arg.startsWith('--config=')) opts.configPath = path.resolve(arg.slice('--config='.length));
+    else if (arg === '--keep-work-dir') opts.keepWorkDir = true;
     else {
       console.error(`Unknown argument: ${arg}`);
       process.exit(2);
@@ -114,7 +175,7 @@ function discover(opts, config) {
     }
   }
 
-  return names.map(name => {
+  const plan = names.map(name => {
     const override = config.snippets[name] || {};
     return {
       name,
@@ -129,8 +190,36 @@ function discover(opts, config) {
       npm: override.npm || [],
       // { "model.py": "worker_model.py" } -- copy sibling snippets a snippet imports.
       files: override.files || {},
+      // The line the snippet prints when it actually did its job. Required for
+      // a pass. Every one of these snippets is a happy-path program the docs
+      // show output for, so "it printed the documented result" is the honest
+      // bar -- see the note on expect/failOn below.
+      expect: override.expect ? new RegExp(override.expect) : null,
+      expectDescription: override.expect || '',
+      // The line the snippet prints when it swallowed an error instead of
+      // crashing. The worker loop catches exceptions and prints them, so
+      // without this a broken worker would look alive and healthy.
+      failOn: override.failOn ? new RegExp(override.failOn) : null,
+      failOnDescription: override.failOn || '',
     };
   });
+
+  // A long-running snippet never exits, so its exit code proves nothing: without
+  // a success marker the only possible verdict would be "it stayed alive", which
+  // is not evidence that it worked. Refuse to run in that configuration rather
+  // than quietly reporting green.
+  for (const snippet of plan) {
+    if (!snippet.skip && snippet.mode === 'long-running' && !snippet.expect) {
+      throw new Error(
+        `${snippet.name} is configured mode "long-running" without an "expect" ` +
+          `pattern. A snippet that never exits can only be judged by what it ` +
+          `prints, so "expect" is required -- otherwise staying alive would count ` +
+          `as a pass even if every submission failed.`
+      );
+    }
+  }
+
+  return plan;
 }
 
 // ---------------------------------------------------------------------------
@@ -192,8 +281,12 @@ function setupPython(workDir, plan, toolchain) {
 }
 
 function setupNode(workDir, plan, toolchain) {
-  const projectDir = path.join(workDir, 'node');
-  fs.mkdirSync(projectDir, { recursive: true });
+  // Install at the root of the work directory, above runs/, so that a snippet at
+  // <workDir>/runs/<name>/x.ts resolves bare specifiers by walking up into
+  // <workDir>/node_modules -- the only mechanism ESM has. NODE_PATH does not
+  // work here: Node honours it for CommonJS only, and these snippets are ESM,
+  // so pointing at node_modules that way fails with ERR_MODULE_NOT_FOUND.
+  const projectDir = workDir;
   const packages = [...new Set([...toolchain.npm, ...plan.flatMap(s => s.npm)])];
   fs.writeFileSync(
     path.join(projectDir, 'package.json'),
@@ -229,9 +322,9 @@ function prepareRunDir(workDir, snippet, opts) {
   // when that file is absent. CI has no TTY, so materialise the funded wallet
   // up front. 0600, and never written anywhere the logs can reach.
   if (snippet.requires.includes('wallet') && process.env.ALLORA_WALLET_MNEMONIC) {
-    fs.writeFileSync(path.join(runDir, '.allora_key'), process.env.ALLORA_WALLET_MNEMONIC.trim() + '\n', {
-      mode: 0o600,
-    });
+    const keyFile = path.join(runDir, '.allora_key');
+    fs.writeFileSync(keyFile, process.env.ALLORA_WALLET_MNEMONIC.trim() + '\n', { mode: 0o600 });
+    keyFiles.add(keyFile);
   }
   return runDir;
 }
@@ -241,16 +334,11 @@ function commandFor(snippet, runDir, toolchains) {
     case 'python':
       return { command: toolchains.python.python, args: [snippet.name], cwd: runDir, env: {} };
     case 'node': {
-      // Run out of the prepared project so the SDK and tsx resolve, but keep the
-      // snippet's own directory as the working directory.
+      // The run directory sits under the project root, so node_modules resolves
+      // by walking up -- nothing needs to be injected into the environment.
       const tsx = path.join(toolchains.node.projectDir, 'node_modules', '.bin', 'tsx');
       const runner = snippet.name.endsWith('.ts') ? tsx : process.execPath;
-      return {
-        command: runner,
-        args: [snippet.name],
-        cwd: runDir,
-        env: { NODE_PATH: path.join(toolchains.node.projectDir, 'node_modules') },
-      };
+      return { command: runner, args: [snippet.name], cwd: runDir, env: {} };
     }
     case 'go':
       return { command: 'go', args: ['run', '.'], cwd: runDir, env: { GOFLAGS: '-mod=mod' } };
@@ -269,6 +357,34 @@ function prepareGoModule(runDir, snippet, toolchains, toolchain) {
   execFileSync('go', ['mod', 'tidy'], { cwd: runDir, env, stdio: 'pipe' });
 }
 
+// Decide pass/fail from what the snippet actually did.
+//
+// Staying alive is NOT a pass. The worker loop catches its own exceptions and
+// prints them, so a worker whose auth, faucet, registration, or submission all
+// failed would otherwise sit there looking healthy for the whole window and be
+// reported green. A snippet passes only when it prints the result the page says
+// it prints.
+function classify(snippet, { code, timedOut, output }) {
+  if (snippet.failOn && snippet.failOn.test(output)) {
+    return { ok: false, note: `printed an error it swallowed (/${snippet.failOnDescription}/)` };
+  }
+  const satisfied = !snippet.expect || snippet.expect.test(output);
+
+  if (timedOut) {
+    return {
+      ok: false,
+      note: snippet.expect
+        ? `timed out after ${snippet.timeoutSeconds}s without printing /${snippet.expectDescription}/`
+        : `timed out after ${snippet.timeoutSeconds}s`,
+    };
+  }
+  if (code !== 0) return { ok: false, note: `exited with code ${code}` };
+  if (!satisfied) {
+    return { ok: false, note: `exited 0 but never printed /${snippet.expectDescription}/` };
+  }
+  return { ok: true, note: `exited 0` + (snippet.expect ? ` after printing /${snippet.expectDescription}/` : '') };
+}
+
 function execute(snippet, runDir, toolchains) {
   const { command, args, cwd, env } = commandFor(snippet, runDir, toolchains);
   return new Promise(resolve => {
@@ -281,19 +397,35 @@ function execute(snippet, runDir, toolchains) {
     });
 
     let output = '';
+    let settled = null; // 'success' | 'failure' -- decided from streamed output
+    let timedOut = false;
+
+    const stop = () => {
+      child.kill('SIGTERM');
+      setTimeout(() => child.kill('SIGKILL'), 10000).unref();
+    };
+
     const collect = chunk => {
       output += chunk;
       // Keep memory bounded on a chatty worker loop; the tail is what matters.
       if (output.length > 200000) output = output.slice(-200000);
+      if (settled) return;
+      if (snippet.failOn && snippet.failOn.test(output)) {
+        settled = 'failure';
+        stop();
+      } else if (snippet.mode === 'long-running' && snippet.expect && snippet.expect.test(output)) {
+        // The worker did the thing. No reason to hold the runner open for the
+        // rest of the window.
+        settled = 'success';
+        stop();
+      }
     };
     child.stdout.on('data', collect);
     child.stderr.on('data', collect);
 
-    let timedOut = false;
     const timer = setTimeout(() => {
       timedOut = true;
-      child.kill('SIGTERM');
-      setTimeout(() => child.kill('SIGKILL'), 10000).unref();
+      stop();
     }, snippet.timeoutSeconds * 1000);
 
     child.on('error', err => {
@@ -303,19 +435,20 @@ function execute(snippet, runDir, toolchains) {
 
     child.on('close', code => {
       clearTimeout(timer);
-      if (timedOut) {
-        // A worker loop has no natural end -- surviving the window IS the pass.
-        const ok = snippet.mode === 'long-running';
+      if (settled === 'success') {
+        resolve({ ok: true, output, note: `printed /${snippet.expectDescription}/` });
+        return;
+      }
+      if (settled === 'failure') {
         resolve({
-          ok,
+          ok: false,
           output,
-          note: ok
-            ? `ran for ${snippet.timeoutSeconds}s without exiting (expected for a worker loop)`
-            : `timed out after ${snippet.timeoutSeconds}s`,
+          note: `printed an error it swallowed (/${snippet.failOnDescription}/)`,
         });
         return;
       }
-      resolve({ ok: code === 0, output, note: `exited with code ${code}` });
+      const verdict = classify(snippet, { code, timedOut, output });
+      resolve({ ...verdict, output });
     });
   });
 }
@@ -357,7 +490,8 @@ async function main() {
     const detail = snippet.skip
       ? `skipped -- ${snippet.reason || 'no reason given'}`
       : `${snippet.language}, ${snippet.mode}, ${snippet.timeoutSeconds}s` +
-        (snippet.requires.length ? `, needs ${snippet.requires.join('+')}` : '');
+        (snippet.requires.length ? `, needs ${snippet.requires.join('+')}` : '') +
+        (snippet.expect ? `, must print /${snippet.expectDescription}/` : '');
     console.log(`  ${snippet.name.padEnd(28)} ${detail}`);
   }
   if (opts.list) return 0;
@@ -366,7 +500,8 @@ async function main() {
   preflightCredentials(runnable);
 
   const workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'allora-snippets-'));
-  console.log(`\nWork directory: ${workDir}`);
+  registerWorkDir(workDir, opts.keepWorkDir);
+  console.log(`\nWork directory: ${workDir}${opts.keepWorkDir ? ' (kept; wallet key still removed)' : ''}`);
 
   const toolchains = {};
   const languages = new Set(runnable.map(s => s.language));
@@ -399,6 +534,11 @@ async function main() {
     } catch (err) {
       result = { ok: false, output: String(err.stderr || err.message), note: 'setup failed' };
     }
+    // Snippet output is arbitrary third-party output and can quote the
+    // credentials it was handed. Redact before it reaches the console (which is
+    // teed to an uploaded artifact) or the report (which is posted into a
+    // public issue).
+    result.output = redact(result.output);
     const status = result.ok ? 'PASS' : 'FAIL';
     console.log(`${status}  ${snippet.name} -- ${result.note}`);
     if (!result.ok) {
