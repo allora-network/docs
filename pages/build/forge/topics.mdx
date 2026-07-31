@@ -1,27 +1,30 @@
 ---
 title: Existing Allora Network Topics
-description: Live topic tables for Allora testnet and mainnet — topic IDs, metadata, epoch lengths, and categories — plus how to verify a topic's status.
+description: Live topic tables for Allora testnet and mainnet — topic IDs, metadata, epoch lengths, loss methods, and categories — plus how to verify a topic's status.
 persona: ML builder
-verified_against: live chain state via Cosmos LCD (testnet allora-testnet-1 emissions/v10, mainnet allora-mainnet-1 emissions/v9), queried 2026-07-30
+verified_against: public/api/topics.json, regenerated from live chain state via Cosmos LCD (testnet allora-testnet-1 emissions/v10, mainnet allora-mainnet-1 emissions/v9)
 last_reviewed: 2026-07-30
 ---
 
 import { Callout } from 'nextra/components'
+import { TopicsTable, TopicsCount, TopicsGeneratedOn } from '../../../components/TopicsTable'
 
 # Existing Allora Network Topics
 
 > Topics currently active on the Allora Network
 
 The tables below list every topic that is **active** on each Allora network, with its topic ID,
-on-chain metadata (name), epoch length (in blocks), and category (price / log-return / volatility).
-Each [Forge competition](/build/forge/competitions) targets one of these live topics.
+on-chain metadata (name), epoch length (in blocks), loss method, and category (price / log-return /
+volatility). Each [Forge competition](/build/forge/competitions) targets one of these live topics.
 
 <Callout type="info">
-This page was generated from live chain state on **2026-07-30** by querying the
+These tables are generated from live chain state, not maintained by hand. A scheduled job queries the
 [Cosmos LCD (REST) API](/reference/networks) of each network (testnet `allora-testnet-1` via
-`emissions/v10`, mainnet `allora-mainnet-1` via `emissions/v9`). Only topics whose
-`is_topic_active` query returned `true` at that time are listed. Topics activate and deactivate
-over time, so [verify a topic's status](#verify-a-topics-status) before building against it.
+`emissions/v10`, mainnet `allora-mainnet-1` via `emissions/v9`), keeps only topics whose
+`is_topic_active` query returns `true`, and publishes the result at `/api/topics.json` — the same
+data this page renders. The data below last changed
+on **<TopicsGeneratedOn />**. Topics activate and deactivate over time, so
+[verify a topic's status](#verify-a-topics-status) before building against it.
 </Callout>
 
 ## Start here: the sandbox topic
@@ -29,69 +32,19 @@ over time, so [verify a topic's status](#verify-a-topics-status) before building
 Testnet topic **69** (`PLAYGROUND: 1 day BTC/USD Price Prediction`) is the no-penalty sandbox
 onboarding topic: a playground for making your first worker submissions, with no whitelist
 required. Testnet topic **77** (`PLAYGROUND FAST - 5 minute BTC/USD Price Prediction`) is its
-fast-epoch counterpart for quicker feedback loops.
+fast-epoch counterpart for quicker feedback loops. Both are marked `sandbox` in the table below.
 
 ## Testnet topics (`allora-testnet-1`)
 
-| Topic ID | Metadata                                           | Epoch Length (blocks) | Category   |
-|----------|----------------------------------------------------|-----------------------|------------|
-| 1        | ETH 10min Prediction                               | 120                   | price      |
-| 2        | ETH 24h Prediction                                 | 17280                 | price      |
-| 3        | BTC 10min Prediction                               | 120                   | price      |
-| 8        | BNB 20min Prediction                               | 240                   | price      |
-| 9        | ARB 20min Prediction                               | 240                   | price      |
-| 13       | ETH 5min Prediction                                | 60                    | price      |
-| 14       | BTC 5min Prediction                                | 60                    | price      |
-| 18       | BTC 8h Prediction                                  | 5760                  | price      |
-| 37       | SOL/USD - 5min Price Prediction                    | 35                    | price      |
-| 38       | SOL/USD - 8h Price Prediction                      | 35                    | price      |
-| 41       | ETH/USD - 8h Price Prediction                      | 35                    | price      |
-| 42       | BTC/USD - 8h Price Prediction                      | 35                    | price      |
-| 56       | 1 hour BERA/USD Log-Return Prediction              | 655                   | log-return |
-| 58       | 8 hour SOL/USD Log-Return Prediction               | 52                    | log-return |
-| 60       | 24 hour XAU/USD Log-Return Prediction              | 60                    | log-return |
-| 61       | 1 day BTC/USD Log-Return Prediction                | 60                    | log-return |
-| 62       | 1 day SOL/USD Log-Return Prediction                | 60                    | log-return |
-| 63       | 1 day ETH/USD Log-Return Prediction                | 60                    | log-return |
-| 64       | 8h BTC/USD Log-Return Prediction (5min Updates)    | 54                    | log-return |
-| 65       | 8h BTC/USD Log-Return Prediction (2h Updates)      | 1286                  | log-return |
-| 66       | 7 day SOL/USD Log-Return Prediction                | 720                   | log-return |
-| 67       | 7 day BTC/USD Log-Return Prediction                | 720                   | log-return |
-| 68       | 7 day ETH/USD Log-Return Prediction                | 720                   | log-return |
-| **69**   | PLAYGROUND: 1 day BTC/USD Price Prediction         | 54                    | price      |
-| 70       | 7 day NEAR/USD Log-Return Prediction               | 720                   | log-return |
-| 71       | 8 hour NEAR/USD Log-Return Prediction              | 60                    | log-return |
-| 72       | 1 hour BTC/USD Log-Return Prediction               | 60                    | log-return |
-| 73       | 1 hour ETH/USD Log-Return Prediction               | 60                    | log-return |
-| 74       | 15 minute BTC/USD Log-Return Prediction            | 60                    | log-return |
-| 75       | 15 minute ETH/USD Log-Return Prediction            | 60                    | log-return |
-| 76       | 15 minute SOL/USD Log-Return Prediction            | 60                    | log-return |
-| **77**   | PLAYGROUND FAST - 5 minute BTC/USD Price Prediction | 60                   | price      |
-| 79       | 15 minute BTC/USD - Volatility Prediction          | 60                    | volatility |
-| 80       | 15 minute ETH/USD - Volatility Prediction          | 60                    | volatility |
-| 81       | 15 minute XRP/USD - Volatility Prediction          | 60                    | volatility |
-| 82       | 15 minute SOL/USD - Volatility Prediction          | 60                    | volatility |
-| 83       | BTC/USD - Log Returns - 8h                         | 60                    | log-return |
-| 84       | ETH/USD - Log Returns - 8h                         | 60                    | log-return |
-| 85       | 4 hour ETH/USD - Volatility Prediction             | 60                    | volatility |
+<TopicsCount network="testnet" /> active topics.
+
+<TopicsTable network="testnet" />
 
 ## Mainnet topics (`allora-mainnet-1`)
 
-| Topic ID | Metadata                        | Epoch Length (blocks) | Category   |
-|----------|---------------------------------|-----------------------|------------|
-| 1        | BTC/USD - Log Returns - 8h      | 75                    | log-return |
-| 2        | ETH/USD - Log Returns - 8h      | 75                    | log-return |
-| 3        | SOL/USD - Log Returns - 8h      | 75                    | log-return |
-| 9        | ETH/USD - Price Prediction - 8h | 60                    | price      |
-| 10       | SOL/USD - Price Prediction - 8h | 60                    | price      |
-| 14       | BTC/USD - Price Prediction - 8h | 60                    | price      |
-| 15       | BTC/USD - Log Returns - 24h     | 60                    | log-return |
-| 16       | ETH/USD - Log Returns - 24h     | 60                    | log-return |
-| 17       | SOL/USD - Log Returns - 24h     | 60                    | log-return |
-| 18       | BTC/USD - Log Returns - 20m     | 60                    | log-return |
-| 19       | NEAR/USD - Log Returns - 8h     | 60                    | log-return |
-| 20       | BTC/USD - Volatility - 15m      | 60                    | volatility |
-| 21       | ETH/USD - Volatility - 15m      | 60                    | volatility |
+<TopicsCount network="mainnet" /> active topics.
+
+<TopicsTable network="mainnet" />
 
 <Callout type="warning">
 **Warning**: Topic IDs are never guaranteed to be consistent between separate chains/deployments.
@@ -112,6 +65,12 @@ curl -s https://allora-api.testnet.allora.network/emissions/v10/is_topic_active/
 # Mainnet (emissions/v9)
 curl -s https://allora-api.mainnet.allora.network/emissions/v9/topics/1
 curl -s https://allora-api.mainnet.allora.network/emissions/v9/is_topic_active/1
+```
+
+To consume the same list programmatically, fetch the published JSON instead of scraping this page:
+
+```bash
+curl -s https://docs.allora.network/api/topics.json
 ```
 
 ## Next

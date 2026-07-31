@@ -34,7 +34,7 @@ All pages live under https://docs.allora.network/. The site root redirects to /h
 - [Installation](https://docs.allora.network/devs/get-started/cli): Install the allorad CLI and connect to an Allora network.
 - [Basic Usage](https://docs.allora.network/devs/get-started/basic-usage): Straightforward ways to interact with the network, including querying inferences on-chain.
 - [Managing Gas](https://docs.allora.network/devs/get-started/managing-gas): How gas and EIP-1559-style fees work on Allora and how to structure transactions accordingly.
-- [Existing Topics](https://docs.allora.network/build/forge/topics): Live topic tables for Allora testnet and mainnet — topic IDs, metadata, epoch lengths, and categories — plus how to verify a topic's status.
+- [Existing Topics](https://docs.allora.network/build/forge/topics): Live topic tables for Allora testnet and mainnet — topic IDs, metadata, epoch lengths, loss methods, and categories — plus how to verify a topic's status.
 - [How to Query Network Data using allorad](https://docs.allora.network/devs/get-started/query-network-data): allorad query commands for network-level data on the Allora chain.
 - [Allora Forge Competitions](https://docs.allora.network/build/forge/competitions): How Allora Forge competitions work — compete on live topics, build a testnet track record, and graduate to mainnet where top performers earn ALLO rewards.
 
