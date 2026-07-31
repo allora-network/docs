@@ -16,8 +16,10 @@ name: Check Upstream Versions
 # a human has already declined that exact proposal. Closing means closed until
 # the proposed versions themselves change.
 #
-# Requires "Allow GitHub Actions to create and approve pull requests" in
-# Settings → Actions → General. No secrets beyond the default GITHUB_TOKEN.
+# The pull request is opened with the DOCS_AUTOMATION_TOKEN secret (a
+# fine-grained PAT scoped to this repository) so it can be created without the
+# "create and approve pull requests" Actions setting, and so CI runs on it.
+# Falls back to the default GITHUB_TOKEN if the secret is absent.
 
 on:
   schedule:
@@ -83,6 +85,7 @@ jobs:
       if: steps.bump.outputs.changed == 'true' && steps.declined.outputs.count == '0'
       uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
       with:
+        token: ${{ secrets.DOCS_AUTOMATION_TOKEN || secrets.GITHUB_TOKEN }}
         branch: automated/version-bump
         commit-message: 'Update published versions in public/api/versions.json'
         title: 'Update published versions in versions.json'

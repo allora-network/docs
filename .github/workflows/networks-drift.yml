@@ -74,7 +74,7 @@ jobs:
     - name: Commit the manifest and open or update the pull request
       if: steps.drift.outputs.drift == 'true'
       env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ secrets.DOCS_AUTOMATION_TOKEN || secrets.GITHUB_TOKEN }}
         EXISTING: ${{ steps.base.outputs.existing }}
         TITLE: 'Network version drift: update public/api/networks.json'
       run: |
