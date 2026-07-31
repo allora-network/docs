@@ -5,6 +5,34 @@ function ChatComponent({ onClose }) {
   const [inputMessage, setInputMessage] = useState("");
   const [chatHistory, setChatHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  // New state to track whether to show suggested questions
+  const [showSuggestions, setShowSuggestions] = useState(true);
+  // New state to store the randomly selected questions
+  const [randomQuestions, setRandomQuestions] = useState([]);
+
+  // List Predefined questions
+  const suggestedQuestions = [
+    "What is the Allora Network?",
+    "What role do worker nodes play in the network?",
+    "What are the different layers of of the network?",
+    "What are the main defining characteristics of Allora?",
+    "What are the differences between Reputers and Validators?",
+    "How do consumers access inferences within Allora?",
+    "What role does context awareness play in Allora's design, and how is it achieved through forecasting tasks?",
+    "How does Allora ensure the reliability and security of the network?",
+    "How does the tokenomics design of the Allora token (ALLO) ensure long-term network sustainability?",
+  ];
+
+  // Function to select 3 random questions
+  const getRandomQuestions = () => {
+    const shuffled = [...suggestedQuestions].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, 3);
+  };
+
+  // Initialize with 3 random questions on component mount
+  useEffect(() => {
+    setRandomQuestions(getRandomQuestions());
+  }, []);
 
   // this references the chat history container.
   const chatContainerRef = useRef(null);
@@ -16,14 +44,21 @@ function ChatComponent({ onClose }) {
     }
   }, [chatHistory]);
 
-  // this is handler for form submission.
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    // Store the message and immediately clear the input field
-    const message = inputMessage;
-    setInputMessage(""); // Clear input immediately
-    
+  // Hide suggestions when conversation starts
+  useEffect(() => {
+    if (chatHistory.length > 0) {
+      setShowSuggestions(false);
+    }
+  }, [chatHistory]);
+
+  // New handler for when a suggested question is clicked
+  const handleSuggestionClick = (question) => {
+    // Process the suggested question like a regular submission
+    handleMessageSubmit(question);
+  };
+
+  // Extracted logic to handle message submission
+  const handleMessageSubmit = async (message) => {
     // Add user's message to the chat history.
     const newUserEntry = { sender: "user", text: message };
     setChatHistory((prev) => [...prev, newUserEntry]);
@@ -69,11 +104,24 @@ function ChatComponent({ onClose }) {
     }
   };
 
+  // this is handler for form submission.
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Store the message and immediately clear the input field
+    const message = inputMessage;
+    setInputMessage(""); // Clear input immediately
+    
+    // Process the message
+    await handleMessageSubmit(message);
+  };
+
   return (
     <div
       className="chat-container"
       style={{
         maxWidth: "600px",
+        minWidth: "340px",
         margin: "0 auto",
         backgroundColor: "#000", 
         color: "#fff",
@@ -118,6 +166,40 @@ function ChatComponent({ onClose }) {
           position: "relative",
         }}
       >
+        {/* Suggested Questions - now using randomQuestions instead of suggestedQuestions */}
+        {showSuggestions && (
+          <div style={{ 
+            display: "flex", 
+            flexDirection: "column", 
+            gap: "10px",
+            padding: "10px"
+          }}>
+            <div style={{ color: "#ccc", marginBottom: "5px" }}>
+              Try asking a question below or type your own:
+            </div>
+            {randomQuestions.map((question, index) => (
+              <button
+                key={index}
+                onClick={() => handleSuggestionClick(question)}
+                style={{
+                  background: "#333",
+                  color: "#fff",
+                  border: "1px solid #555",
+                  borderRadius: "8px",
+                  padding: "10px",
+                  textAlign: "left",
+                  cursor: "pointer",
+                  transition: "background-color 0.2s",
+                }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#444"}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = "#333"}
+              >
+                {question}
+              </button>
+            ))}
+          </div>
+        )}
+
         {chatHistory.map((entry, index) => (
           <div
             key={index}
@@ -133,6 +215,9 @@ function ChatComponent({ onClose }) {
                 color: "#fff",
                 padding: "10px",
                 borderRadius: "10px",
+                maxWidth: "70%",
+                wordWrap: "break-word",
+                textAlign: "left",
               }}
             >
               <p style={{ margin: 0 }}>{entry.text}</p>
@@ -193,7 +278,13 @@ function ChatComponent({ onClose }) {
         <input
           type="text"
           value={inputMessage}
-          onChange={(e) => setInputMessage(e.target.value)}
+          onChange={(e) => {
+            setInputMessage(e.target.value);
+            // Hide suggestions when user starts typing
+            if (e.target.value.length > 0) {
+              setShowSuggestions(false);
+            }
+          }}
           placeholder="Type your message..."
           required
           style={{
