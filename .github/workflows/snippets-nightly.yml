@@ -33,7 +33,9 @@ concurrency:
 jobs:
   run-snippets:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # Worst case is every worker snippet burning its full window without ever
+    # printing a submission; the happy path stops as soon as each one submits.
+    timeout-minutes: 90
 
     steps:
       - name: Checkout repository
@@ -68,6 +70,18 @@ jobs:
           set -o pipefail
           node scripts/runSnippets.js --report=snippet-failures.md 2>&1 | tee snippet-run.log
 
+      # GitHub masks secrets in the workflow log, but NOT in uploaded artifacts
+      # and NOT in issue bodies -- both of which come out of this job. The runner
+      # already redacts at the source; this is the belt-and-braces pass over
+      # anything on its way out, and it runs before the upload and the issue.
+      - name: Redact credentials from anything leaving the job
+        if: always()
+        shell: bash
+        env:
+          ALLORA_API_KEY: ${{ secrets.ALLORA_API_KEY }}
+          ALLORA_WALLET_MNEMONIC: ${{ secrets.ALLORA_WALLET_MNEMONIC }}
+        run: node scripts/redactSecrets.js snippet-run.log snippet-failures.md
+
       - name: Upload run log
         if: always()
         uses: actions/upload-artifact@v4
@@ -84,6 +98,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TITLE: 'Nightly snippet run failed'
+          LABEL: 'snippets-nightly'
         run: |
           set -euo pipefail
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
@@ -106,17 +121,29 @@ jobs:
             fi
           } > issue-body.md
 
-          # One issue per outage, not one per night: comment on the open issue if
-          # there already is one.
-          EXISTING=$(gh issue list --state open --limit 50 --json number,title \
-            --jq "map(select(.title == \"$TITLE\")) | first | .number // empty")
+          # One issue per outage, not one per night. Every issue this job opens
+          # carries a marker label, so the lookup is over a handful of issues and
+          # is fully paginated -- scanning the N newest open issues would silently
+          # start opening a new issue every night once the repo has more than N.
+          gh label create "$LABEL" \
+            --color 'BFD4F2' \
+            --description 'Opened by the nightly snippet run' >/dev/null 2>&1 || true
+
+          # Buffer the full paginated result before taking the first match --
+          # piping gh straight into `head` would SIGPIPE it, and `pipefail`
+          # would turn that into a step failure.
+          MATCHES=$(gh api --paginate -X GET "repos/${{ github.repository }}/issues" \
+            -f state=open -f labels="$LABEL" -f per_page=100 \
+            --jq ".[] | select(.pull_request == null) | select(.title == \"$TITLE\") | .number")
+          EXISTING=$(printf '%s\n' "$MATCHES" | head -n 1)
 
           if [ -n "$EXISTING" ]; then
             echo "Commenting on existing issue #$EXISTING"
             gh issue comment "$EXISTING" --body-file issue-body.md
           else
             echo 'Opening a new issue'
-            gh issue create --title "$TITLE" --body-file issue-body.md
+            gh issue create --title "$TITLE" --body-file issue-body.md --label "$LABEL" \
+              || gh issue create --title "$TITLE" --body-file issue-body.md
           fi
 
       - name: Fail the job when a snippet failed
