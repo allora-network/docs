@@ -76,7 +76,7 @@ tooling can tell how fresh each page is.
 part of `yarn build` and in CI. `yarn frontmatter` fills in missing keys with
 derived defaults — always review what it generated before committing.
 
-## Generated files: llms.txt and llms-full.txt
+## Generated files: llms.txt, llms-full.txt, and raw markdown
 
 `public/llms.txt` and `public/llms-full.txt` are the machine-readable bundle AI
 agents fetch: an [llmstxt.org](https://llmstxt.org) index of every page with its
@@ -85,10 +85,19 @@ navigation order. Both are generated from `pages/**` by
 `scripts/generateLlmsTxt.js`, which runs as part of `yarn build`, and both are
 committed because `public/` is served as-is.
 
+`public/raw/**.md` is the same idea one page at a time: every page published on
+its own as plain markdown, so an agent can fetch a single page instead of the
+whole bundle. It is generated from `pages/**` by
+`scripts/generateRawMarkdown.js` — also part of `yarn build`, also committed —
+and it mirrors the `pages/` tree with the extension swapped to `.md`. The
+directory is generated in full, so renaming or removing a page prunes its stale
+raw file automatically.
+
 So whenever you add, remove, rename, retitle, or edit a page, run `yarn build`
-(or `yarn llms`) and commit the regenerated files. `yarn checkllms` verifies the
-committed files still match `pages/**` without rewriting them; CI runs the same
-check and fails the pull request if they have drifted.
+(or `yarn llms` and `yarn raw`) and commit the regenerated files.
+`yarn checkllms` and `yarn checkraw` verify the committed files still match
+`pages/**` without rewriting them; CI runs the same two checks and fails the
+pull request if either has drifted.
 
 ## How-to page structure
 
@@ -175,6 +184,12 @@ running, and versions read from a project's default branch rather than a
 release. Those are collected in a tracking issue for a human to verify and
 apply by hand.
 
+When you apply a network's release by hand, update `public/api/networks.json`'s
+`deployed_version` for that network in the same commit. Both files record the
+same fact — [Networks](https://docs.allora.network/reference/networks) takes its
+prose from `versions.json` and its table from `networks.json` — and
+`yarn checkversions` fails while the two disagree.
+
 ## PR checklist
 
 Before opening a pull request:
@@ -186,8 +201,8 @@ Before opening a pull request:
 - [ ] No current version is typed by hand; versions come from
       `public/api/versions.json` (`yarn checkversions` passes).
 - [ ] `_meta.json` is updated for any added, moved, or removed page.
-- [ ] `public/llms.txt` and `public/llms-full.txt` are regenerated and committed
-      (`yarn checkllms` passes).
+- [ ] `public/llms.txt`, `public/llms-full.txt`, and `public/raw/**` are
+      regenerated and committed (`yarn checkllms` and `yarn checkraw` pass).
 - [ ] Any removed or moved URL has a 301 redirect in `next.config.js`
       (`redirects()`).
 - [ ] Code snippets run as pasted against the version named in
