@@ -1,0 +1,124 @@
+name: Run Snippets Nightly
+
+# The docs embed snippets/ verbatim (scripts/remarkIncludeCode.js), so a snippet
+# that stops working against testnet is a page that has silently gone stale.
+# This job executes every runnable snippet each night and opens an issue when one
+# fails.
+#
+# Required repository secrets:
+#   ALLORA_API_KEY          free API key from developer.allora.network; the
+#                           consume snippets authenticate with it and the worker
+#                           snippets use it to faucet testnet gas.
+#   ALLORA_WALLET_MNEMONIC  BIP-39 mnemonic of a funded allora-testnet-1 wallet.
+#                           The runner writes it to .allora_key in each run
+#                           directory so the worker never prompts for a mnemonic
+#                           on a runner that has no stdin.
+
+on:
+  schedule:
+    # 04:00 UTC, an hour before the external-link check.
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+# Every worker snippet signs with the same wallet, and two processes signing for
+# one account race on the sequence number. Never run two of these at once.
+concurrency:
+  group: snippets-nightly
+  cancel-in-progress: false
+
+jobs:
+  run-snippets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      # The runner is plain Node with no dependencies, so the site's own
+      # node_modules are not needed here.
+      - name: Run snippets against testnet
+        id: snippets
+        continue-on-error: true
+        shell: bash
+        env:
+          ALLORA_API_KEY: ${{ secrets.ALLORA_API_KEY }}
+          ALLORA_WALLET_MNEMONIC: ${{ secrets.ALLORA_WALLET_MNEMONIC }}
+          PYTHON: python
+        run: |
+          set -o pipefail
+          node scripts/runSnippets.js --report=snippet-failures.md 2>&1 | tee snippet-run.log
+
+      - name: Upload run log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snippet-run-log
+          path: |
+            snippet-run.log
+            snippet-failures.md
+          if-no-files-found: warn
+
+      - name: Report the failure as an issue
+        if: steps.snippets.outcome == 'failure'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: 'Nightly snippet run failed'
+        run: |
+          set -euo pipefail
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          {
+            echo "The nightly snippet run failed on \`${{ github.sha }}\`."
+            echo
+            echo "Run log: $RUN_URL"
+            echo
+            if [ -s snippet-failures.md ]; then
+              cat snippet-failures.md
+            else
+              # The runner exits 2 before writing a report when the environment
+              # itself is wrong (a missing secret, a toolchain that will not
+              # install). The tail of the log is the whole story in that case.
+              echo '## The runner did not get as far as executing snippets'
+              echo
+              echo '```'
+              tail -n 40 snippet-run.log
+              echo '```'
+            fi
+          } > issue-body.md
+
+          # One issue per outage, not one per night: comment on the open issue if
+          # there already is one.
+          EXISTING=$(gh issue list --state open --limit 50 --json number,title \
+            --jq "map(select(.title == \"$TITLE\")) | first | .number // empty")
+
+          if [ -n "$EXISTING" ]; then
+            echo "Commenting on existing issue #$EXISTING"
+            gh issue comment "$EXISTING" --body-file issue-body.md
+          else
+            echo 'Opening a new issue'
+            gh issue create --title "$TITLE" --body-file issue-body.md
+          fi
+
+      - name: Fail the job when a snippet failed
+        if: steps.snippets.outcome == 'failure'
+        run: exit 1
