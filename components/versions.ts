@@ -8,8 +8,10 @@
  * `<Code>{`... ${CHAIN_VERSION_TESTNET}`}</Code>`.
  *
  * To change a version, edit `public/api/versions.json`. Nothing here is
- * hand-maintained; `.github/workflows/version-bump.yml` opens a PR against that
- * file when upstream tags a release.
+ * hand-maintained. `.github/workflows/version-bump.yml` watches upstream, but
+ * it deliberately leaves these two keys alone: they record the release each
+ * network is *running*, which a release tag cannot tell you. It raises a
+ * tracking issue instead, for a human to confirm and apply.
  */
 import { versionOf } from './Version'
 

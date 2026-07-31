@@ -1,9 +1,20 @@
-name: Propose Version Bumps
+name: Check Upstream Versions
 
-# Checks upstream release feeds once a day and opens (or updates) a single pull
-# request when public/api/versions.json falls behind. The PR is a proposal for a
-# human to verify, never an auto-merge: the chain entries record the release each
-# network is actually running, which lags the newest allora-chain tag.
+# Checks upstream release feeds once a day and reports what has moved ahead of
+# public/api/versions.json. Two surfaces, because the findings are not equally
+# trustworthy:
+#
+#   * a pull request, for versions upstream has actually published (a GitHub
+#     release or tag, or a PyPI release). These are the only values the bot
+#     writes, so merging can never publish a version nobody can install.
+#   * a tracking issue, for everything the bot cannot assert — which release each
+#     network is running, and versions read from a moving branch. These are
+#     deliberately absent from the diff; a human confirms them and edits
+#     public/api/versions.json directly.
+#
+# Both surfaces carry a fingerprint of their findings, and both are skipped when
+# a human has already declined that exact proposal. Closing means closed until
+# the proposed versions themselves change.
 #
 # Requires "Allow GitHub Actions to create and approve pull requests" in
 # Settings → Actions → General. No secrets beyond the default GITHUB_TOKEN.
@@ -17,10 +28,17 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  issues: write
+
+# A manual run must not race the nightly one onto the same branch.
+concurrency:
+  group: version-bump
+  cancel-in-progress: false
 
 jobs:
-  propose-bumps:
+  check-versions:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
     - name: Checkout repository
@@ -40,14 +58,62 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: node ./scripts/bumpVersions.js --write
 
-    - name: Open or update the bump pull request
+    # peter-evans/create-pull-request recreates a pull request whenever a diff
+    # exists and none is open — so without this guard, declining a bump would
+    # earn a fresh identical pull request every morning.
+    - name: Check whether this bump was already declined
+      id: declined
       if: steps.bump.outputs.changed == 'true'
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        MARKER: ${{ steps.bump.outputs.marker }}
+      run: |
+        set -euo pipefail
+        count=$(gh pr list --state closed --head automated/version-bump --limit 20 \
+          --json state,body \
+          --jq '[.[] | select(.state == "CLOSED") | select(.body // "" | contains(env.MARKER))] | length')
+        echo "count=$count" >> "$GITHUB_OUTPUT"
+        if [ "$count" != "0" ]; then
+          echo "This exact bump was already declined in a closed pull request; not reopening."
+        fi
+
+    - name: Open or update the bump pull request
+      if: steps.bump.outputs.changed == 'true' && steps.declined.outputs.count == '0'
       uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
       with:
         branch: automated/version-bump
-        delete-branch: true
-        commit-message: 'Propose version bumps in public/api/versions.json'
-        title: 'Propose version bumps in versions.json'
+        commit-message: 'Update published versions in public/api/versions.json'
+        title: 'Update published versions in versions.json'
         body: ${{ steps.bump.outputs.body }}
-        labels: automated
         add-paths: public/api/versions.json
+
+    # Findings the bot will not write. Kept in one long-lived issue: updated in
+    # place while they hold, left alone once closed unless the versions change.
+    - name: Open or update the version-candidates issue
+      if: steps.bump.outputs.review_changed == 'true'
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        ISSUE_TITLE: 'Version candidates needing human confirmation'
+        ISSUE_BODY: ${{ steps.bump.outputs.review_body }}
+        MARKER: ${{ steps.bump.outputs.review_marker }}
+      run: |
+        set -euo pipefail
+        existing=$(gh issue list --state all --limit 50 --json number,title,body,state \
+          --jq '[.[] | select(.title == env.ISSUE_TITLE)] | first // empty')
+
+        if [ -z "$existing" ]; then
+          gh issue create --title "$ISSUE_TITLE" --body "$ISSUE_BODY"
+          exit 0
+        fi
+
+        number=$(printf '%s' "$existing" | jq -r '.number')
+        if printf '%s' "$existing" | jq -r '.body // ""' | grep -qF "$MARKER"; then
+          echo "Issue #$number already carries these exact findings; leaving it as-is."
+          exit 0
+        fi
+
+        gh issue edit "$number" --body "$ISSUE_BODY"
+        if [ "$(printf '%s' "$existing" | jq -r '.state')" = "CLOSED" ]; then
+          gh issue reopen "$number"
+        fi
+        echo "Updated issue #$number with new findings."

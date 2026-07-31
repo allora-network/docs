@@ -118,10 +118,13 @@ anywhere in `pages/`, `components/` or `snippets/`; it also runs as part of
 those literal. If the checker flags a historical mention it cannot recognise,
 add a `version-literal-ok: <reason>` comment on that line.
 
-A scheduled workflow opens a pull request when an upstream release moves ahead
-of `versions.json`. Those bumps are proposals: the chain entries describe what
-each network is actually running, which can lag the newest release tag, so a
-human confirms them before merging.
+A scheduled workflow watches upstream for you. When a version that is genuinely
+*published* moves ahead of `versions.json` — a GitHub release or tag, or a PyPI
+release — it opens a pull request with that change already made. Anything it
+cannot confirm on its own it never writes: which release each network is
+running, and versions read from a project's default branch rather than a
+release. Those are collected in a tracking issue for a human to verify and
+apply by hand.
 
 ## PR checklist
 

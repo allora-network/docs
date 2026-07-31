@@ -1,17 +1,42 @@
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-// Compares public/api/versions.json against upstream release feeds and proposes
-// bumps. Plain Node 20 (global fetch), no dependencies.
+// Compares public/api/versions.json against upstream release feeds and reports
+// what has moved. Plain Node 20 (global fetch), no dependencies.
 //
-//   node scripts/bumpVersions.js            dry run — print proposals, exit 0
-//   node scripts/bumpVersions.js --write    apply proposals to versions.json
+//   node scripts/bumpVersions.js            dry run — print findings, exit 0
+//   node scripts/bumpVersions.js --write    apply the applicable findings
+//
+// The governing rule: **the bot only writes a version a user could install
+// today.** Anything else is reported for a human to decide, never pre-applied,
+// because merging a pull request is a publishing action and the docs would then
+// state something upstream has not actually made true. Findings therefore fall
+// into three categories:
+//
+//   applied     — upstream published this exact version (a GitHub release or
+//                 tag, or a PyPI release). Written to versions.json and shipped
+//                 as the pull request's diff.
+//   unreleased  — read from packaging metadata on a moving branch. That field
+//                 is routinely set to the *next*, unpublished version before
+//                 anything ships, so taking it would advertise a version nobody
+//                 can install. Reported only.
+//   deployment  — describes the release a network is *running*
+//                 (`chain_testnet`, `chain_mainnet`). A new chain tag says
+//                 nothing about whether either network upgraded, and the two
+//                 networks are routinely on different releases, so resolving
+//                 both from "latest allora-chain release" would flatten exactly
+//                 the distinction pages/reference/networks.mdx exists to draw.
+//                 Reported only; confirming a deployment is a human's job.
 //
 // Under GitHub Actions (.github/workflows/version-bump.yml) `--write` also
-// appends `changed` and a markdown `body` to $GITHUB_OUTPUT, which the workflow
-// feeds to the pull-request step.
+// appends outputs to $GITHUB_OUTPUT: `changed` + `marker` + `body` drive the
+// pull request, and `review_changed` + `review_marker` + `review_body` drive the
+// tracking issue that carries the reported-only findings. Each marker is a
+// fingerprint of its finding set, so a proposal a human has already declined is
+// not resurrected until its content actually changes.
 //
-// Exit codes: 0 = ran successfully (with or without proposals), 1 = a source
+// Exit codes: 0 = ran successfully (with or without findings), 1 = a source
 // could not be reached or returned something unusable. A bump job that cannot
 // reach upstream must fail loudly rather than quietly report "up to date".
 
@@ -21,37 +46,33 @@ const VERSIONS_FILE = path.join(ROOT, 'public', 'api', 'versions.json');
 const CHAIN_REPO = 'allora-network/allora-chain';
 const BUILDER_KIT_REPO = 'allora-network/allora-forge-builder-kit';
 
-// `verify: true` marks a key whose correct value is not simply "whatever
-// upstream tagged last". The chain keys record the release each network is
-// *running*, which lags the newest allora-chain tag by design — a human
-// confirms the network actually upgraded before merging the bump.
+const APPLIED = 'applied';
+const UNRELEASED = 'unreleased';
+const DEPLOYMENT = 'deployment';
+
+// `deployment: true` marks a key whose correct value is not "whatever upstream
+// tagged last" but "what a network is actually running".
 const SOURCES = [
   {
     key: 'chain_testnet',
-    label: 'allora-chain (testnet deployment)',
-    verify: true,
-    describe: `latest release of ${CHAIN_REPO}`,
+    label: 'allora-chain release vs. the testnet deployment',
+    deployment: true,
     resolve: () => latestGitHubVersion(CHAIN_REPO),
   },
   {
     key: 'chain_mainnet',
-    label: 'allora-chain (mainnet deployment)',
-    verify: true,
-    describe: `latest release of ${CHAIN_REPO}`,
+    label: 'allora-chain release vs. the mainnet deployment',
+    deployment: true,
     resolve: () => latestGitHubVersion(CHAIN_REPO),
   },
   {
     key: 'allora_sdk',
-    label: 'allora_sdk (PyPI)',
-    verify: false,
-    describe: 'https://pypi.org/pypi/allora_sdk/json → info.version',
+    label: 'allora_sdk on PyPI',
     resolve: latestPyPiVersion,
   },
   {
     key: 'builder_kit',
     label: 'allora-forge-builder-kit',
-    verify: false,
-    describe: `releases, then tags, then pyproject.toml on the default branch of ${BUILDER_KIT_REPO}`,
     resolve: () => latestGitHubVersion(BUILDER_KIT_REPO, { pyprojectFallback: true }),
   },
 ];
@@ -111,7 +132,18 @@ function newestStable(candidates) {
     .sort((a, b) => compareSemver(b, a))[0];
 }
 
-async function latestGitHubVersion(repo, { pyprojectFallback = false } = {}) {
+// Both chain keys read the same repo; memoize so one run makes one set of calls.
+const githubCache = new Map();
+
+function latestGitHubVersion(repo, options = {}) {
+  const cacheKey = `${repo}|${options.pyprojectFallback ? 'pyproject' : 'strict'}`;
+  if (!githubCache.has(cacheKey)) {
+    githubCache.set(cacheKey, resolveGitHubVersion(repo, options));
+  }
+  return githubCache.get(cacheKey);
+}
+
+async function resolveGitHubVersion(repo, { pyprojectFallback = false } = {}) {
   const headers = githubHeaders();
 
   const releases = await getJson(`https://api.github.com/repos/${repo}/releases?per_page=100`, headers);
@@ -119,13 +151,13 @@ async function latestGitHubVersion(repo, { pyprojectFallback = false } = {}) {
     const version = newestStable(
       releases.filter(release => !release.draft && !release.prerelease).map(release => release.tag_name)
     );
-    if (version) return { version, via: 'GitHub releases' };
+    if (version) return { version, via: 'GitHub releases', published: true };
   }
 
   const tags = await getJson(`https://api.github.com/repos/${repo}/tags?per_page=100`, headers);
   if (Array.isArray(tags) && tags.length > 0) {
     const version = newestStable(tags.map(tag => tag.name));
-    if (version) return { version, via: 'git tags' };
+    if (version) return { version, via: 'git tags', published: true };
   }
 
   if (!pyprojectFallback) {
@@ -133,8 +165,9 @@ async function latestGitHubVersion(repo, { pyprojectFallback = false } = {}) {
   }
 
   // The builder kit publishes neither releases nor tags; its packaging metadata
-  // is the only machine-readable version it has. Keep this fallback last so it
-  // is superseded automatically the day the repo starts tagging.
+  // is the only machine-readable version it has. `published: false` keeps the
+  // value out of the diff — branch metadata routinely names an unreleased
+  // version. Kept last so it is superseded the day the repo starts tagging.
   const repoMeta = await getJson(`https://api.github.com/repos/${repo}`, headers);
   const branch = (repoMeta && repoMeta.default_branch) || 'main';
   const pyproject = await getText(`https://raw.githubusercontent.com/${repo}/${branch}/pyproject.toml`);
@@ -142,7 +175,7 @@ async function latestGitHubVersion(repo, { pyprojectFallback = false } = {}) {
   if (!match || !parseSemver(match[1])) {
     throw new Error(`${repo} exposes no releases, no tags, and no readable pyproject.toml version.`);
   }
-  return { version: match[1], via: `pyproject.toml on ${branch}` };
+  return { version: match[1], via: `pyproject.toml on ${branch}`, published: false };
 }
 
 async function latestPyPiVersion() {
@@ -151,7 +184,12 @@ async function latestPyPiVersion() {
   if (!version || !parseSemver(version)) {
     throw new Error(`PyPI returned no usable version for allora_sdk (got ${JSON.stringify(version)}).`);
   }
-  return { version, via: 'PyPI' };
+  return { version, via: 'PyPI', published: true };
+}
+
+function categoryOf(source, resolved) {
+  if (source.deployment) return DEPLOYMENT;
+  return resolved.published ? APPLIED : UNRELEASED;
 }
 
 /** Keeps the "v" convention each key already uses, so the file stays consistent. */
@@ -160,41 +198,49 @@ function matchPrefix(current, next) {
   return String(current).startsWith('v') ? `v${bare}` : bare;
 }
 
-function renderBody(proposals) {
-  const safe = proposals.filter(proposal => !proposal.verify);
-  const gated = proposals.filter(proposal => proposal.verify);
-  const lines = [];
+/**
+ * A stable id for a set of findings. Embedded in the pull request and issue
+ * bodies so the workflow can tell "the same proposal a human already declined"
+ * from "a genuinely new proposal".
+ */
+function fingerprint(findings) {
+  const canonical = findings
+    .map(finding => `${finding.key}:${finding.current}>${finding.next}`)
+    .sort()
+    .join('|');
+  return crypto.createHash('sha256').update(canonical).digest('hex').slice(0, 12);
+}
+
+function table(findings) {
+  return [
+    '| Key | Current | Upstream | Source |',
+    '| --- | --- | --- | --- |',
+    ...findings.map(f => `| \`${f.key}\` | \`${f.current}\` | \`${f.next}\` | ${f.via} |`),
+  ];
+}
+
+function renderPrBody(applied, candidates, marker) {
+  const lines = [marker, ''];
 
   lines.push('Automated check of upstream releases against `public/api/versions.json`.');
   lines.push('');
-  lines.push('**These are proposals for human review, not verified truth.** Nothing here');
-  lines.push('is confirmed by the network itself — check each entry before merging.');
+  lines.push('### Applied in this pull request');
+  lines.push('');
+  lines.push('Each of these versions is **published upstream** — a GitHub release or tag,');
+  lines.push('or a PyPI release — so it is a version a reader could install today.');
+  lines.push('Confirm the surrounding prose still reads correctly, then merge.');
+  lines.push('');
+  lines.push(...table(applied));
   lines.push('');
 
-  if (safe.length > 0) {
-    lines.push('### Published-package bumps');
+  if (candidates.length > 0) {
+    lines.push('### Not applied — reported for information');
     lines.push('');
-    lines.push('These track the version an upstream package actually publishes, so they are');
-    lines.push('usually safe to take as-is once the docs text still reads correctly.');
+    lines.push('These moved too, but the bot cannot assert them, so they are deliberately');
+    lines.push('**absent from the diff**. They are tracked in the version-candidates issue;');
+    lines.push('see it for what each one needs.');
     lines.push('');
-    lines.push('| Key | Current | Proposed | Source |');
-    lines.push('| --- | --- | --- | --- |');
-    safe.forEach(p => lines.push(`| \`${p.key}\` | \`${p.current}\` | \`${p.next}\` | ${p.via} |`));
-    lines.push('');
-  }
-
-  if (gated.length > 0) {
-    lines.push('### Deployment-gated bumps — confirm before merging');
-    lines.push('');
-    lines.push('`chain_testnet` and `chain_mainnet` record the release each network is');
-    lines.push('**currently running**, which routinely lags the newest `allora-chain` tag.');
-    lines.push('A new tag does **not** mean the network upgraded. Confirm the deployed');
-    lines.push('version first — for example `allorad status` against the network endpoint, or');
-    lines.push('the upgrade announcement — and drop the hunk if the network has not moved yet.');
-    lines.push('');
-    lines.push('| Key | Current | Proposed | Source |');
-    lines.push('| --- | --- | --- | --- |');
-    gated.forEach(p => lines.push(`| \`${p.key}\` | \`${p.current}\` | \`${p.next}\` | ${p.via} |`));
+    lines.push(...table(candidates));
     lines.push('');
   }
 
@@ -205,20 +251,72 @@ function renderBody(proposals) {
   return lines.join('\n');
 }
 
-function writeGitHubOutput(changed, body) {
+function renderIssueBody(candidates, marker) {
+  const deployment = candidates.filter(candidate => candidate.category === DEPLOYMENT);
+  const unreleased = candidates.filter(candidate => candidate.category === UNRELEASED);
+  const lines = [marker, ''];
+
+  lines.push('Upstream has moved ahead of `public/api/versions.json` for keys the bump job');
+  lines.push('**deliberately does not change on its own**. Nothing here is a verified fact —');
+  lines.push('each needs a human to confirm it before `public/api/versions.json` is edited.');
+  lines.push('');
+  lines.push('Editing that one file updates every page that renders the value.');
+  lines.push('');
+
+  if (deployment.length > 0) {
+    lines.push('### Deployed network versions — confirm the network actually upgraded');
+    lines.push('');
+    lines.push('`chain_testnet` and `chain_mainnet` record the release each network is');
+    lines.push('**currently running**. The figure below is only the newest `allora-chain`');
+    lines.push('tag: a tag does **not** mean either network upgraded, and the two networks');
+    lines.push('are routinely on different releases. Confirm the deployed version per');
+    lines.push('network — the upgrade announcement, or querying the network itself — and');
+    lines.push('update only the keys that really moved.');
+    lines.push('');
+    lines.push(...table(deployment));
+    lines.push('');
+  }
+
+  if (unreleased.length > 0) {
+    lines.push('### Unreleased — read from a moving branch, not a release');
+    lines.push('');
+    lines.push('This repo publishes no releases or tags, so the only machine-readable');
+    lines.push('version is packaging metadata on its default branch. That field is');
+    lines.push('routinely bumped to the *next* version before anything ships, so taking it');
+    lines.push('would advertise a version nobody can install yet. Confirm something was');
+    lines.push('actually published before updating.');
+    lines.push('');
+    lines.push(...table(unreleased));
+    lines.push('');
+  }
+
+  lines.push('This issue is updated in place while these findings hold. Closing it is');
+  lines.push('respected: it is not reopened until the proposed versions themselves change.');
+
+  return lines.join('\n');
+}
+
+function appendOutputs(fields) {
   const outputFile = process.env.GITHUB_OUTPUT;
   if (!outputFile) return;
-  const delimiter = `EOF_${Date.now()}`;
-  fs.appendFileSync(
-    outputFile,
-    `changed=${changed ? 'true' : 'false'}\nbody<<${delimiter}\n${body}\n${delimiter}\n`
-  );
+  const chunks = Object.entries(fields).map(([name, value]) => {
+    if (!String(value).includes('\n')) return `${name}=${value}\n`;
+    const delimiter = `EOF_${crypto.randomBytes(8).toString('hex')}`;
+    return `${name}<<${delimiter}\n${value}\n${delimiter}\n`;
+  });
+  fs.appendFileSync(outputFile, chunks.join(''));
+}
+
+function appendSummary(text) {
+  const summaryFile = process.env.GITHUB_STEP_SUMMARY;
+  if (!summaryFile) return;
+  fs.appendFileSync(summaryFile, `${text}\n`);
 }
 
 async function main() {
   const write = process.argv.includes('--write');
   const versions = JSON.parse(fs.readFileSync(VERSIONS_FILE, 'utf8'));
-  const proposals = [];
+  const findings = [];
 
   for (const source of SOURCES) {
     const current = versions[source.key];
@@ -226,8 +324,8 @@ async function main() {
       throw new Error(`public/api/versions.json has no key "${source.key}".`);
     }
 
-    const { version, via } = await source.resolve();
-    const next = matchPrefix(current, version);
+    const resolved = await source.resolve();
+    const next = matchPrefix(current, resolved.version);
     const comparison = compareSemver(next, current);
 
     if (comparison === null) {
@@ -235,37 +333,71 @@ async function main() {
     }
 
     if (comparison > 0) {
-      proposals.push({ key: source.key, label: source.label, current, next, via, verify: source.verify });
-      console.log(`${source.key}: ${current} → ${next}  (${source.label}, via ${via})`);
+      const category = categoryOf(source, resolved);
+      findings.push({ key: source.key, current, next, via: resolved.via, category });
+      const suffix = category === APPLIED ? '' : `  [${category} — not applied]`;
+      console.log(`${source.key}: ${current} → ${next}  (${source.label}, via ${resolved.via})${suffix}`);
     } else if (comparison < 0) {
-      console.log(
-        `${source.key}: ${current} is ahead of upstream ${next} (${via}) — left alone.`
-      );
+      console.log(`${source.key}: ${current} is ahead of upstream ${next} (${resolved.via}) — left alone.`);
     } else {
-      console.log(`${source.key}: ${current} is current (${source.label}, via ${via}).`);
+      console.log(`${source.key}: ${current} is current (${source.label}, via ${resolved.via}).`);
     }
   }
 
-  if (proposals.length === 0) {
-    console.log('\nNo bumps proposed; public/api/versions.json matches upstream.');
-    writeGitHubOutput(false, '');
-    return;
-  }
+  const applied = findings.filter(finding => finding.category === APPLIED);
+  const candidates = findings.filter(finding => finding.category !== APPLIED);
 
-  const body = renderBody(proposals);
+  const marker = `<!-- version-bump: ${fingerprint(applied)} -->`;
+  const reviewMarker = `<!-- version-candidates: ${fingerprint(candidates)} -->`;
 
-  if (write) {
-    proposals.forEach(proposal => {
-      versions[proposal.key] = proposal.next;
+  const body = applied.length > 0 ? renderPrBody(applied, candidates, marker) : '';
+  const reviewBody = candidates.length > 0 ? renderIssueBody(candidates, reviewMarker) : '';
+
+  if (applied.length > 0 && write) {
+    applied.forEach(finding => {
+      versions[finding.key] = finding.next;
     });
     fs.writeFileSync(VERSIONS_FILE, `${JSON.stringify(versions, null, 2)}\n`);
-    console.log(`\nWrote ${proposals.length} bump(s) to public/api/versions.json.`);
+    console.log(`\nWrote ${applied.length} published bump(s) to public/api/versions.json.`);
+  } else if (applied.length > 0) {
+    console.log(`\n${applied.length} published bump(s) ready. Re-run with --write to apply.`);
   } else {
-    console.log(`\n${proposals.length} bump(s) proposed. Re-run with --write to apply.`);
+    console.log('\nNo published bumps: public/api/versions.json matches every published source.');
   }
 
-  writeGitHubOutput(true, body);
-  console.log(`\n--- pull request body ---\n${body}`);
+  if (candidates.length > 0) {
+    console.log(
+      `${candidates.length} finding(s) reported without changing the file ` +
+        `(${candidates.map(candidate => `${candidate.key}=${candidate.category}`).join(', ')}).`
+    );
+  }
+
+  appendOutputs({
+    changed: applied.length > 0 ? 'true' : 'false',
+    marker,
+    body,
+    review_changed: candidates.length > 0 ? 'true' : 'false',
+    review_marker: reviewMarker,
+    review_body: reviewBody,
+  });
+
+  appendSummary(
+    [
+      '## Version check',
+      '',
+      applied.length > 0
+        ? `Applied ${applied.length} published bump(s): ${applied.map(finding => finding.key).join(', ')}.`
+        : 'No published bumps.',
+      candidates.length > 0
+        ? `Reported without changing the file: ${candidates
+            .map(candidate => `\`${candidate.key}\` (${candidate.category})`)
+            .join(', ')}.`
+        : 'No findings needing human confirmation.',
+    ].join('\n')
+  );
+
+  if (body) console.log(`\n--- pull request body ---\n${body}`);
+  if (reviewBody) console.log(`\n--- tracking issue body ---\n${reviewBody}`);
 }
 
 main().catch(error => {
