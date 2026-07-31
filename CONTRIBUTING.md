@@ -141,6 +141,39 @@ prints the plan without running anything.
 
 Fragments, config excerpts, and shell one-liners stay inline — only programs
 that are meant to run belong in `snippets/`.
+## Version strings
+
+Never type a current version number into a page. Every "the version we are on
+right now" string lives in `public/api/versions.json` (published at
+[/api/versions.json](https://docs.allora.network/api/versions.json)) and is
+rendered by the `Version` component:
+
+```mdx
+import { Version } from '../../components/Version'
+
+The testnet runs <Version of="chain-testnet"/>, and the release asset is
+named `allorad_<Version of="chain-testnet" bare/>_linux_amd64`.
+```
+
+`of` accepts any key in that file (`chain-testnet`, `chain-mainnet`,
+`allora-sdk`, `builder-kit`); `bare` drops the leading `v`. Where JSX cannot
+render — inside a template literal that builds a copy-paste command — import
+the constants from `components/versions.ts`, which read the same file.
+
+`yarn checkversions` fails if a version from `versions.json` is typed by hand
+anywhere in `pages/`, `components/` or `snippets/`; it also runs as part of
+`yarn build` and in CI. Mentions of *when* something changed ("since v0.17.0",
+"introduced in v0.17.0") are historical facts, not current versions — leave
+those literal. If the checker flags a historical mention it cannot recognise,
+add a `version-literal-ok: <reason>` comment on that line.
+
+A scheduled workflow watches upstream for you. When a version that is genuinely
+*published* moves ahead of `versions.json` — a GitHub release or tag, or a PyPI
+release — it opens a pull request with that change already made. Anything it
+cannot confirm on its own it never writes: which release each network is
+running, and versions read from a project's default branch rather than a
+release. Those are collected in a tracking issue for a human to verify and
+apply by hand.
 
 ## PR checklist
 
@@ -150,6 +183,8 @@ Before opening a pull request:
       (`yarn checkfm` passes).
 - [ ] `yarn build` passes.
 - [ ] `yarn fixlinks` passes (no broken internal links).
+- [ ] No current version is typed by hand; versions come from
+      `public/api/versions.json` (`yarn checkversions` passes).
 - [ ] `_meta.json` is updated for any added, moved, or removed page.
 - [ ] `public/llms.txt` and `public/llms-full.txt` are regenerated and committed
       (`yarn checkllms` passes).

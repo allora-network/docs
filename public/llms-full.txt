@@ -1271,10 +1271,10 @@ To install Go, follow one of the recommended methods below or consult the [offic
 
 ### Installation
 
-The command below installs v0.17.0, the version currently deployed on the testnet. If you are targeting mainnet, pass v0.16.0 instead — see [Networks](https://docs.allora.network/reference/networks) for the version deployed on each network.
+The command below installs <Version of="chain-testnet"/>, the version currently deployed on the testnet. If you are targeting mainnet, pass <Version of="chain-mainnet"/> instead — see [Networks](https://docs.allora.network/reference/networks) for the version deployed on each network.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/allora-network/allora-chain/dev/install.sh | bash -s -- v0.17.0
+curl -sSL https://raw.githubusercontent.com/allora-network/allora-chain/dev/install.sh | bash -s -- ${CHAIN_VERSION_TESTNET}
 ```
 
 A **successful** installation should output the following line:
@@ -1779,7 +1779,7 @@ What the worker already does for you:
 
 ## Coming in the next SDK release
 
-The SDK's public [`dev` branch](https://github.com/allora-network/allora-sdk-py/tree/dev) extends `AlloraWorker` beyond the current release (`allora_sdk` 1.0.6). These features are **not yet published to PyPI**, and their APIs may still change:
+The SDK's public [`dev` branch](https://github.com/allora-network/allora-sdk-py/tree/dev) extends `AlloraWorker` beyond the current release (`allora_sdk` <Version of="allora-sdk"/>). These features are **not yet published to PyPI**, and their APIs may still change:
 
 - **Auto-staking rewards**: pass `autostake=AutoStakeConfig(...)` to `AlloraWorker.inferer()` to automatically delegate the worker's settled rewards to a reputer (`AutoStakeTargetType.REPUTER`, an `allo1...` reputer registered on your topic) or to a validator (`AutoStakeTargetType.VALIDATOR`, an `allovaloper1...` operator address). The target is validated at startup, an optional `fee_reserve_uallo` keeps gas money unstaked, and each rewards-settlement event triggers one delegation:
 
@@ -2010,7 +2010,7 @@ The same container runs on Kubernetes with three adjustments:
 - **Container exits immediately or restart-loops** — read `docker logs allora-worker`. The most common cause is a missing key mount: without `/app/.allora_key`, the worker falls back to its interactive mnemonic prompt, which fails in a detached container. Check the mount path and that `.allora_key` exists on the host.
 - **No log output** — Python buffers stdout by default when it is not a TTY. The Dockerfile above sets `PYTHONUNBUFFERED=1`; if you wrote your own, add it (or run `python -u worker.py`).
 - **`Too many faucet requests`** — the testnet faucet is rate-limited. Send ALLO to the worker's address from another wallet, or request funds manually at [faucet.testnet.allora.network](https://faucet.testnet.allora.network), then restart the container.
-- **gRPC `StatusCode.UNIMPLEMENTED` with `unknown service emissions.vN.QueryService`** — the image holds an SDK release older than the deployed network. Rebuild without cache to pick up the latest release: `docker build --no-cache -t allora-worker .`. For reproducible deploys, pin the version in `requirements.txt` (e.g. `allora_sdk==1.0.6`) and bump it deliberately.
+- **gRPC `StatusCode.UNIMPLEMENTED` with `unknown service emissions.vN.QueryService`** — the image holds an SDK release older than the deployed network. Rebuild without cache to pick up the latest release: `docker build --no-cache -t allora-worker .`. For reproducible deploys, pin the version in `requirements.txt` (e.g. <Code>allora_sdk==<Version of="allora-sdk"/></Code>) and bump it deliberately.
 - **Worker runs but never submits** — submission windows only open once per topic epoch, so quiet stretches are normal. Confirm the worker is registered and scored via [Monitor a Worker](https://docs.allora.network/build/worker/monitoring).
 
 ## Next
@@ -2321,7 +2321,7 @@ What forecasters do on Allora, and how to submit forecasted losses to a topic wi
 
 A **forecaster** is a worker that predicts how accurate other workers' inferences will be, instead of (or in addition to) answering the topic's question itself. For each inferer, it submits a **forecasted loss** — an estimate of the error that inferer's inference will show against the eventual ground truth. The network turns forecasted losses into [regrets and weights](https://docs.allora.network/learn/inference-synthesis#forecast) and combines them into [forecast-implied inferences](https://docs.allora.network/learn/inference-synthesis#forecast-implied-inferences), making the network inference [context-aware](https://docs.allora.network/learn/inference-synthesis#context-awareness) — better than any individual model's output. [Forecast and Synthesis](https://docs.allora.network/learn/inference-synthesis) explains the mechanism end to end.
 
-**Standalone forecaster tooling is not published yet.** The high-level [`AlloraWorker`](https://docs.allora.network/consume/sdk-py) in the current Python SDK release (`allora_sdk` 1.0.6) automates the **inferer** role only; first-class forecaster support is in development on the SDK's public [dev branch](https://github.com/allora-network/allora-sdk-py/tree/dev) for an upcoming release. If you want to participate on Allora today, the smoothest path is running an inference worker — see [build a worker with the Python SDK](https://docs.allora.network/build/worker/sdk-py).
+**Standalone forecaster tooling is not published yet.** The high-level [`AlloraWorker`](https://docs.allora.network/consume/sdk-py) in the current Python SDK release (`allora_sdk` <Version of="allora-sdk"/>) automates the **inferer** role only; first-class forecaster support is in development on the SDK's public [dev branch](https://github.com/allora-network/allora-sdk-py/tree/dev) for an upcoming release. If you want to participate on Allora today, the smoothest path is running an inference worker — see [build a worker with the Python SDK](https://docs.allora.network/build/worker/sdk-py).
 
 That said, forecast submission itself **is** available in the published SDK through its lower-level RPC client: `client.emissions.tx.insert_worker_payload()` accepts a `forecast_elements` parameter — the same transaction the upcoming forecaster tooling drives. The steps below use that published surface.
 
@@ -2643,7 +2643,7 @@ docker compose up --build
 
 On startup the node registers your reputer on each configured topic and tops your stake up to `minStake`. It then submits a loss bundle every epoch — reputer submission windows are one full topic epoch long.
 
-**Coming to the Python SDK.** As of `allora_sdk` 1.0.6 (the latest release on PyPI), the SDK's `AlloraWorker` supports the inferer role only, so reputers run on the offchain node. A reputer mode is under development on the [`allora-sdk-py`](https://github.com/allora-network/allora-sdk-py) `dev` branch and is not yet released: `AlloraWorker.reputer(...)` will take a reputer function — built from a ground-truth function and a loss function via the `make_reputer_function(get_ground_truth, loss_fn)` helper — and automate the fetch–compute–submit cycle, including stake top-ups. It also ships default implementations of the loss methods used on the network: squared error (`sqe`/`mse`), absolute error (`abse`/`mae`), Huber (`huber`), log-cosh (`logcosh`), binary cross-entropy (`bce`), Poisson (`poisson`), and the z-transformed variants `ztae` and `zptae` (which require the standard deviation of historical values). This page will be updated when SDK reputer support is published.
+**Coming to the Python SDK.** As of `allora_sdk` <Version of="allora-sdk"/> (the latest release on PyPI), the SDK's `AlloraWorker` supports the inferer role only, so reputers run on the offchain node. A reputer mode is under development on the [`allora-sdk-py`](https://github.com/allora-network/allora-sdk-py) `dev` branch and is not yet released: `AlloraWorker.reputer(...)` will take a reputer function — built from a ground-truth function and a loss function via the `make_reputer_function(get_ground_truth, loss_fn)` helper — and automate the fetch–compute–submit cycle, including stake top-ups. It also ships default implementations of the loss methods used on the network: squared error (`sqe`/`mse`), absolute error (`abse`/`mae`), Huber (`huber`), log-cosh (`logcosh`), binary cross-entropy (`bce`), Poisson (`poisson`), and the z-transformed variants `ztae` and `zptae` (which require the standard deviation of historical values). This page will be updated when SDK reputer support is published.
 
 ## Verify
 
@@ -3907,7 +3907,7 @@ Replace an `allora-offchain-node` worker with a Python SDK worker that keeps the
   - `worker[].topicId` for each topic you serve
 - An Allora API key — free at [developer.allora.network](https://developer.allora.network). On testnet, the worker uses it to request ALLO gas from the faucet automatically.
 
-The published SDK release (`allora_sdk` 1.0.6) supports **workers only**. The offchain node's `reputer` configuration (`groundTruthEntrypointName`, `lossFunctionEntrypointName`, `minStake`, ...) has no SDK equivalent yet — [reputers](https://docs.allora.network/build/reputer/deploy-docker) continue to run on the offchain node for now.
+The published SDK release (`allora_sdk` <Version of="allora-sdk"/>) supports **workers only**. The offchain node's `reputer` configuration (`groundTruthEntrypointName`, `lossFunctionEntrypointName`, `minStake`, ...) has no SDK equivalent yet — [reputers](https://docs.allora.network/build/reputer/deploy-docker) continue to run on the offchain node for now.
 
 ## Steps
 
@@ -7680,8 +7680,8 @@ Chain IDs, endpoints, and the currently deployed allora-chain version for each A
 
 The Allora Network runs as two public networks: a **testnet** for development and integration, and
 the production **mainnet**. Each may run a different `allora-chain` version, which also determines the
-`emissions` REST/gRPC API version (for example, mainnet's v0.16.0 serves `emissions/v9`
-while testnet's v0.17.0 serves `emissions/v10`).
+`emissions` REST/gRPC API version (for example, mainnet's {CHAIN_VERSION_MAINNET} serves `emissions/v9`
+while testnet's {CHAIN_VERSION_TESTNET} serves `emissions/v10`).
 
 The tables on this page are rendered from a machine-readable manifest served at `/api/networks.json`.
 Agents and scripts can read the same chain IDs, endpoints, and versions from there instead of scraping
@@ -7703,9 +7703,9 @@ before they ship to mainnet. For wallet creation and faucet funding, see
 
 Mainnet has no faucet — fund addresses with ALLO yourself.
 
-The `emissions` API version differs by network. On mainnet (v0.16.0) network-inference
+The `emissions` API version differs by network. On mainnet ({CHAIN_VERSION_MAINNET}) network-inference
 endpoints live under `emissions/v9` and return a single (unlabeled) value; on testnet
-(v0.17.0) they live under `emissions/v10` and return
+({CHAIN_VERSION_TESTNET}) they live under `emissions/v10` and return
 [labeled network-inference bundles](https://docs.allora.network/consume/api).
 Pick the version segment that matches the network you are querying.
 

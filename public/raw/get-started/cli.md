@@ -23,10 +23,10 @@ To install Go, follow one of the recommended methods below or consult the [offic
 
 ### Installation
 
-The command below installs v0.17.0, the version currently deployed on the testnet. If you are targeting mainnet, pass v0.16.0 instead — see [Networks](https://docs.allora.network/reference/networks) for the version deployed on each network.
+The command below installs <Version of="chain-testnet"/>, the version currently deployed on the testnet. If you are targeting mainnet, pass <Version of="chain-mainnet"/> instead — see [Networks](https://docs.allora.network/reference/networks) for the version deployed on each network.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/allora-network/allora-chain/dev/install.sh | bash -s -- v0.17.0
+curl -sSL https://raw.githubusercontent.com/allora-network/allora-chain/dev/install.sh | bash -s -- ${CHAIN_VERSION_TESTNET}
 ```
 
 A **successful** installation should output the following line:

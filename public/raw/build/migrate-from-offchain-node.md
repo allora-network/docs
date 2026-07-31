@@ -25,7 +25,7 @@ Replace an `allora-offchain-node` worker with a Python SDK worker that keeps the
   - `worker[].topicId` for each topic you serve
 - An Allora API key — free at [developer.allora.network](https://developer.allora.network). On testnet, the worker uses it to request ALLO gas from the faucet automatically.
 
-The published SDK release (`allora_sdk` 1.0.6) supports **workers only**. The offchain node's `reputer` configuration (`groundTruthEntrypointName`, `lossFunctionEntrypointName`, `minStake`, ...) has no SDK equivalent yet — [reputers](https://docs.allora.network/build/reputer/deploy-docker) continue to run on the offchain node for now.
+The published SDK release (`allora_sdk` <Version of="allora-sdk"/>) supports **workers only**. The offchain node's `reputer` configuration (`groundTruthEntrypointName`, `lossFunctionEntrypointName`, `minStake`, ...) has no SDK equivalent yet — [reputers](https://docs.allora.network/build/reputer/deploy-docker) continue to run on the offchain node for now.
 
 ## Steps
 

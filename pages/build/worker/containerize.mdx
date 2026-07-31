@@ -6,7 +6,8 @@ verified_against: allora_sdk 1.0.6 (latest release on PyPI)
 last_reviewed: 2026-07-30
 ---
 
-import { Callout } from 'nextra/components'
+import { Callout, Code } from 'nextra/components'
+import { Version } from '../../../components/Version'
 
 # Deploy a Worker with Docker
 
@@ -174,7 +175,7 @@ The same container runs on Kubernetes with three adjustments:
 - **Container exits immediately or restart-loops** — read `docker logs allora-worker`. The most common cause is a missing key mount: without `/app/.allora_key`, the worker falls back to its interactive mnemonic prompt, which fails in a detached container. Check the mount path and that `.allora_key` exists on the host.
 - **No log output** — Python buffers stdout by default when it is not a TTY. The Dockerfile above sets `PYTHONUNBUFFERED=1`; if you wrote your own, add it (or run `python -u worker.py`).
 - **`Too many faucet requests`** — the testnet faucet is rate-limited. Send ALLO to the worker's address from another wallet, or request funds manually at [faucet.testnet.allora.network](https://faucet.testnet.allora.network), then restart the container.
-- **gRPC `StatusCode.UNIMPLEMENTED` with `unknown service emissions.vN.QueryService`** — the image holds an SDK release older than the deployed network. Rebuild without cache to pick up the latest release: `docker build --no-cache -t allora-worker .`. For reproducible deploys, pin the version in `requirements.txt` (e.g. `allora_sdk==1.0.6`) and bump it deliberately.
+- **gRPC `StatusCode.UNIMPLEMENTED` with `unknown service emissions.vN.QueryService`** — the image holds an SDK release older than the deployed network. Rebuild without cache to pick up the latest release: `docker build --no-cache -t allora-worker .`. For reproducible deploys, pin the version in `requirements.txt` (e.g. <Code>allora_sdk==<Version of="allora-sdk"/></Code>) and bump it deliberately.
 - **Worker runs but never submits** — submission windows only open once per topic epoch, so quiet stretches are normal. Confirm the worker is registered and scored via [Monitor a Worker](/build/worker/monitoring).
 
 ## Next

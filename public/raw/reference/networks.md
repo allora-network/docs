@@ -12,8 +12,8 @@ last_reviewed: 2026-07-30
 
 The Allora Network runs as two public networks: a **testnet** for development and integration, and
 the production **mainnet**. Each may run a different `allora-chain` version, which also determines the
-`emissions` REST/gRPC API version (for example, mainnet's v0.16.0 serves `emissions/v9`
-while testnet's v0.17.0 serves `emissions/v10`).
+`emissions` REST/gRPC API version (for example, mainnet's {CHAIN_VERSION_MAINNET} serves `emissions/v9`
+while testnet's {CHAIN_VERSION_TESTNET} serves `emissions/v10`).
 
 The tables on this page are rendered from a machine-readable manifest served at `/api/networks.json`.
 Agents and scripts can read the same chain IDs, endpoints, and versions from there instead of scraping
@@ -35,9 +35,9 @@ before they ship to mainnet. For wallet creation and faucet funding, see
 
 Mainnet has no faucet — fund addresses with ALLO yourself.
 
-The `emissions` API version differs by network. On mainnet (v0.16.0) network-inference
+The `emissions` API version differs by network. On mainnet ({CHAIN_VERSION_MAINNET}) network-inference
 endpoints live under `emissions/v9` and return a single (unlabeled) value; on testnet
-(v0.17.0) they live under `emissions/v10` and return
+({CHAIN_VERSION_TESTNET}) they live under `emissions/v10` and return
 [labeled network-inference bundles](https://docs.allora.network/consume/api).
 Pick the version segment that matches the network you are querying.
 
