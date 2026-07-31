@@ -1,15 +1,21 @@
 /**
- * Temporary single source of truth for the `allora-chain` version pins used
- * across the docs. To be superseded by a generated versions.json later.
+ * `allora-chain` version pins, derived from `public/api/versions.json` — the one
+ * file in this repo allowed to contain a current-version literal.
  *
- * Until then, update these constants by hand whenever a network is upgraded
- * to a new release (https://github.com/allora-network/allora-chain/releases).
- * Import them into .mdx pages instead of hardcoding version strings in
- * install commands or prose.
+ * Prefer the `<Version of="chain-testnet"/>` component (components/Version.tsx)
+ * in prose and tables. Reach for these constants only where JSX cannot render:
+ * inside a template literal that builds a copy-paste command, for example
+ * `<Code>{`... ${CHAIN_VERSION_TESTNET}`}</Code>`.
+ *
+ * To change a version, edit `public/api/versions.json`. Nothing here is
+ * hand-maintained; `.github/workflows/version-bump.yml` opens a PR against that
+ * file when upstream tags a release.
  */
-export const CHAIN_VERSION_TESTNET = 'v0.17.0'
-export const CHAIN_VERSION_MAINNET = 'v0.16.0'
+import { versionOf } from './Version'
+
+export const CHAIN_VERSION_TESTNET = versionOf('chain-testnet')
+export const CHAIN_VERSION_MAINNET = versionOf('chain-mainnet')
 
 /** The same versions without the leading "v", as used in release-asset filenames. */
-export const CHAIN_VERSION_TESTNET_BARE = CHAIN_VERSION_TESTNET.replace(/^v/, '')
-export const CHAIN_VERSION_MAINNET_BARE = CHAIN_VERSION_MAINNET.replace(/^v/, '')
+export const CHAIN_VERSION_TESTNET_BARE = versionOf('chain-testnet', { bare: true })
+export const CHAIN_VERSION_MAINNET_BARE = versionOf('chain-mainnet', { bare: true })
