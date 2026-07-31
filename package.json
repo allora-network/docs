@@ -15,6 +15,7 @@
     "fixlinks": "node scripts/fixRelativeLinks.js",
     "checklinks": "node scripts/checkExternalLinks.js",
     "checkfm": "node scripts/checkFrontmatter.js",
+    "runsnippets": "node scripts/runSnippets.js",
     "frontmatter": "node scripts/addFrontmatter.js"
   }
 }
