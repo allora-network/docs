@@ -17,6 +17,10 @@
 // the worker loop catches its own exceptions and prints them, so a worker whose
 // registration or submission failed would otherwise look perfectly healthy.
 //
+// A snippet's timeout measures the snippet, never the toolchain. Installing
+// packages and compiling happen in a separate warm-up phase with its own budget,
+// so a slow cold start can never be mistaken for a broken snippet.
+//
 // Usage:
 //   node scripts/runSnippets.js                 # run everything
 //   node scripts/runSnippets.js --list          # print the plan, run nothing
@@ -108,6 +112,9 @@ const DEFAULTS = {
   // "long-running" -- a worker loop with no natural end; staying alive for the
   //                   whole window is a pass, exiting non-zero is a failure.
   mode: 'exit',
+  // Ceiling for each toolchain-preparation step (Go module fetch and compile).
+  // Charged separately from timeoutSeconds -- see the warm-up section.
+  warmupTimeoutSeconds: 900,
 };
 
 // Base packages installed into the clean toolchain for every language. Declared
@@ -183,6 +190,11 @@ function discover(opts, config) {
       language: LANGUAGES[path.extname(name)],
       mode: override.mode || DEFAULTS.mode,
       timeoutSeconds: override.timeoutSeconds || DEFAULTS.timeoutSeconds,
+      // Budget for preparing the toolchain, charged separately from the run.
+      // Generous on purpose: a cold `go build` of a Cosmos-SDK-sized dependency
+      // tree is minutes of honest work, and starving it would reintroduce the
+      // very failure this exists to prevent.
+      warmupTimeoutSeconds: override.warmupTimeoutSeconds || DEFAULTS.warmupTimeoutSeconds,
       skip: Boolean(override.skip),
       reason: override.reason || '',
       requires: override.requires || [],
@@ -302,7 +314,14 @@ function setupNode(workDir, plan, toolchain) {
 function setupGo(workDir) {
   const goCacheDir = path.join(workDir, 'gocache');
   fs.mkdirSync(goCacheDir, { recursive: true });
-  return { goCacheDir };
+  // One build cache shared by every Go snippet, so the second module reuses the
+  // first one's compiled packages instead of rebuilding the whole Cosmos SDK
+  // dependency tree from scratch. GOMODCACHE is deliberately left at its
+  // default: Go marks that tree read-only, which makes it awkward to delete on
+  // cleanup, and on CI it is ephemeral anyway.
+  const env = { ...process.env, GOCACHE: goCacheDir, GOFLAGS: '-mod=mod' };
+  console.log(`  build cache at ${goCacheDir} (shared by every Go snippet)`);
+  return { goCacheDir, env };
 }
 
 // ---------------------------------------------------------------------------
@@ -341,20 +360,89 @@ function commandFor(snippet, runDir, toolchains) {
       return { command: runner, args: [snippet.name], cwd: runDir, env: {} };
     }
     case 'go':
-      return { command: 'go', args: ['run', '.'], cwd: runDir, env: { GOFLAGS: '-mod=mod' } };
+      // The already-compiled binary, not `go run .` -- see warmUpGo.
+      return { command: path.join(runDir, GO_BINARY), args: [], cwd: runDir, env: {} };
     default:
       throw new Error(`${snippet.name}: no runner for language ${snippet.language}`);
   }
 }
 
-function prepareGoModule(runDir, snippet, toolchains, toolchain) {
-  const moduleName = 'allora-doc-snippet-' + path.basename(snippet.name, '.go').replace(/_/g, '-');
-  const env = { ...process.env, GOCACHE: path.join(toolchains.go.goCacheDir, 'build') };
-  run('go', ['mod', 'init', moduleName], runDir);
-  if (toolchain.goModule) {
-    execFileSync('go', ['get', toolchain.goModule], { cwd: runDir, env, stdio: 'pipe' });
+// ---------------------------------------------------------------------------
+// Warm-up
+//
+// A snippet's timeout is meant to measure the snippet, not the toolchain. Go
+// makes that distinction easy to lose: `go run .` downloads and compiles the
+// entire dependency tree before main() produces a single byte, and for a module
+// that pulls in the Cosmos SDK that is minutes of work on a cold runner. The
+// first live CI run failed exactly this way -- quickstart_consume.go timed out
+// with completely empty output while the equivalent .py and .ts snippets
+// passed, because the Go snippet never got as far as running.
+//
+// So everything expensive happens here, before the clock starts, and the timed
+// phase executes a binary that is already built. Warm-up gets its own generous
+// budget and its own log line, so "the toolchain could not be prepared" can
+// never be mistaken for "the snippet is broken".
+// ---------------------------------------------------------------------------
+
+const GO_BINARY = 'snippet-binary';
+
+function warmUpStep(label, command, args, cwd, env, timeoutSeconds) {
+  const started = Date.now();
+  try {
+    execFileSync(command, args, {
+      cwd,
+      env,
+      stdio: 'pipe',
+      timeout: timeoutSeconds * 1000,
+      maxBuffer: 32 * 1024 * 1024,
+    });
+  } catch (err) {
+    const seconds = ((Date.now() - started) / 1000).toFixed(1);
+    // execFileSync surfaces its own `timeout` as ETIMEDOUT rather than by
+    // setting `killed`, so check both -- "timed out" and "failed" send the
+    // reader looking in very different places.
+    const timedOut = err.killed === true || err.code === 'ETIMEDOUT' || err.errno === 'ETIMEDOUT';
+    const error = new Error(
+      `warm-up step \`${label}\` ${timedOut ? 'timed out' : 'failed'} after ${seconds}s ` +
+        `(warm-up budget ${timeoutSeconds}s)`
+    );
+    error.isWarmUpFailure = true;
+    error.detail = [err.stdout, err.stderr].filter(Boolean).map(String).join('\n').trim() || err.message;
+    throw error;
   }
-  execFileSync('go', ['mod', 'tidy'], { cwd: runDir, env, stdio: 'pipe' });
+  return (Date.now() - started) / 1000;
+}
+
+function warmUpGo(runDir, snippet, toolchains, toolchain) {
+  const moduleName = 'allora-doc-snippet-' + path.basename(snippet.name, '.go').replace(/_/g, '-');
+  const env = toolchains.go.env;
+  const budget = snippet.warmupTimeoutSeconds;
+  let elapsed = 0;
+
+  elapsed += warmUpStep('go mod init', 'go', ['mod', 'init', moduleName], runDir, env, budget);
+  if (toolchain.goModule) {
+    elapsed += warmUpStep('go get', 'go', ['get', toolchain.goModule], runDir, env, budget);
+  }
+  elapsed += warmUpStep('go mod tidy', 'go', ['mod', 'tidy'], runDir, env, budget);
+  // The whole point: compile now, so the timed phase only runs the program.
+  elapsed += warmUpStep(
+    'go build',
+    'go',
+    ['build', '-o', path.join(runDir, GO_BINARY), '.'],
+    runDir,
+    env,
+    budget
+  );
+  return elapsed;
+}
+
+// Languages whose toolchain is prepared once, in the setup phase, rather than
+// per snippet: Python installs into a shared virtualenv and Node installs into a
+// shared project, both before any snippet is timed. Only Go needs per-snippet
+// warm-up, because each Go snippet is its own module.
+function warmUp(snippet, runDir, toolchains, toolchain) {
+  if (snippet.language === 'go') return warmUpGo(runDir, snippet, toolchains, toolchain);
+  return 0;
 }
 
 // Decide pass/fail from what the snippet actually did.
@@ -461,10 +549,24 @@ function writeReport(reportPath, results, plan) {
   lines.push(`- snippets discovered: ${plan.length}`);
   lines.push(`- executed: ${results.filter(r => r.status !== 'SKIP').length}`);
   lines.push(`- failed: ${failures.length}`);
+  const warmUpFailures = failures.filter(f => f.phase === 'warm-up');
+  if (warmUpFailures.length > 0) {
+    lines.push(
+      `- of those, ${warmUpFailures.length} failed while preparing the toolchain, ` +
+        `not while running the snippet`
+    );
+  }
   lines.push('');
   for (const failure of failures) {
     lines.push(`## \`snippets/${failure.name}\``);
     lines.push('');
+    if (failure.phase === 'warm-up') {
+      lines.push(
+        '**Toolchain warm-up failed — the snippet never ran, so this says nothing ' +
+          'about whether the snippet itself is correct.**'
+      );
+      lines.push('');
+    }
     lines.push(`${failure.note}`);
     lines.push('');
     lines.push('```');
@@ -529,10 +631,20 @@ async function main() {
     const runDir = prepareRunDir(workDir, snippet, opts);
     let result;
     try {
-      if (snippet.language === 'go') prepareGoModule(runDir, snippet, toolchains, config.toolchain);
+      const warmUpSeconds = warmUp(snippet, runDir, toolchains, config.toolchain);
+      if (warmUpSeconds > 0) {
+        console.log(
+          `WARM  ${snippet.name} -- toolchain ready in ${warmUpSeconds.toFixed(1)}s ` +
+            `(not charged to the ${snippet.timeoutSeconds}s run budget)`
+        );
+      }
       result = await execute(snippet, runDir, toolchains);
     } catch (err) {
-      result = { ok: false, output: String(err.stderr || err.message), note: 'setup failed' };
+      // Keep the two apart: a warm-up failure means the toolchain could not be
+      // prepared, which says nothing about whether the snippet works.
+      result = err.isWarmUpFailure
+        ? { ok: false, phase: 'warm-up', output: String(err.detail || ''), note: err.message }
+        : { ok: false, phase: 'setup', output: String(err.stderr || err.message), note: 'setup failed' };
     }
     // Snippet output is arbitrary third-party output and can quote the
     // credentials it was handed. Redact before it reaches the console (which is
@@ -540,11 +652,18 @@ async function main() {
     // public issue).
     result.output = redact(result.output);
     const status = result.ok ? 'PASS' : 'FAIL';
-    console.log(`${status}  ${snippet.name} -- ${result.note}`);
+    const label = result.phase === 'warm-up' ? 'FAIL(warm-up)' : status;
+    console.log(`${label}  ${snippet.name} -- ${result.note}`);
     if (!result.ok) {
       console.log(result.output.trim().split('\n').slice(-40).map(l => `      | ${l}`).join('\n'));
     }
-    results.push({ name: snippet.name, status, note: result.note, output: result.output });
+    results.push({
+      name: snippet.name,
+      status,
+      phase: result.phase || 'run',
+      note: result.note,
+      output: result.output,
+    });
   }
 
   const failures = results.filter(r => r.status === 'FAIL');
