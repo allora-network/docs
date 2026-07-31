@@ -1,0 +1,55 @@
+name: Check Network Version Drift
+
+on:
+  schedule:
+    # Daily at 06:00 UTC, so a chain upgrade is picked up without waiting for a PR.
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  networks-drift:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    # The drift checker is plain Node (no dependencies), so no install step is
+    # needed. With --write it rewrites public/api/networks.json in place and
+    # emits a `drift` output; it exits non-zero only if a network could not be
+    # probed, so a transient RPC outage fails the run instead of opening a PR.
+    - name: Compare recorded versions against each network's RPC
+      id: drift
+      run: node ./scripts/checkNetworkDrift.js --write --body-file "${RUNNER_TEMP}/networks-drift-body.md"
+
+    - name: Open a pull request with the updated manifest
+      if: steps.drift.outputs.drift == 'true'
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        BRANCH: networks-version-drift
+      run: |
+        set -euo pipefail
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git checkout -B "$BRANCH"
+        git add public/api/networks.json
+        git commit -m "Update deployed network versions in networks.json"
+        git push --force origin "$BRANCH"
+        if [ "$(gh pr list --head "$BRANCH" --state open --json number --jq 'length')" -gt 0 ]; then
+          gh pr edit "$BRANCH" \
+            --title "Network version drift: update public/api/networks.json" \
+            --body-file "${RUNNER_TEMP}/networks-drift-body.md"
+        else
+          gh pr create --base main --head "$BRANCH" \
+            --title "Network version drift: update public/api/networks.json" \
+            --body-file "${RUNNER_TEMP}/networks-drift-body.md"
+        fi
