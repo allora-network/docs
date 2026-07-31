@@ -111,10 +111,15 @@ Everything in `snippets/` is executed against testnet each night by
 `.github/workflows/snippets-nightly.yml`, which builds a clean toolchain per
 language, runs `node scripts/runSnippets.js`, and opens an issue with the
 failing snippet and its error when a run fails. New snippets are picked up
-automatically; `scripts/snippets.config.json` carries per-snippet settings
-(timeout, whether the snippet is a worker loop with no natural end, which
-credentials it needs) and is the only place a snippet can be opted out of
-execution — with a written reason.
+automatically; `scripts/snippets.config.json` carries per-snippet settings and is
+the only place a snippet can be opted out of execution — with a written reason.
+
+A snippet passes only when it prints the result its page documents (its `expect`
+pattern). Exiting 0 is not enough, and for a worker loop neither is staying
+alive: the loop catches its own exceptions and prints them, so a worker whose
+registration or submission failed would otherwise look perfectly healthy. Give
+every new snippet an `expect` — the runner refuses to run a non-terminating one
+without it.
 
 To run the suite yourself, export `ALLORA_API_KEY` and `ALLORA_WALLET_MNEMONIC`
 (a funded testnet wallet) and run `yarn runsnippets`. `yarn runsnippets --list`
