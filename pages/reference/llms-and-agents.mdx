@@ -155,11 +155,17 @@ stands on its own:
 - **Layout components are unwrapped.** Callouts, tabs, and card grids become
   their text content; a component that occupies a line of its own is dropped.
   One left-over: a component used *inline in a sentence* survives as its
-  literal tag. Components that render live data are never expanded either — the
-  topic tables on [Existing Allora Network Topics](/build/forge/topics), for
-  instance, are absent; fetch `/api/topics.json` for that data instead.
-- **Version placeholders are resolved.** Prose that interpolates a version
-  constant carries the version string itself.
+  literal tag, the version component below excepted. Components that render
+  live data are never expanded either — the topic tables on
+  [Existing Allora Network Topics](/build/forge/topics), for instance, are
+  absent; fetch `/api/topics.json` for that data instead.
+- **Versions are resolved, never placeheld.** Every current version in these
+  docs comes from `/api/versions.json`, written in the source as a component or
+  as a constant interpolated into a command. Both are replaced by the version
+  string itself, read from that same file at generation time — so an install
+  command in the raw markdown is copy-paste complete, and a version you read
+  here is the version the page shows. Generation fails rather than publish an
+  unresolved placeholder.
 
 Headings, prose, tables, and code are otherwise the page's own text, in the
 page's own order.

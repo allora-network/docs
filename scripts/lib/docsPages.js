@@ -240,11 +240,87 @@ function pageFilesOnDisk(dir = PAGES_DIR, out = []) {
 // MDX → markdown
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── Versions ────────────────────────────────────────────────────────────────
+//
+// Current versions live in exactly one place, public/api/versions.json, which
+// the site reads through components/Version.tsx. The generated corpus reads the
+// same file — never a copy — so a version bump moves the pages, the raw
+// markdown and llms-full.txt together.
+//
+// Two shapes reach a page: `<Version of="chain-testnet"/>` inline in prose, and
+// the components/versions.ts constants (`versionOf('chain-testnet')`) for the
+// template literals where JSX cannot go. Both are resolved here; anything that
+// cannot be resolved throws, because the alternative is publishing a
+// copy-paste install command that still says `${CHAIN_VERSION_TESTNET}`.
+
+const VERSIONS_FILE = path.join(PUBLIC_DIR, 'api', 'versions.json');
+
+let versionsCache = null;
+
+function versions() {
+  if (versionsCache) return versionsCache;
+  if (!fs.existsSync(VERSIONS_FILE)) {
+    throw new Error(`${path.relative(ROOT, VERSIONS_FILE)} is missing; version strings cannot be resolved`);
+  }
+  try {
+    versionsCache = JSON.parse(fs.readFileSync(VERSIONS_FILE, 'utf8'));
+  } catch (error) {
+    throw new Error(`${path.relative(ROOT, VERSIONS_FILE)} is not valid JSON: ${error.message}`);
+  }
+  return versionsCache;
+}
+
+// Mirrors versionOf() in components/Version.tsx: hyphens and underscores are
+// interchangeable, `bare` strips the leading "v", and an unknown id throws
+// rather than rendering an empty string.
+function resolveVersion(of, { bare = false } = {}) {
+  const table = versions();
+  const key = String(of).replace(/-/g, '_');
+  const value = table[key];
+  if (typeof value !== 'string' || value === '') {
+    throw new Error(
+      `unknown version id "${of}" — ${path.relative(ROOT, VERSIONS_FILE)} defines: ` +
+        `${Object.keys(table).join(', ')} (hyphens and underscores are interchangeable)`
+    );
+  }
+  return bare ? value.replace(/^v/, '') : value;
+}
+
+// `<Version of="allora-sdk"/>` / `<Version of="chain-testnet" bare/>` used
+// inline in a sentence, where the version *is* the content. Rendered to the
+// string itself, exactly as the site renders it.
+const VERSION_TAG = /<Version\b([^>]*?)\/>/g;
+
+function renderVersionTags(text, mdxFile) {
+  return text.replace(VERSION_TAG, (whole, attributes) => {
+    const of = attributes.match(/\bof\s*=\s*"([^"]*)"/) || attributes.match(/\bof\s*=\s*'([^']*)'/);
+    if (!of) {
+      throw new Error(
+        `${path.relative(ROOT, mdxFile)} has a <Version/> tag with no literal ` +
+          `of="…" attribute: ${whole.trim()}`
+      );
+    }
+    // `bare`, `bare={true}` and `bare="true"` all mean the same thing to the
+    // component; `bare={false}` and a missing attribute mean not bare.
+    const bareAttribute = attributes.match(/\bbare\s*(?:=\s*(?:\{([^}]*)\}|"([^"]*)"))?/);
+    const bare = Boolean(bareAttribute) && !/^\s*(?:false|"false"|'false')\s*$/.test(
+      bareAttribute[1] !== undefined ? bareAttribute[1] : bareAttribute[2] !== undefined ? bareAttribute[2] : 'true'
+    );
+    try {
+      return resolveVersion(of[1], { bare });
+    } catch (error) {
+      throw new Error(`${path.relative(ROOT, mdxFile)}: ${error.message}`);
+    }
+  });
+}
+
 // Resolves the string constants a page imports from a local module, so prose
 // like "installs {CHAIN_VERSION_TESTNET}" carries the real version instead of a
-// dangling JSX expression. Only literal string exports (and the `.replace()`
-// derivations in components/versions.ts) are understood; anything else is left
-// alone.
+// dangling JSX expression. Three shapes are understood: literal string exports,
+// the `.replace()` derivation, and `versionOf('<id>'[, { bare: true }])` —
+// which is how components/versions.ts derives its constants from
+// public/api/versions.json. Anything else is left alone here and caught by the
+// unresolved-interpolation check in mdxToMarkdown if a page actually uses it.
 const moduleConstantCache = new Map();
 
 function loadModuleConstants(modulePath) {
@@ -272,14 +348,30 @@ function loadModuleConstants(modulePath) {
         constants[match[1]] = constants[match[2]].replace(/^v/, '');
       }
     }
+    const version =
+      /export\s+const\s+([A-Za-z0-9_$]+)\s*=\s*versionOf\(\s*(['"`])([^'"`]+)\2\s*(?:,\s*\{([^}]*)\}\s*)?\)/g;
+    while ((match = version.exec(source)) !== null) {
+      const bare = match[4] !== undefined && /\bbare\s*:\s*true\b/.test(match[4]);
+      try {
+        constants[match[1]] = resolveVersion(match[3], { bare });
+      } catch (error) {
+        throw new Error(`${path.relative(ROOT, resolved)} exports ${match[1]}: ${error.message}`);
+      }
+    }
   }
 
   moduleConstantCache.set(modulePath, constants);
   return constants;
 }
 
+// Returns the resolved constants, plus every name the page imports from a local
+// module whether it resolved or not. The second set is what makes an
+// unresolvable constant loud: a page that interpolates a name it imported
+// locally and did not resolve is a page that would publish `{CHAIN_VERSION_X}`
+// as if it were prose, so mdxToMarkdown fails on it instead.
 function importedConstants(bodyLines, mdxFile) {
   const constants = {};
+  const localNames = new Set();
   bodyLines.forEach(line => {
     const match = line.match(/^import\s+\{([^}]*)\}\s+from\s+['"]([^'"]+)['"]/);
     if (!match) return;
@@ -291,10 +383,11 @@ function importedConstants(bodyLines, mdxFile) {
       .map(name => name.trim().split(/\s+as\s+/)[0].trim())
       .filter(Boolean)
       .forEach(name => {
+        localNames.add(name);
         if (available[name] !== undefined) constants[name] = available[name];
       });
   });
-  return constants;
+  return { constants, localNames };
 }
 
 // Deliberately narrow: these must not match the `export FOO=bar` shell lines or
@@ -451,9 +544,20 @@ function readSnippet(mdxFile, relativePath) {
 // title header of its own above each page and would otherwise show it twice,
 // while public/raw/**.md is a standalone copy of the page and keeps it.
 function mdxToMarkdown(mdxFile, bodyLines, { stripLeadingH1 = true } = {}) {
-  const constants = importedConstants(bodyLines, mdxFile);
+  const { constants, localNames } = importedConstants(bodyLines, mdxFile);
   const lines = stripMdxComments(bodyLines);
   const out = [];
+
+  // Names the page interpolates that came from a local module but did not
+  // resolve to a value. Collected rather than thrown on the spot so one run
+  // reports all of them; see the throw after the loop.
+  const unresolved = new Set();
+  const interpolate = (text, pattern) =>
+    text.replace(pattern, (whole, name) => {
+      if (constants[name] !== undefined) return constants[name];
+      if (localNames.has(name)) unresolved.add(name);
+      return whole;
+    });
 
   // Each unwrapped JSX wrapper contributes the extra indentation its children
   // carry; `dedent` is the running total to strip from emitted lines.
@@ -478,16 +582,14 @@ function mdxToMarkdown(mdxFile, bodyLines, { stripLeadingH1 = true } = {}) {
       text = text.slice(Math.min(dedent, leading));
     }
     if (!inFence) {
-      text = text.replace(/\{([A-Za-z_$][A-Za-z0-9_$]*)\}/g, (whole, name) =>
-        constants[name] !== undefined ? constants[name] : whole
-      );
+      text = interpolate(text, /\{([A-Za-z_$][A-Za-z0-9_$]*)\}/g);
       text = absolutizeLinks(text, mdxFile);
     }
     emit(text);
   };
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+    let line = lines[i];
 
     // ── inside a fenced code block ──
     if (inFence) {
@@ -527,6 +629,12 @@ function mdxToMarkdown(mdxFile, bodyLines, { stripLeadingH1 = true } = {}) {
       continue;
     }
 
+    // ── <Version of="…"/> → the version string ──
+    // Done before the JSX handling below, and only outside fences: the tag
+    // stands where the version belongs in a sentence, so unwrapping it as a
+    // component (dropping it) or leaving it literal both lose the fact.
+    line = renderVersionTags(line, mdxFile);
+
     // ── ESM lines that only exist for the rendered site ──
     if (ESM_IMPORT.test(line) || ESM_EXPORT.test(line)) continue;
 
@@ -562,10 +670,7 @@ function mdxToMarkdown(mdxFile, bodyLines, { stripLeadingH1 = true } = {}) {
     }
     const code = line.match(/^\s*<Code>\{`([\s\S]*)`\}<\/Code>\s*$/);
     if (code) {
-      const text = code[1].replace(
-        /\$\{([A-Za-z_$][A-Za-z0-9_$]*)\}/g,
-        (whole, name) => (constants[name] !== undefined ? constants[name] : whole)
-      );
+      const text = interpolate(code[1], /\$\{([A-Za-z_$][A-Za-z0-9_$]*)\}/g);
       emit(`\`\`\`${preLanguage || ''}`);
       text.split(/\r?\n/).forEach(emit);
       emit('```');
@@ -628,6 +733,20 @@ function mdxToMarkdown(mdxFile, bodyLines, { stripLeadingH1 = true } = {}) {
     }
 
     emitContent(line);
+  }
+
+  // A constant the page imported locally and interpolated but that did not
+  // resolve would ship as its own name — `${CHAIN_VERSION_TESTNET}` inside a
+  // copy-paste install command, say. That is worse than no output at all, so
+  // generation stops here instead.
+  if (unresolved.size > 0) {
+    throw new Error(
+      `${path.relative(ROOT, mdxFile)} interpolates ${[...unresolved].sort().join(', ')}, ` +
+        'imported from a local module, but the value could not be resolved. ' +
+        'loadModuleConstants() in scripts/lib/docsPages.js understands literal string ' +
+        "exports, the .replace(/^v/, '') derivation, and versionOf('<id>'[, { bare: true }]); " +
+        'teach it the new shape rather than shipping the placeholder'
+    );
   }
 
   // Collapse the blank-line runs that unwrapping leaves behind, and trim
