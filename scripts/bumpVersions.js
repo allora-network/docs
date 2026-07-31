@@ -273,6 +273,10 @@ function renderIssueBody(candidates, marker) {
     lines.push('network — the upgrade announcement, or querying the network itself — and');
     lines.push('update only the keys that really moved.');
     lines.push('');
+    lines.push('`public/api/networks.json` records the same fact per network in');
+    lines.push('`deployed_version`, so update it in the same commit — `yarn checkversions`');
+    lines.push('fails while the two files disagree.');
+    lines.push('');
     lines.push(...table(deployment));
     lines.push('');
   }

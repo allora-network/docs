@@ -2,7 +2,7 @@
 title: llms.txt and agent endpoints
 description: The machine-readable surfaces of these docs — llms.txt, llms-full.txt, per-page raw markdown under /raw/, and the JSON manifests under /api/.
 persona: AI agent developer
-verified_against: scripts/generateLlmsTxt.js and scripts/generateRawMarkdown.js in github.com/allora-network/docs (63 pages); public/api/topics.json
+verified_against: scripts/generateLlmsTxt.js and scripts/generateRawMarkdown.js in github.com/allora-network/docs (63 pages); public/api/topics.json, networks.json and versions.json; .github/workflows/topics-nightly.yml, networks-drift.yml and version-bump.yml
 last_reviewed: 2026-07-31
 ---
 
@@ -25,7 +25,7 @@ start at the [agent quickstart](/get-started/quickstart-agents).
 | `/raw/<page-path>.md` | One page as plain markdown | You already know which page you need |
 | [`/api/topics.json`](https://docs.allora.network/api/topics.json) | Active topics on each network | You need live topic IDs, epochs, or loss methods |
 | `/api/networks.json` | Network endpoints and chain IDs | You need an RPC, LCD, or chain ID |
-| `/api/versions.json` | Current published component versions | You need the version to install or pin |
+| `/api/versions.json` | Current component versions, including the release each network runs | You need a version to install, pin, or match |
 
 ## llms.txt
 
@@ -225,9 +225,14 @@ curl -s https://allora-api.testnet.allora.network/emissions/v10/is_topic_active/
 
 ### /api/networks.json
 
-The network endpoints manifest: endpoints and chain IDs for each Allora
-network, in machine-readable form. [Networks](/reference/networks) is the prose
-reference on the same subject.
+The network endpoints manifest, with one entry per network under `networks`
+(today `testnet` and `mainnet`). Each entry carries the chain ID, the deployed
+`allora-chain` release, the versioned `emissions` namespace to use in LCD and
+gRPC query paths, and the RPC, gRPC, LCD, explorer, and faucet URLs — `faucet`
+is omitted on networks that have none, so treat it as optional. The file
+documents its own fields in a `field_notes` object and records when it was last
+updated in `updated`. [Networks](/reference/networks) is the prose reference,
+and its tables render from this same file.
 
 ```bash
 curl -s https://docs.allora.network/api/networks.json
@@ -235,8 +240,13 @@ curl -s https://docs.allora.network/api/networks.json
 
 ### /api/versions.json
 
-The currently published versions of the Allora components the docs reference,
-so an agent can pin an install without scraping prose.
+The current version of each Allora component the docs reference, so you can pin
+an install without scraping prose. Four keys: `chain_testnet` and
+`chain_mainnet`, the `allora-chain` release each network is **running** — a
+deployment fact rather than something you install; `allora_sdk`, the Python
+SDK's release on PyPI; and `builder_kit`, the version of the Forge Builder Kit.
+The chain keys carry a leading `v` and the package versions do not, so add or
+strip it to match whatever you are pinning.
 
 ```bash
 curl -s https://docs.allora.network/api/versions.json
@@ -251,12 +261,23 @@ integration fails a pull request whose generated files no longer match its
 pages. They therefore ship with the page edit that caused them, never behind
 it.
 
-The manifests under `/api/` are not tied to the page build. They are maintained
-by scheduled checks against their upstream source that propose an update when
-it changes, so a manifest is as current as the last proposal that was accepted
-— which is why `topics.json` publishes its own `generated_at`. Read the
-freshness metadata a manifest carries rather than assuming a cadence, and for
-anything you are about to spend gas on, confirm it against the chain.
+The manifests under `/api/` are not tied to the page build. Each has a
+scheduled check behind it that opens a pull request when its upstream source
+moves, so a manifest is as current as the last proposal a human accepted —
+which is why `topics.json` publishes its own `generated_at` and
+`networks.json` its own `updated`.
+
+How much of each file that automation covers differs, which matters if you are
+reasoning about staleness. `topics.json` is regenerated in full from each
+network's LCD. In `networks.json`, only `abci_version` — the build string the
+network reports over RPC — is written automatically; the endpoints, the
+`emissions` namespace, and `deployed_version` are maintained by hand. In
+`versions.json`, only versions actually published upstream are written
+automatically; `chain_testnet` and `chain_mainnet` record which release a
+network is *running*, which no release feed can tell you, so a human confirms
+and applies those. Read the freshness metadata a manifest carries rather than
+assuming a cadence, and for anything you are about to spend gas on, confirm it
+against the chain.
 
 ## Related
 

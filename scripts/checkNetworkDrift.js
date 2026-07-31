@@ -127,7 +127,11 @@ function buildPullRequestBody(drifted, probeErrors) {
     '[allora-chain releases](https://github.com/allora-network/allora-chain/releases)',
     'and, if a new release is live, update `deployed_version` (and the',
     '`emissions_namespace` if the upgrade bumped the emissions module) in this PR',
-    'before merging.'
+    'before merging.',
+    '',
+    'If you do change `deployed_version`, change the matching `chain_<network>` key',
+    'in `public/api/versions.json` in the same commit — `yarn checkversions` fails',
+    'while the two files disagree.'
   );
 
   if (probeErrors.length > 0) {
