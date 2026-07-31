@@ -8,19 +8,25 @@
  * the only value that can be compared automatically; `deployed_version` remains
  * the human-maintained release tag and is never rewritten by this script.
  *
+ * Networks are probed and judged independently: an unreachable RPC is reported
+ * as a probe error for that network only, and never stops the other networks
+ * from being compared or from getting a drift PR.
+ *
  * Usage:
  *   node scripts/checkNetworkDrift.js
- *       Report only. Exit 0 when every network matches, 1 on drift, 2 when a
- *       network could not be probed.
+ *       Report only. Exit 0 when every probed network matches, 1 on drift.
  *
  *   node scripts/checkNetworkDrift.js --write [--body-file <path>]
  *       Same probe, but rewrite the manifest in place with the reported
- *       versions and write a pull-request body to --body-file. Exits 0 on
- *       success (with or without drift) so a workflow can branch on the emitted
- *       `drift` output; still exits 2 when a network could not be probed.
+ *       versions and write a pull-request body to --body-file. Exits 0 with or
+ *       without drift so a workflow can branch on the emitted `drift` output.
  *
- * Plain Node 20 — no dependencies. Set GITHUB_OUTPUT to have `drift` and
- * `networks` written as step outputs.
+ * Either mode exits 2 if any network could not be probed — after the healthy
+ * networks have been compared and, in --write mode, written — so the failure is
+ * visible without withholding the work that did succeed.
+ *
+ * Plain Node 20 — no dependencies. Set GITHUB_OUTPUT to have `drift`,
+ * `networks` and `probe_errors` written as step outputs.
  */
 
 const fs = require('fs');
@@ -99,7 +105,7 @@ function emitGithubOutputs(outputs) {
   fs.appendFileSync(file, `${lines.join('\n')}\n`);
 }
 
-function buildPullRequestBody(drifted) {
+function buildPullRequestBody(drifted, probeErrors) {
   const lines = [
     'The scheduled network drift check found that at least one Allora network is',
     'reporting a different build over RPC than `public/api/networks.json` records.',
@@ -121,10 +127,23 @@ function buildPullRequestBody(drifted) {
     '[allora-chain releases](https://github.com/allora-network/allora-chain/releases)',
     'and, if a new release is live, update `deployed_version` (and the',
     '`emissions_namespace` if the upgrade bumped the emissions module) in this PR',
-    'before merging.',
-    ''
+    'before merging.'
   );
 
+  if (probeErrors.length > 0) {
+    lines.push(
+      '',
+      '> [!WARNING]',
+      '> This run could not reach every network, so the comparison is partial and',
+      '> the networks below may also have drifted:',
+      '>'
+    );
+    for (const { network, message } of probeErrors) {
+      lines.push(`> - \`${network}\`: ${message}`);
+    }
+  }
+
+  lines.push('');
   return lines.join('\n');
 }
 
@@ -148,19 +167,25 @@ function buildPullRequestBody(drifted) {
     return;
   }
 
+  // Each network is probed and judged on its own. A network that cannot be
+  // reached is reported as a probe error and makes the run exit non-zero, but it
+  // never suppresses a healthy network's comparison: one permanently unreachable
+  // RPC must not hide real drift on the other chain forever.
   const drifted = [];
-  const failures = [];
+  const probeErrors = [];
 
   for (const [network, entry] of networks) {
     if (!entry.rpc) {
-      failures.push(`${network}: no rpc endpoint in the manifest`);
+      console.error(`ERROR ${network}: no rpc endpoint in the manifest`);
+      probeErrors.push({ network, message: 'no rpc endpoint in the manifest' });
       continue;
     }
     let reported;
     try {
       reported = await fetchAbciVersion(entry.rpc);
     } catch (error) {
-      failures.push(`${network}: ${error.message}`);
+      console.error(`ERROR ${network}: ${error.message}`);
+      probeErrors.push({ network, message: error.message });
       continue;
     }
 
@@ -173,45 +198,46 @@ function buildPullRequestBody(drifted) {
     }
   }
 
-  if (failures.length > 0) {
-    console.error('');
-    console.error('Could not probe every network; not reporting drift:');
-    failures.forEach(failure => console.error(`  ${failure}`));
+  emitGithubOutputs({
+    drift: drifted.length > 0 ? 'true' : 'false',
+    networks: drifted.map(d => d.network).join(','),
+    probe_errors: probeErrors.map(p => p.network).join(','),
+  });
+
+  if (drifted.length > 0 && args.write) {
+    for (const { network, reported } of drifted) {
+      manifest.networks[network].abci_version = reported;
+    }
+    manifest.updated = new Date().toISOString().slice(0, 10);
+
+    // Match the file's existing formatting: two-space indent, trailing newline.
+    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+    console.log('');
+    console.log(`Updated ${manifestPath} for: ${drifted.map(d => d.network).join(', ')}`);
+
+    if (args.bodyFile) {
+      fs.writeFileSync(args.bodyFile, buildPullRequestBody(drifted, probeErrors), 'utf8');
+      console.log(`Wrote pull-request body to ${args.bodyFile}`);
+    }
+  }
+
+  console.log('');
+  if (drifted.length === 0) {
+    const checked = networks.length - probeErrors.length;
+    console.log(`No drift: ${checked}/${networks.length} networks report the version recorded in the manifest.`);
+  }
+
+  if (probeErrors.length > 0) {
+    console.error(`Could not probe ${probeErrors.length} of ${networks.length} networks:`);
+    probeErrors.forEach(({ network, message }) => console.error(`  ${network}: ${message}`));
+    console.error('The networks that did respond were still compared.');
     process.exitCode = 2;
     return;
   }
 
-  emitGithubOutputs({
-    drift: drifted.length > 0 ? 'true' : 'false',
-    networks: drifted.map(d => d.network).join(','),
-  });
-
-  if (drifted.length === 0) {
-    console.log('');
-    console.log(`No drift: all ${networks.length} networks report the version recorded in the manifest.`);
-    return;
-  }
-
-  if (!args.write) {
-    console.error('');
+  if (drifted.length > 0 && !args.write) {
     console.error('Run with --write to update public/api/networks.json.');
     process.exitCode = 1;
-    return;
-  }
-
-  for (const { network, reported } of drifted) {
-    manifest.networks[network].abci_version = reported;
-  }
-  manifest.updated = new Date().toISOString().slice(0, 10);
-
-  // Match the file's existing formatting: two-space indent, trailing newline.
-  fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
-  console.log('');
-  console.log(`Updated ${manifestPath} for: ${drifted.map(d => d.network).join(', ')}`);
-
-  if (args.bodyFile) {
-    fs.writeFileSync(args.bodyFile, buildPullRequestBody(drifted), 'utf8');
-    console.log(`Wrote pull-request body to ${args.bodyFile}`);
   }
 })().catch(error => {
   console.error('An error occurred:', error);
