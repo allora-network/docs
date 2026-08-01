@@ -19,8 +19,6 @@ on:
     # 04:00 UTC, an hour before the external-link check.
     - cron: '0 4 * * *'
   workflow_dispatch:
-  push:  # TEMPORARY branch test-run trigger — revert before merge
-    branches: ['nick/engn-9027-p2-phase-lead-agent-reference-infra-t-26t-31-one-pr']
 
 permissions:
   contents: read

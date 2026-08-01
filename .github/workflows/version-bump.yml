@@ -26,8 +26,6 @@ on:
     # 07:15 UTC daily.
     - cron: '15 7 * * *'
   workflow_dispatch:
-  push:  # TEMPORARY branch test-run trigger — revert before merge
-    branches: ['nick/engn-9027-p2-phase-lead-agent-reference-infra-t-26t-31-one-pr']
 
 permissions:
   contents: write
