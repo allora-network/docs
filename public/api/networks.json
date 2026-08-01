@@ -23,7 +23,7 @@
       "lcd": "https://allora-api.testnet.allora.network/",
       "explorer": "https://explorer.testnet.allora.network/allora-testnet-1",
       "faucet": "https://faucet.testnet.allora.network/",
-      "abci_version": "HEAD-simulated-drift-for-ci-test"
+      "abci_version": "HEAD-ac7ae1565bda7266fd741515e09faccf85bc8af1"
     },
     "mainnet": {
       "name": "Mainnet",
