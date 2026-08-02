@@ -232,6 +232,32 @@ function requireString(net, value, where) {
   return value;
 }
 
+// A topic's name is free text set by whoever created it — the only value in
+// this file that comes from outside the repository. It is published verbatim in
+// topics.json (JSON escapes it safely) and normalised where it becomes
+// documentation syntax, in scripts/lib/docsPages.js.
+//
+// Nothing here rejects a topic over its name: anyone able to create one could
+// then stop the docs refreshing for everybody, which is a worse outcome than an
+// odd-looking row. It does say so, though — a control character or a name this
+// long deserves a human's attention even when it renders harmlessly.
+const NOTEWORTHY_TEXT = /[\p{Cc}\p{Cf}]/u;
+const LONG_TEXT = 200;
+
+function noteUntrustedText(net, topics) {
+  const odd = value => typeof value === 'string' && (NOTEWORTHY_TEXT.test(value) || value.length > LONG_TEXT);
+  topics
+    // `loss_method` is chain-supplied free text too, and was not being looked at.
+    .filter(topic => odd(topic.metadata) || odd(topic.loss_method))
+    .forEach(topic => {
+      process.stdout.write(
+        `${net.network}: topic ${topic.id} has metadata carrying control characters or ` +
+          `over ${LONG_TEXT} characters (${JSON.stringify(topic.metadata.slice(0, 60))}…) — ` +
+          'published as-is in topics.json, normalised in the generated markdown\n'
+      );
+    });
+}
+
 async function fetchNetworkTopics(net) {
   const base = `${net.lcd}/${net.namespace}`;
 
@@ -303,6 +329,7 @@ async function fetchNetworkTopics(net) {
     };
   });
 
+  noteUntrustedText(net, topics);
   topics.sort((a, b) => a.id - b.id);
   return topics;
 }

@@ -120,6 +120,12 @@ function orderedKeys(dir) {
 
   const onDisk = new Set();
   entries.forEach(entry => {
+    // `_`- and `.`-prefixed names are Next.js/Nextra plumbing, not routes —
+    // the same rule pageFilesOnDisk applies. Without it here the nav walk
+    // collected them and both generators published a `/build/_draft` URL that
+    // 404s, and the missed-page invariant could never notice: it only checks
+    // that the walk reaches everything on disk, not the other way round.
+    if (entry.name.startsWith('_') || entry.name.startsWith('.')) return;
     if (entry.isDirectory()) {
       onDisk.add(entry.name);
     } else if (PAGE_EXTENSIONS.some(ext => entry.name.endsWith(ext))) {
@@ -263,12 +269,28 @@ function versions() {
   if (!fs.existsSync(VERSIONS_FILE)) {
     throw new Error(`${path.relative(ROOT, VERSIONS_FILE)} is missing; version strings cannot be resolved`);
   }
+  let parsed;
   try {
-    versionsCache = JSON.parse(fs.readFileSync(VERSIONS_FILE, 'utf8'));
+    parsed = JSON.parse(fs.readFileSync(VERSIONS_FILE, 'utf8'));
   } catch (error) {
     throw new Error(`${path.relative(ROOT, VERSIONS_FILE)} is not valid JSON: ${error.message}`);
   }
+  versionsCache = requireJsonObject(parsed, VERSIONS_FILE);
   return versionsCache;
+}
+
+// Valid JSON is not the same thing as a manifest: `null`, `[…]`, `"text"` and
+// `5` all parse. Without this, `null` reached a property read and generation
+// died with "Cannot read properties of null" — no file named, from a build step
+// whose whole job is to say which page or manifest is wrong.
+function requireJsonObject(parsed, file) {
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(
+      `${path.relative(ROOT, file)} is valid JSON but not an object ` +
+        `(got ${Array.isArray(parsed) ? 'an array' : JSON.stringify(parsed)})`
+    );
+  }
+  return parsed;
 }
 
 // Mirrors versionOf() in components/Version.tsx: hyphens and underscores are
@@ -306,7 +328,13 @@ function renderVersionTags(text, mdxFile) {
     }
     // `bare`, `bare={true}` and `bare="true"` all mean the same thing to the
     // component; `bare={false}` and a missing attribute mean not bare.
-    const bareAttribute = attributes.match(/\bbare\s*(?:=\s*(?:\{([^}]*)\}|"([^"]*)"))?/);
+    // Anchored on the attribute boundary: `\bbare` matched any attribute whose
+    // text merely contained the word, so `className="nx-bare"` switched bare
+    // mode on here while components/Version.tsx, which reads the real prop,
+    // kept it off — the page and the corpus printing different strings.
+    const bareAttribute = attributes.match(
+      /(?:^|\s)bare(?:\s*=\s*(?:\{([^}]*)\}|"([^"]*)"))?(?=[\s/>]|$)/
+    );
     const bare = Boolean(bareAttribute) && !/^\s*(?:false|"false"|'false')\s*$/.test(
       bareAttribute[1] !== undefined ? bareAttribute[1] : bareAttribute[2] !== undefined ? bareAttribute[2] : 'true'
     );
@@ -373,95 +401,159 @@ function loadModuleConstants(modulePath) {
 // unresolvable constant loud: a page that interpolates a name it imported
 // locally and did not resolve is a page that would publish `{CHAIN_VERSION_X}`
 // as if it were prose, so mdxToMarkdown fails on it instead.
+// A named import, however it is spelled: on one line, or wrapped over several
+// the way Prettier writes one once the list grows. Only the single-line form
+// was recognised, so a wrapped import resolved nothing — the import statement
+// was published as prose and `{CHAIN_VERSION_TESTNET}` shipped as a literal
+// placeholder, which is precisely what the unresolved-constant throw below
+// exists to prevent. It did not fire, because nothing had registered the name.
+const NAMED_IMPORT =
+  /^import\s+(?:[A-Za-z_$][\w$]*\s*,\s*)?\{([\s\S]*?)\}\s*from\s*['"]([^'"]+)['"]/gm;
+
+// A constant the page declares itself, rather than importing. Same failure: the
+// ESM line is dropped and the interpolation had no value behind it.
+const PAGE_CONSTANT = /^export\s+const\s+([A-Za-z_$][\w$]*)\s*=\s*(['"`])([^'"`]*)\2\s*;?\s*$/gm;
+
 function importedConstants(bodyLines, mdxFile) {
   const constants = {};
   const localNames = new Set();
-  bodyLines.forEach(line => {
-    const match = line.match(/^import\s+\{([^}]*)\}\s+from\s+['"]([^'"]+)['"]/);
-    if (!match) return;
-    const source = match[2];
-    if (!source.startsWith('.')) return; // package import — nothing to resolve
-    const available = loadModuleConstants(path.resolve(path.dirname(mdxFile), source));
+  const source = bodyLines.join('\n');
+
+  let match;
+  NAMED_IMPORT.lastIndex = 0;
+  while ((match = NAMED_IMPORT.exec(source)) !== null) {
+    const from = match[2];
+    if (!from.startsWith('.')) continue; // package import — nothing to resolve
+    const available = loadModuleConstants(path.resolve(path.dirname(mdxFile), from));
     match[1]
       .split(',')
-      .map(name => name.trim().split(/\s+as\s+/)[0].trim())
+      .map(entry => entry.trim())
       .filter(Boolean)
-      .forEach(name => {
-        localNames.add(name);
-        if (available[name] !== undefined) constants[name] = available[name];
+      .forEach(entry => {
+        // `{ CHAIN_VERSION_TESTNET as V }` carries two names, used in different
+        // places: the module exports the first, the page interpolates the
+        // second. Look up by the export, key by the alias, and register the
+        // alias so an unresolvable one still stops generation.
+        const [exported, alias] = entry.split(/\s+as\s+/).map(part => part.trim());
+        const local = alias || exported;
+        if (!local) return;
+        localNames.add(local);
+        if (available[exported] !== undefined) constants[local] = available[exported];
       });
-  });
+  }
+
+  PAGE_CONSTANT.lastIndex = 0;
+  while ((match = PAGE_CONSTANT.exec(source)) !== null) {
+    localNames.add(match[1]);
+    constants[match[1]] = match[3];
+  }
+
   return { constants, localNames };
 }
 
 // Deliberately narrow: these must not match the `export FOO=bar` shell lines or
 // the `import os` Python lines that appear as page content. MDX requires ESM at
 // column 0, and every such line quotes a module specifier.
-const ESM_IMPORT = /^import\s+(?:[^'"]*\s+from\s+)?['"][^'"]+['"];?\s*$/;
+const ESM_IMPORT = /^import\s+(?:[^'"]*\s+from\s+)?['"][^'"]+['"];?\s*(?:\/\/.*)?$/;
 const ESM_EXPORT = /^export\s+(?:(?:const|let|var|function|class|default|async)\b|[*{])/;
 
-function stripMdxComments(lines) {
-  const out = [];
+// The first and last lines of a named import wrapped over several lines. Narrow
+// on purpose: it must open a brace and leave it open, so a bare `import os` in
+// page prose cannot start swallowing lines.
+const ESM_IMPORT_OPEN = /^import\s+(?:[A-Za-z_$][\w$]*\s*,\s*)?\{[^}]*$/;
+const ESM_IMPORT_CLOSE = /^[^{]*\}\s*from\s+['"][^'"]+['"];?\s*(?:\/\/.*)?$/;
+
+// An MDX comment is a JSX expression container wrapped around a JS block
+// comment, so `{`, `/*`, `*/` and `}` are four tokens that may be separated by
+// whitespace — including newlines. Stripping them line by line, matching the
+// literal three-character sequences, got two things wrong at once: `{ /* x */ }`
+// was not recognised as a comment and was published verbatim, and one closed as
+// `*/\n}` was never closed at all, so every remaining line of the page was
+// dropped without a word.
+//
+// So each unfenced run of lines is stripped as one string, where a comment can
+// be seen whole. Newlines inside a comment are kept so the line count does not
+// move and the blank-line rule below still applies per original line.
+const MDX_COMMENT = /\{\s*\/\*[\s\S]*?\*\/\s*\}/g;
+const MDX_COMMENT_OPEN = /\{\s*\/\*/;
+
+function stripMdxComments(lines, mdxFile) {
+  // Fenced content is quoted material and is never touched. Run length matters
+  // here exactly as it does in the reduction below: inside a ````-fenced block
+  // the ``` lines are content, not the end of it. This pass used to close on
+  // any run of the same character, so the two disagreed about where a nested
+  // fence ended and comments were stripped out of quoted code.
+  const fenced = new Array(lines.length).fill(false);
   let inFence = false;
-  let fenceMarker = '';
-  let inComment = false;
-
-  lines.forEach(rawLine => {
-    let line = rawLine;
-
-    if (!inComment) {
-      const fence = line.match(/^\s*(`{3,}|~{3,})/);
-      if (fence) {
-        if (!inFence) {
-          inFence = true;
-          fenceMarker = fence[1][0];
-        } else if (fence[1][0] === fenceMarker) {
-          inFence = false;
-        }
-        out.push(line);
-        return;
+  let marker = '';
+  let length = 0;
+  lines.forEach((line, index) => {
+    const fence = line.match(/^\s*(`{3,}|~{3,})/);
+    if (fence) {
+      if (!inFence) {
+        inFence = true;
+        marker = fence[1][0];
+        length = fence[1].length;
+      } else if (fence[1][0] === marker && fence[1].length >= length) {
+        inFence = false;
       }
-      if (inFence) {
-        out.push(line);
-        return;
-      }
+      fenced[index] = true;
+      return;
     }
+    fenced[index] = inFence;
+  });
 
-    let result = '';
-    while (line.length > 0) {
-      if (inComment) {
-        const end = line.indexOf('*/}');
-        if (end === -1) {
-          line = ''; // the rest of the line is still inside the comment
-          break;
-        }
-        line = line.slice(end + 3);
-        inComment = false;
-      } else {
-        const start = line.indexOf('{/*');
-        if (start === -1) {
-          result += line;
-          line = '';
-        } else {
-          result += line.slice(0, start);
-          line = line.slice(start + 3);
-          inComment = true;
-        }
-      }
+  // Strip over each unfenced run, then put the lines back where they came from.
+  const stripped = lines.slice();
+  let run = [];
+  const flush = () => {
+    if (run.length === 0) return;
+    const text = run.map(index => lines[index]).join('\n');
+    const clean = text.replace(MDX_COMMENT, match => match.replace(/[^\n]/g, ''));
+    if (MDX_COMMENT_OPEN.test(clean)) {
+      const before = clean.slice(0, clean.search(MDX_COMMENT_OPEN));
+      throw new Error(
+        `${path.relative(ROOT, mdxFile)} opens an MDX comment on line ` +
+          `${run[before.split('\n').length - 1] + 1} that is never closed, so the rest of the ` +
+          'page would be dropped from the generated corpus. Close it with `*/}`.'
+      );
     }
+    clean.split('\n').forEach((line, offset) => {
+      stripped[run[offset]] = line;
+    });
+    run = [];
+  };
+  lines.forEach((_, index) => {
+    if (fenced[index]) flush();
+    else run.push(index);
+  });
+  flush();
 
-    if (result.trim() !== '' || rawLine.trim() === '') out.push(result);
+  // A line emptied by stripping is dropped; a line that was already blank stays,
+  // because blank lines are markdown structure.
+  const out = [];
+  lines.forEach((rawLine, index) => {
+    if (fenced[index] || stripped[index].trim() !== '' || rawLine.trim() === '') {
+      out.push(stripped[index]);
+    }
   });
 
   return out;
 }
 
+// JSX attribute values in the three spellings a page can use: "…", '…' and
+// {"…"}. Only double quotes were read, so `<Card title='Quickstart' href='…'/>`
+// — valid JSX the site renders fine — reduced to a bare "- Link" and an
+// `<iframe src='…'>` vanished entirely, both without a word.
+const JSX_ATTRIBUTE = /([A-Za-z_][A-Za-z0-9_:-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|\{\s*(?:"([^"]*)"|'([^']*)'|`([^`]*)`)\s*\})/g;
+
 function parseAttributes(raw) {
   const attributes = {};
-  const attribute = /([A-Za-z_][A-Za-z0-9_:-]*)\s*=\s*"([^"]*)"/g;
   let match;
-  while ((match = attribute.exec(raw)) !== null) {
-    attributes[match[1]] = match[2];
+  JSX_ATTRIBUTE.lastIndex = 0;
+  while ((match = JSX_ATTRIBUTE.exec(raw)) !== null) {
+    const value = [match[2], match[3], match[4], match[5], match[6]].find(v => v !== undefined);
+    attributes[match[1]] = value;
   }
   return attributes;
 }
@@ -500,21 +592,83 @@ function manifest(file) {
   } catch (error) {
     throw new Error(`${relative} is not valid JSON: ${error.message}`);
   }
+  requireJsonObject(parsed, file);
   manifestCache.set(file, parsed);
   return parsed;
 }
 
-// A markdown table. Backslashes are escaped before `|` so a cell value ending
-// in a backslash cannot neutralize the pipe escape and break the row; other
-// markdown in cells (bold labels, inline code) is kept on purpose.
+// A markdown table, from cells that are already safe to place in one.
+//
+// It used to escape every cell itself, which forced one rule on two very
+// different kinds of value: the bold labels and code spans this file writes
+// (whose markdown must survive) and free text from the chain (whose markdown
+// must not). Escaping is now the caller's, so each cell says which it is:
+// tableCell() for a value we author or maintain, chainCell() for one we do not.
 function markdownTable(header, rows) {
-  const cell = value => String(value).replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
   return [
-    `| ${header.map(cell).join(' | ')} |`,
+    `| ${header.join(' | ')} |`,
     `| ${header.map(() => '---').join(' | ')} |`,
-    ...rows.map(row => `| ${row.map(cell).join(' | ')} |`),
+    ...rows.map(row => `| ${row.join(' | ')} |`),
   ];
 }
+
+// A value this repository writes or maintains. Only the two characters that
+// break the row structure: backslash first, so a value ending in one cannot
+// neutralize the pipe escape.
+const tableCell = value => String(value).replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
+
+// ── untrusted text from the chain ───────────────────────────────────────────
+//
+// A topic's `metadata` and `loss_method` are whatever the account that created
+// the topic typed. They are not ours, nobody reviews them, and they are the
+// only values in the whole corpus that arrive from outside this repository —
+// yet they land in a markdown table row and inside a code span, both of which
+// are syntax a value can escape from.
+//
+// A newline ends the row. A run of backticks closes the span and reopens as
+// something else. A cell of unbounded length wrecks a table for every reader of
+// it. So the values are normalised at this boundary — the one place they cross
+// from data into documentation syntax — rather than trusted because the chain
+// happened to return them.
+//
+// Escaping, not rejecting, on purpose: refusing to publish would let anyone who
+// can create a topic stop the docs from updating at all.
+
+const MAX_CHAIN_TEXT = 200;
+
+// Normalised, but still plain text: control and format characters gone, length
+// bounded. Use where the surrounding syntax already makes the value inert — a
+// code span, for instance, whose fence codeSpan() widens past any backticks.
+function chainText(value) {
+  const text = String(value)
+    // Control and format characters: line breaks that would end a table row,
+    // and the bidi/zero-width formatters that can make rendered text disagree
+    // with the bytes underneath it.
+    .replace(/[\p{Cc}\p{Cf}]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // Truncation walks code points, not UTF-16 code units: slicing by units can
+  // cut an astral character in half and write a lone surrogate into the corpus.
+  const points = [...text];
+  return points.length > MAX_CHAIN_TEXT
+    ? `${points.slice(0, MAX_CHAIN_TEXT - 1).join('')}…`
+    : text;
+}
+
+// Every inline construct a value could otherwise start: a link or image
+// (`[`, `]`), emphasis (`*`, `_`), a code span, raw HTML (`<`, `>`), an entity
+// (`&`), strikethrough (`~`), plus the two that break the row.
+//
+// Normalising control characters was not enough. Markdown link syntax is
+// exactly the boundary this is supposed to guard, and a topic name is set by
+// whoever created the topic — permissionless — so without this anyone could
+// plant a live hyperlink to a URL of their choosing in the corpus that agents
+// are pointed at. Same for a raw `<Callout>`: data-component output is emitted
+// directly, so the survival check never sees it.
+const MARKDOWN_ACTIVE = /[\\`*_[\]<>&~|]/g;
+
+const chainCell = value => chainText(value).replace(MARKDOWN_ACTIVE, '\\$&');
 
 // The row/column lists below mirror the presentation lists in
 // components/NetworksTable.js and components/TopicsTable.js. They cannot be
@@ -548,6 +702,22 @@ function assertMirrors(componentFile, arrayName, found, expected) {
     `${componentFile} ${arrayName} is [${show(found)}], but scripts/lib/docsPages.js ` +
       `mirrors [${show(expected)}]. The generated markdown would show something other ` +
       'than the page does — update the mirror in scripts/lib/docsPages.js.'
+  );
+}
+
+// Wording the reducer reproduces by hand rather than deriving — an empty-state
+// sentence, a list separator. There is no array to compare here, only prose in
+// two places, so the check is that the component still contains it verbatim.
+// Reword it there and generation stops, instead of the corpus going on saying
+// something the page no longer says.
+function assertMirroredText(componentFile, snippets) {
+  const source = fs.readFileSync(path.join(ROOT, componentFile), 'utf8');
+  const missing = snippets.filter(snippet => !source.includes(snippet));
+  if (missing.length === 0) return;
+  throw new Error(
+    `${componentFile} no longer contains ${missing.map(s => JSON.stringify(s)).join(' or ')}, ` +
+      'which scripts/lib/docsPages.js reproduces verbatim so the generated corpus reads the ' +
+      'same as the page. Update the wording in both, or drop it from the mirror check.'
   );
 }
 
@@ -610,16 +780,19 @@ function networks() {
 function networkValue(entry, field) {
   const value = entry[field.key];
   if (typeof value !== 'string' || value === '') return '—';
-  return field.code ? `\`${value}\`` : value;
+  // The manifest is ours, but a stray `|` in an endpoint would still split the
+  // row, so the value is made cell-safe before the backticks go on.
+  return field.code ? `\`${tableCell(value)}\`` : tableCell(value);
 }
 
 function renderNetworksTable() {
   const entries = networks();
   const keys = Object.keys(entries);
   return markdownTable(
-    ['', ...keys.map(key => entries[key].name || key)],
+    ['', ...keys.map(key => tableCell(entries[key].name || key))],
     NETWORK_FIELDS.map(field => [
-      `**${field.label}**`,
+      // The label is ours, written here; its markdown is meant to survive.
+      `**${tableCell(field.label)}**`,
       ...keys.map(key => networkValue(entries[key], field)),
     ])
   );
@@ -659,6 +832,13 @@ function topics() {
     ),
     TOPIC_COLUMNS
   );
+  // Only the sentences a reader sees. The separator between IDs and the shape
+  // of a list item are implementation, and asserting on those would fail on any
+  // harmless refactor of the component — churn, not safety.
+  assertMirroredText('components/TopicsTable.js', [
+    'No active topics recorded for {network}.',
+    'No sandbox topics are marked for {network}.',
+  ]);
   const data = manifest(TOPICS_MANIFEST);
   if (!Array.isArray(data.topics)) {
     throw new Error(`${path.relative(ROOT, TOPICS_MANIFEST)} has no "topics" array`);
@@ -684,15 +864,18 @@ function renderTopicsTable(attributes) {
   // The component's own empty state, word for word.
   if (rows.length === 0) return [`No active topics recorded for ${network}.`];
   return markdownTable(
-    TOPIC_COLUMNS,
+    TOPIC_COLUMNS.map(tableCell),
     rows.map(topic => [
       // The site marks a sandbox topic with a bold id and a "sandbox" badge;
-      // markdown has no badge, so the same two facts render as text.
-      topic.sandbox ? `**${topic.id}** (sandbox)` : String(topic.id),
-      topic.metadata,
-      String(topic.epoch_length),
-      topic.category,
-      topic.loss_method,
+      // markdown has no badge, so the same two facts render as text. `id` and
+      // `epoch_length` are validated as unsigned integers upstream and are
+      // interpolated as numbers; `category` is derived here. `metadata` and
+      // `loss_method` are free text from whoever created the topic.
+      topic.sandbox ? `**${Number(topic.id)}** (sandbox)` : String(Number(topic.id)),
+      chainCell(topic.metadata),
+      String(Number(topic.epoch_length)),
+      chainCell(topic.category),
+      chainCell(topic.loss_method),
     ])
   );
 }
@@ -720,7 +903,9 @@ function renderSandboxTopics(attributes) {
   const network = requireNetworkAttribute('<SandboxTopics/>', attributes);
   const rows = sandboxTopicsFor(network);
   if (rows.length === 0) return [`No sandbox topics are marked for ${network}.`];
-  return rows.map(topic => `- **${topic.id}** — \`${topic.metadata}\``);
+  // codeSpan widens the fence past any backtick run in the value, so a topic
+  // name containing backticks cannot close the span and start writing markdown.
+  return rows.map(topic => `- **${Number(topic.id)}** — ${codeSpan(chainText(topic.metadata))}`);
 }
 
 /** Mirrors topicsGeneratedOn in components/TopicsTable.js. */
@@ -1023,23 +1208,43 @@ function resolveRelativeLink(mdxFile, target) {
 const INLINE_LINK =
   /\]\((\s*)(<[^<>\n]*>|(?:[^\s()]|\([^\s()]*\))+)((?:[ \t]+(?:"[^"]*"|'[^']*'|\([^()]*\)))?\s*)\)/g;
 
+// The destination of a link, made absolute, or null to leave it alone.
+function absoluteDestination(destination, mdxFile) {
+  const angled = destination.startsWith('<') && destination.endsWith('>');
+  const target = angled ? destination.slice(1, -1) : destination;
+
+  // Absolute URLs, protocol-relative URLs, other schemes (mailto:, ipfs:) and
+  // same-page fragments are already meaningful on their own.
+  if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(target)) return null;
+
+  const absolute = target.startsWith('/')
+    ? `${SITE_URL}${target}`
+    : resolveRelativeLink(mdxFile, target);
+  if (!absolute) return null;
+
+  // Keeps whichever form the destination was written in.
+  return angled ? `<${absolute}>` : absolute;
+}
+
+// A reference-style definition — `[label]: /path "title"` on a line of its own
+// — is the one link shape that is not spelled `](…)`, so the inline pass above
+// never sees it and it would keep a relative destination in a file with nothing
+// to resolve it against. No page uses one today; handled anyway, because the
+// corpus' promise that links are absolute should not rest on that staying true.
+const LINK_DEFINITION = /^(\s{0,3}\[[^\]]+\]:\s*)(<[^<>\n]*>|\S+)(.*)$/;
+
 function absolutizeLinks(text, mdxFile) {
+  const definition = text.match(LINK_DEFINITION);
+  if (definition) {
+    const absolute = absoluteDestination(definition[2], mdxFile);
+    return absolute ? `${definition[1]}${absolute}${definition[3]}` : text;
+  }
+
   return text.replace(INLINE_LINK, (whole, lead, destination, trailer) => {
-    const angled = destination.startsWith('<') && destination.endsWith('>');
-    const target = angled ? destination.slice(1, -1) : destination;
-
-    // Absolute URLs, protocol-relative URLs, other schemes (mailto:, ipfs:) and
-    // same-page fragments are already meaningful on their own.
-    if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(target)) return whole;
-
-    const absolute = target.startsWith('/')
-      ? `${SITE_URL}${target}`
-      : resolveRelativeLink(mdxFile, target);
-    if (!absolute) return whole;
-
+    const absolute = absoluteDestination(destination, mdxFile);
     // The title is the author's and is carried through untouched; only the
-    // destination is rewritten, and it keeps whichever form it was written in.
-    return `](${lead}${angled ? `<${absolute}>` : absolute}${trailer})`;
+    // destination is rewritten.
+    return absolute === null ? whole : `](${lead}${absolute}${trailer})`;
   });
 }
 
@@ -1071,7 +1276,7 @@ function readSnippet(mdxFile, relativePath) {
 // while public/raw/**.md is a standalone copy of the page and keeps it.
 function mdxToMarkdown(mdxFile, bodyLines, { stripLeadingH1 = true } = {}) {
   const { constants, localNames } = importedConstants(bodyLines, mdxFile);
-  const lines = stripMdxComments(bodyLines);
+  const lines = stripMdxComments(bodyLines, mdxFile);
   const out = [];
 
   // Names the page interpolates that came from a local module but did not
@@ -1108,7 +1313,18 @@ function mdxToMarkdown(mdxFile, bodyLines, { stripLeadingH1 = true } = {}) {
       text = text.slice(Math.min(dedent, leading));
     }
     if (!inFence) {
-      text = interpolate(text, /\{([A-Za-z_$][A-Za-z0-9_$]*)\}/g);
+      // Interpolation skips inline code spans, as every other reduction does: a
+      // page showing a reader how to write `{CHAIN_VERSION_TESTNET}` means the
+      // name, not the version.
+      //
+      // absolutizeLinks deliberately does NOT, and must not: a link label is
+      // very often a code span (`[`AlloraWorker`](/consume/sdk-py)`, 7 of them
+      // in pages/ today), and splitting the line on code spans would hand the
+      // link pass "[" and "](/consume/sdk-py)" separately — no match, and every
+      // one of those links would stop being absolutised.
+      text = outsideCodeSpans(text, segment =>
+        interpolate(segment, /\{([A-Za-z_$][A-Za-z0-9_$]*)\}/g)
+      );
       text = absolutizeLinks(text, mdxFile);
     }
     emit(text);
@@ -1171,6 +1387,18 @@ function mdxToMarkdown(mdxFile, bodyLines, { stripLeadingH1 = true } = {}) {
     // ── ESM lines that only exist for the rendered site ──
     if (ESM_IMPORT.test(line) || ESM_EXPORT.test(line)) continue;
 
+    // A named import wrapped over several lines: skip to the one that closes
+    // the brace and quotes the module, or the whole statement is published as
+    // prose in the middle of the page.
+    if (ESM_IMPORT_OPEN.test(line)) {
+      let end = i;
+      while (end < lines.length && !ESM_IMPORT_CLOSE.test(lines[end])) end++;
+      if (end < lines.length) {
+        i = end;
+        continue;
+      }
+    }
+
     // ── data components used inline in a sentence ──
     // Same reasoning as <Version/>, code spans included: the component stands
     // where the value belongs, so dropping it loses the fact and leaving it
@@ -1213,6 +1441,24 @@ function mdxToMarkdown(mdxFile, bodyLines, { stripLeadingH1 = true } = {}) {
     const code = line.match(/^\s*<Code>\{`([\s\S]*)`\}<\/Code>\s*$/);
     if (code) {
       const text = interpolate(code[1], /\$\{([A-Za-z_$][A-Za-z0-9_$]*)\}/g);
+      // This block's content is a JavaScript template literal in the source, so
+      // the site evaluates every `${…}` in it. Anything still standing here is
+      // a value the page shows and the corpus would not — a copy-paste command
+      // carrying `${SOMETHING}` where the version belongs, which is the exact
+      // failure the unresolved-constant check further down exists to prevent.
+      // It only catches names imported from a *local* module, so a page
+      // interpolating something imported from a package would slip past it.
+      // An escaped `\${…}` is a literal the author asked for and is left alone.
+      const survivor = text.match(/(?<!\\)\$\{([A-Za-z_$][A-Za-z0-9_$]*)\}/);
+      if (survivor) {
+        throw new Error(
+          `${path.relative(ROOT, mdxFile)} builds a code block interpolating ` +
+            `\${${survivor[1]}}, which scripts/lib/docsPages.js could not resolve to a ` +
+            'value. The rendered page would show the value and the generated corpus would ' +
+            'show the placeholder. Import it from a local module this script can read ' +
+            '(components/versions.ts), or write the value literally.'
+        );
+      }
       emit(`\`\`\`${preLanguage || ''}`);
       text.split(/\r?\n/).forEach(emit);
       emit('```');
@@ -1425,6 +1671,25 @@ function collectAllPages() {
     process.exit(1);
   }
 
+  // Invariant: one URL, one page. `foo.mdx` and `foo/index.mdx` both serve
+  // /foo, and nothing upstream forbids having both — but then llms.txt lists
+  // that URL twice, two raw files claim it, and only one of them is reachable
+  // by the documented "append .md" rule. /reference/llms-and-agents promises
+  // the mapping is total in both directions, so a collision has to stop
+  // generation rather than quietly make that page wrong.
+  const byUrl = new Map();
+  all.forEach(page => byUrl.set(page.url, [...(byUrl.get(page.url) || []), page.relativePath]));
+  const collisions = [...byUrl.entries()].filter(([, files]) => files.length > 1);
+  if (collisions.length > 0) {
+    console.error(
+      `Docs page collection failed: ${collisions.length} URL(s) are claimed by more than one ` +
+        'page, so the generated views would list the same URL twice.\n'
+    );
+    collisions.forEach(([url, files]) => console.error(`  ${url} — ${files.join(', ')}`));
+    console.error('\nKeep one page per URL: either the `<name>.mdx` or the `<name>/index.mdx`.');
+    process.exit(1);
+  }
+
   return {
     rootPages: rootPages.map(page => byFile.get(page.file)),
     sections: sections.map(section => ({
@@ -1435,15 +1700,15 @@ function collectAllPages() {
   };
 }
 
+// Only what the two generators actually import. An exported helper nothing
+// consumes is a second contract to keep in step for no benefit — the rule
+// components/TopicsTable.js already states.
 module.exports = {
   ROOT,
   PAGES_DIR,
   PUBLIC_DIR,
   SITE_URL,
   SITE_NAME,
-  PAGE_EXTENSIONS,
   collectAllPages,
   mdxToMarkdown,
-  splitFrontmatter,
-  urlForPageFile,
 };
