@@ -130,8 +130,12 @@ jobs:
     # If a drift PR is already open, compare against what that PR already
     # proposes rather than against the default branch, so an unchanged chain is
     # a no-op: no commit, no push, no PR churn. It also means a reviewer's own
-    # edits on that branch (notably the deployed_version bump the PR body asks
-    # for) are built on top of rather than discarded.
+    # value edits on that branch -- notably the deployed_version bump the PR body
+    # asks for -- are built on top of rather than discarded. Endpoints are the
+    # exception, and deliberately so: an endpoint edited on the drift branch is
+    # replaced with the trusted checkout's, because that is the one field the
+    # branch must not be able to decide (see the merge below). Move an endpoint
+    # on the default branch, not on the machine branch.
     #
     # Only the manifest crosses over, and it crosses as data: `git show` of one
     # path, into the trusted working tree. The branch itself is NEVER checked
@@ -257,13 +261,20 @@ jobs:
 
         blob=$(git hash-object -w "$MANIFEST")
 
-        # The chain can also drift back. If the newly probed values are exactly
-        # what the default branch already records, there is nothing left to
-        # propose -- pushing anyway would leave an open pull request whose diff
-        # against its own base is empty, which reads as a bug to everyone who
-        # finds it. Close it instead and let the next real change open a fresh
-        # one.
-        if [ "$blob" = "$(git rev-parse "HEAD:$MANIFEST")" ]; then
+        # The chain can also drift back. If the newly probed versions are
+        # exactly what the default branch already records, there is nothing left
+        # to propose -- pushing anyway would leave an open pull request whose
+        # only diff against its own base is a date, which reads as a bug to
+        # everyone who finds it. Close it instead and let the next real change
+        # open a fresh one.
+        #
+        # Compared on the `networks` subtree, not the whole file: a --write that
+        # finds drift also stamps `updated` with today's date, so comparing the
+        # blobs would say "different" on every single run and this would never
+        # fire at all.
+        proposed_networks=$(jq -S '.networks' < "$MANIFEST")
+        base_networks=$(git show "HEAD:$MANIFEST" | jq -S '.networks')
+        if [ "$proposed_networks" = "$base_networks" ]; then
           echo "The probed versions match $BASE; there is nothing to propose."
           if [ "$EXISTING" = "true" ]; then
             gh pr close "$PR_NUMBER" --comment \

@@ -8,9 +8,11 @@
 // each snippet in its own directory, and exits non-zero if any of them fail.
 //
 // Snippets are DISCOVERED from the directory: drop a new .py/.ts/.js/.go file in
-// snippets/ and it is picked up on the next run with the default settings. Per
-// snippet overrides (including opting a file out of execution) live in
-// scripts/snippets.config.json.
+// snippets/ and the next run picks it up. It does not run on defaults alone,
+// though -- it needs an `expect` pattern in scripts/snippets.config.json saying
+// what it prints when it works, and the runner refuses to start until it has
+// one. Everything else (timeout, mode, credentials, opting a file out) defaults
+// sensibly and is overridden in the same file.
 //
 // A snippet passes only when it prints the result its page documents (its
 // `expect` pattern). Merely exiting 0, or merely staying alive, is not enough:
@@ -89,18 +91,26 @@ function registerWorkDir(dir, keep) {
 // spawned `detached`, which makes each one a process-group leader, so its pid
 // doubles as the group id and a negative pid reaches everything under it.
 function killTree(child, signal) {
-  if (!child || child.exitCode !== null || child.signalCode !== null) return;
+  if (!child || !child.pid) return;
+  // The group is signalled unconditionally, and never gated on whether the
+  // child itself has exited: a process group outlives its leader. Checking
+  // first would skip precisely the case this function exists for -- the
+  // interpreter took the SIGTERM and died, a grandchild ignored it, and the
+  // escalation ten seconds later finds a dead leader and a group still running.
   try {
     process.kill(-child.pid, signal);
   } catch (err) {
-    // ESRCH: it is already gone, which is the outcome we wanted. Anything else
-    // (EPERM on a group we do not own) still deserves an attempt at the process
-    // itself -- a partial kill beats none.
+    // ESRCH: the group is already gone, which is the outcome we wanted.
     if (err.code === 'ESRCH') return;
-    try {
-      child.kill(signal);
-    } catch {
-      /* best effort: there is nothing further to try */
+    // Anything else (EPERM, or a platform that gave us no group) still deserves
+    // an attempt at the process itself, if it is still there to receive it --
+    // a partial kill beats none.
+    if (child.exitCode === null && child.signalCode === null) {
+      try {
+        child.kill(signal);
+      } catch {
+        /* best effort: there is nothing further to try */
+      }
     }
   }
 }
@@ -962,8 +972,11 @@ async function main() {
       // snippet itself.
       result = { ok: false, phase: 'warm-up', note: setupFailure.note, output: setupFailure.output };
     } else {
-      const runDir = prepareRunDir(workDir, snippet, opts);
       try {
+        // Inside the try: a failed copy is this snippet's failure, reported
+        // alongside the others, not an exception that ends the run and takes
+        // the whole report with it.
+        const runDir = prepareRunDir(workDir, snippet, opts);
         const warmUpSeconds = warmUp(snippet, runDir, toolchains, config.toolchain);
         if (warmUpSeconds > 0) {
           console.log(

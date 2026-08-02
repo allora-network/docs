@@ -1,9 +1,10 @@
 {
   "_readme": [
     "Per-snippet settings for scripts/runSnippets.js. Snippets are discovered from",
-    "snippets/ automatically -- a new .py/.ts/.js/.go file runs with the defaults",
-    "(mode 'exit', 120s, no credentials) without being listed here. Add an entry",
-    "only to change that.",
+    "snippets/ automatically, but a new .py/.ts/.js/.go file still needs one entry",
+    "here: an 'expect' pattern saying what it prints when it has done its job. The",
+    "runner refuses to start without one -- see 'expect' below. Everything else",
+    "defaults (mode 'exit', 120s, no credentials), so add the rest only to change it.",
     "",
     "Keys:",
     "  mode            'exit' (must exit 0 before the timeout) or 'long-running'",

@@ -77,36 +77,50 @@ function isPlainObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
-// Anything with a scheme is a destination, not a value: http(s), but also
-// file:, ftp:, gopher: and every other thing a fetch implementation might be
-// talked into. Matching the shape rather than a scheme allowlist means a
-// protocol nobody thought of is still caught.
-function isEndpoint(value) {
-  return typeof value === 'string' && /^[a-z][a-z0-9+.-]*:/i.test(value.trim());
+// A destination, not a value: a scheme followed by `//`. Matching the shape
+// rather than a scheme allowlist means a protocol nobody thought of is caught
+// too. The `//` matters: without it, ordinary prose beginning "Note: ..." or
+// "Warning: ..." reads as a URL, and a field note the trusted manifest happens
+// not to have would then be deleted from the file committed back to the branch.
+function looksLikeUrl(value) {
+  return typeof value === 'string' && /^[a-z][a-z0-9+.-]*:\/\//i.test(value.trim());
 }
 
-// Walk the proposed document; wherever either side holds an endpoint, the
-// trusted side wins. Returns the paths that were overridden or dropped.
+// Walk the proposed document. Two rules, in this order:
+//
+//   1. wherever the TRUSTED document holds a string, the trusted string wins if
+//      it is a URL. This is the invariant that matters: an endpoint main knows
+//      about can never be redirected, whatever the branch put there -- prose,
+//      a URL, or something that only resembles one.
+//   2. otherwise, a value that looks like a URL and has no trusted counterpart
+//      is dropped: an endpoint only the branch knows about is exactly the thing
+//      this exists to refuse.
+//
+// Arrays are walked as well as objects. Nothing in an array is fetched today,
+// but "endpoints come from the trusted side" is meant to be a property of the
+// whole document, not of the fields that happen to exist right now.
 function forceEndpoints(proposed, trusted, path, changes) {
-  for (const key of Object.keys(proposed)) {
-    const here = path ? `${path}.${key}` : key;
+  const keys = Array.isArray(proposed) ? proposed.map((_, i) => i) : Object.keys(proposed);
+  for (const key of keys) {
+    const here = path ? `${path}.${key}` : String(key);
     const mine = proposed[key];
-    const theirs = isPlainObject(trusted) ? trusted[key] : undefined;
+    const theirs = trusted && typeof trusted === 'object' ? trusted[key] : undefined;
 
-    if (isEndpoint(mine) || isEndpoint(theirs)) {
-      if (isEndpoint(theirs)) {
-        if (mine !== theirs) {
-          changes.push(`${here}: replaced with the trusted endpoint`);
-          proposed[key] = theirs;
-        }
-      } else {
-        changes.push(`${here}: dropped (the trusted manifest has no endpoint here)`);
-        delete proposed[key];
+    if (looksLikeUrl(theirs)) {
+      if (mine !== theirs) {
+        changes.push(`${here}: replaced with the trusted endpoint`);
+        proposed[key] = theirs;
       }
       continue;
     }
+    if (looksLikeUrl(mine)) {
+      changes.push(`${here}: dropped (the trusted manifest has no endpoint here)`);
+      if (Array.isArray(proposed)) proposed[key] = null;
+      else delete proposed[key];
+      continue;
+    }
 
-    if (isPlainObject(mine)) forceEndpoints(mine, theirs, here, changes);
+    if (mine && typeof mine === 'object') forceEndpoints(mine, theirs, here, changes);
   }
 }
 
