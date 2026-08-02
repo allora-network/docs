@@ -13,6 +13,13 @@ name: Run Snippets Nightly
 #                           The runner writes it to .allora_key in each run
 #                           directory so the worker never prompts for a mnemonic
 #                           on a runner that has no stdin.
+#
+# The whole job runs on the default branch only — see the `guard` job. This job
+# executes the repository's own runner and every file in snippets/ with a funded
+# wallet's mnemonic and an issue-write token in scope, so whichever ref it runs
+# from decides what that code is. Try snippet changes by running
+# `yarn runsnippets` locally on the branch, not by dispatching this workflow
+# from it.
 
 on:
   schedule:
@@ -31,25 +38,68 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Everything past this gate checks the repository out and executes it -- the
+  # runner, every snippet, and the packages they install -- with a funded
+  # wallet's mnemonic and an issue-write token in scope. Only the default
+  # branch's tree is trusted with that combination, because it is the one that
+  # cannot change without review, so the decision is made here, in a job with no
+  # credentials, no checkout and nothing to exfiltrate. GitHub only schedules
+  # workflows from the default branch, so this never blocks a nightly run; a
+  # dispatch from any other ref logs one line and stops.
+  guard:
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      trusted: ${{ steps.check.outputs.trusted }}
+    steps:
+      - name: Decide whether this ref may run the job
+        id: check
+        env:
+          # Hardcoded, so the gate never depends on a webhook payload field
+          # being present -- but cross-checked against the payload when it
+          # carries one, so renaming the default branch fails loudly here
+          # instead of silently disabling the automation.
+          TRUSTED_BRANCH: main
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          if [ -n "$DEFAULT_BRANCH" ] && [ "$DEFAULT_BRANCH" != "$TRUSTED_BRANCH" ]; then
+            echo "::error::This workflow trusts '$TRUSTED_BRANCH', but the repository's default branch is '$DEFAULT_BRANCH'. Update TRUSTED_BRANCH in the automation workflows."
+            exit 1
+          fi
+          # The FULL ref, never github.ref_name. ref_name strips the refs/heads/
+          # or refs/tags/ prefix, so a TAG named "main" presents the same string
+          # as the branch and would walk straight through a ref_name comparison.
+          # A tag is not the reviewed branch: it can be created by anyone who can
+          # push one, and it can be moved. Only refs/heads/<trusted> is trusted.
+          if [ "$GITHUB_REF" != "refs/heads/$TRUSTED_BRANCH" ]; then
+            echo "trusted=false" >> "$GITHUB_OUTPUT"
+            echo "Dispatched from '$GITHUB_REF', not the trusted branch ('refs/heads/$TRUSTED_BRANCH'): doing nothing. This workflow runs this repository's snippet runner and every file in snippets/ with a funded wallet's mnemonic in scope, which is only safe from a ref that cannot change without review. Run 'yarn runsnippets' locally to try a branch."
+            exit 0
+          fi
+          echo "trusted=true" >> "$GITHUB_OUTPUT"
+
   run-snippets:
+    needs: guard
+    if: needs.guard.outputs.trusted == 'true'
     runs-on: ubuntu-latest
     # A cancelled job writes no report and opens no issue, so this cap has to
     # sit above the worst case the runner can legitimately spend -- not above
     # the happy path, which is minutes (every window ends the moment its
-    # snippet prints what it is expected to print). Worst case, from
+    # snippet prints what it is expected to print). Worst case, computed from
     # scripts/snippets.config.json and the runner's own budgets:
     #
-    #   shared toolchain setup   4 steps x 600s (venv, pip upgrade,
-    #                            pip install, npm install)          =  40 min
-    #   Go warm-up               2 Go snippets x 4 steps x 900s
-    #                            (mod init, get, tidy, build)       = 120 min
-    #   snippet windows          sum of timeoutSeconds over the 11
-    #                            runnable snippets (3360s)          =  56 min
-    #                                                       total   = 216 min
+    #   Python setup     3 steps x 600s (venv, pip upgrade, install)  =  30 min
+    #   Node setup       1 step  x 600s (npm install)                 =  10 min
+    #   Go warm-up       2 Go snippets x 4 steps x 900s
+    #                    (mod init, get, tidy, build)                 = 120 min
+    #   snippet windows  sum of timeoutSeconds over the 13
+    #                    runnable snippets (3600s)                    =  60 min
+    #                                                         total   = 220 min
     #
-    # 240 leaves ~24 minutes for checkout, the language setup actions, the
-    # upload and the issue. Re-do this arithmetic when a snippet's
-    # timeoutSeconds, a warm-up budget, or the number of Go snippets changes.
+    # Nobody has to keep that arithmetic right by hand: the first step of the
+    # job recomputes it from the config and fails the run if this number is no
+    # longer big enough. `node scripts/runSnippets.js --budget` prints it.
     timeout-minutes: 240
 
     steps:
@@ -77,6 +127,18 @@ jobs:
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: '1.24'
+
+      # The cap above is a number somebody typed; the time the run is allowed to
+      # take is computed from scripts/snippets.config.json. They drift apart the
+      # moment a snippet is added, and the drift is invisible until the night the
+      # job is cancelled halfway -- no report, no issue, and nothing to say it
+      # happened. Checking it here, before any credential is in scope, turns that
+      # into a red run with the arithmetic printed.
+      - name: Check the run budget against this job's timeout
+        env:
+          # Keep in step with timeout-minutes above.
+          TIMEOUT_MINUTES: '240'
+        run: node ./scripts/runSnippets.js --budget-cap-minutes="$TIMEOUT_MINUTES"
 
       # The runner is plain Node with no dependencies, so the site's own
       # node_modules are not needed here.
