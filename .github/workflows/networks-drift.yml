@@ -10,6 +10,11 @@ name: Check Network Version Drift
 #                          drift PR's checks never re-run when the nightly job
 #                          refreshes it. The job fails loudly when the secret is
 #                          missing rather than quietly producing an unchecked PR.
+#
+# Two rules keep this job's write capability away from code it does not trust:
+# it runs only on the default branch (see the `guard` job), and it never checks
+# out the drift branch — that branch is read one file at a time and written by
+# git plumbing, so nothing on it is ever executed here.
 
 on:
   schedule:
@@ -32,6 +37,8 @@ concurrency:
 
 env:
   BRANCH: networks-version-drift
+  # The one file this workflow is allowed to change.
+  MANIFEST: public/api/networks.json
   # Automation pull requests target the default branch and are only opened from
   # it. Hardcoded rather than read from github.ref_name, so a dispatch from a
   # release branch can exercise the drift check without ever proposing a merge
@@ -39,7 +46,44 @@ env:
   BASE: main
 
 jobs:
+  # Everything past this gate checks the repository out and runs scripts from
+  # that tree while a write-capable token is available to the job. Only the
+  # default branch's tree is trusted with that combination -- it is the one that
+  # cannot change without review -- so the decision is made here, in a job with
+  # no credentials, no checkout and nothing to exfiltrate. GitHub only schedules
+  # workflows from the default branch, so this never blocks a nightly run; a
+  # dispatch from any other ref logs one line and stops.
+  guard:
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      trusted: ${{ steps.check.outputs.trusted }}
+    steps:
+    - name: Decide whether this ref may run the job
+      id: check
+      env:
+        # Hardcoded like the pull request base, so the gate never depends on a
+        # webhook payload field being present -- but cross-checked against the
+        # payload when it carries one, so renaming the default branch fails
+        # loudly here instead of silently disabling the automation.
+        TRUSTED_BRANCH: main
+        DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      run: |
+        set -euo pipefail
+        if [ -n "$DEFAULT_BRANCH" ] && [ "$DEFAULT_BRANCH" != "$TRUSTED_BRANCH" ]; then
+          echo "::error::This workflow trusts '$TRUSTED_BRANCH', but the repository's default branch is '$DEFAULT_BRANCH'. Update TRUSTED_BRANCH and the pull request base in the automation workflows."
+          exit 1
+        fi
+        if [ "$GITHUB_REF_NAME" != "$TRUSTED_BRANCH" ]; then
+          echo "trusted=false" >> "$GITHUB_OUTPUT"
+          echo "Dispatched from '$GITHUB_REF_NAME', not the trusted branch ('$TRUSTED_BRANCH'): doing nothing. This workflow runs repository scripts with write-capable credentials in scope, which is only safe from a ref that cannot change without review."
+          exit 0
+        fi
+        echo "trusted=true" >> "$GITHUB_OUTPUT"
+
   networks-drift:
+    needs: guard
+    if: needs.guard.outputs.trusted == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -57,17 +101,18 @@ jobs:
 
     # Third-party actions are pinned to full commit SHAs: this job can write to
     # the repository, and a tag is a mutable pointer.
-    #
-    # Checking out with the PAT is what makes the pushes below come from the PAT
-    # too (persist-credentials writes it into the remote's auth header), which
-    # is what makes GitHub emit the `synchronize` event that re-runs the drift
-    # pull request's checks after each refresh.
     - name: Checkout repository
       uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       with:
-        token: ${{ secrets.DOCS_AUTOMATION_TOKEN }}
-        # Full history so the drift branch can be checked out and pushed to
-        # without a shallow-clone dance.
+        # No credentials left behind in .git/config. The drift check runs
+        # between here and the push and has no business being able to write to
+        # the repository; the push step supplies the PAT itself, so the token
+        # exists in exactly one step's environment rather than for the whole
+        # job. The push still comes from the PAT, which is what makes GitHub
+        # emit the `synchronize` event that re-runs the drift PR's checks.
+        persist-credentials: false
+        # Full history and every branch, so the drift branch's manifest can be
+        # read and a commit written on top of it without fetching again.
         fetch-depth: 0
 
     - name: Set up Node.js
@@ -75,23 +120,45 @@ jobs:
       with:
         node-version: '20'
 
-    # If a drift PR is already open, continue from its branch instead of the
-    # default branch. The drift check then compares against what that PR already
-    # proposes, so an unchanged chain is a no-op: no commit, no push, no PR
-    # churn. It also means a reviewer's own edits on that branch (notably the
-    # deployed_version bump the PR body asks for) are built on top of rather
-    # than discarded.
-    - name: Continue from the open drift pull request, if there is one
+    # If a drift PR is already open, compare against what that PR already
+    # proposes rather than against the default branch, so an unchanged chain is
+    # a no-op: no commit, no push, no PR churn. It also means a reviewer's own
+    # edits on that branch (notably the deployed_version bump the PR body asks
+    # for) are built on top of rather than discarded.
+    #
+    # Only the manifest crosses over, and it crosses as data: `git show` of one
+    # path, into the trusted working tree. The branch itself is NEVER checked
+    # out. It is a machine-owned branch that anyone with repository write access
+    # can push to, so checking it out would put its scripts/, its workflows and
+    # its lockfiles into the tree this job then executes from -- and the drift
+    # step below runs `node ./scripts/checkNetworkDrift.js`. Everything this job
+    # executes comes from the trusted checkout above; the drift branch is only
+    # ever read from and written to.
+    - name: Take the open drift pull request's manifest, if there is one
       id: base
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         set -euo pipefail
-        if [ "$(gh pr list --head "$BRANCH" --state open --json number --jq 'length')" -gt 0 ] \
-           && git rev-parse --verify --quiet "origin/$BRANCH" > /dev/null; then
-          git checkout -B "$BRANCH" "origin/$BRANCH"
+        # Whether a pull request is open decides, further down, between a
+        # fast-forward and a force-push. Reading "no" when the answer is
+        # actually "gh could not tell us" would force-push over an open pull
+        # request's branch and throw away the reviewer's commits on it, so an
+        # answer that is not a number is a hard error rather than a default.
+        open_prs=$(gh pr list --head "$BRANCH" --state open --json number --jq 'length')
+        case "$open_prs" in
+          '' | *[!0-9]*)
+            echo "::error::Could not determine whether a drift pull request is open (gh answered '$open_prs'). Refusing to continue: treating that as 'none open' would force-push over the branch of a pull request that may well exist."
+            exit 1
+            ;;
+        esac
+
+        if [ "$open_prs" -gt 0 ] \
+           && git rev-parse --verify --quiet "origin/$BRANCH" > /dev/null \
+           && git cat-file -e "origin/$BRANCH:$MANIFEST" 2> /dev/null; then
+          git show "origin/$BRANCH:$MANIFEST" > "$MANIFEST"
           echo "existing=true" >> "$GITHUB_OUTPUT"
-          echo "Continuing from the open drift pull request on $BRANCH."
+          echo "Continuing from the open drift pull request on $BRANCH (its $MANIFEST only; the branch is not checked out)."
         else
           echo "existing=false" >> "$GITHUB_OUTPUT"
           echo "No open drift pull request; starting from the default branch."
@@ -114,33 +181,67 @@ jobs:
       continue-on-error: true
       run: node ./scripts/checkNetworkDrift.js --write --body-file "${RUNNER_TEMP}/networks-drift-body.md"
 
-    - name: Commit the manifest and open or update the pull request
+    # The drift branch is written with plumbing rather than by checking it out:
+    # a commit is assembled from its parent's tree with exactly one blob
+    # replaced, in a scratch index, and pushed by object id. Nothing from that
+    # branch ever reaches the working tree, and the manifest is the only path
+    # this job can change on it no matter what else the branch contains.
+    #
+    # This is also the only step that sees the PAT, and it reaches git through a
+    # credential helper that reads it from the environment -- never written into
+    # .git/config (persist-credentials: false above) and never passed on a
+    # command line where a process listing could catch it.
+    - name: Commit the manifest to the drift branch and open or update the PR
       if: steps.drift.outputs.drift == 'true'
       env:
         GH_TOKEN: ${{ secrets.DOCS_AUTOMATION_TOKEN }}
         EXISTING: ${{ steps.base.outputs.existing }}
         TITLE: 'Network version drift: update public/api/networks.json'
+        GIT_AUTHOR_NAME: 'github-actions[bot]'
+        GIT_AUTHOR_EMAIL: '41898282+github-actions[bot]@users.noreply.github.com'
+        GIT_COMMITTER_NAME: 'github-actions[bot]'
+        GIT_COMMITTER_EMAIL: '41898282+github-actions[bot]@users.noreply.github.com'
       run: |
         set -euo pipefail
-        # Only the default branch proposes changes. A dispatch from a release or
-        # feature branch is a legitimate way to exercise the drift check, and it
-        # must not push the machine branch or open a pull request off that ref.
-        if [ "$GITHUB_REF_NAME" != "$BASE" ]; then
-          echo "Running from '$GITHUB_REF_NAME', not the default branch ('$BASE'): drift was detected and reported in the step log, skipping the commit, the push and the pull request."
+
+        if [ "$EXISTING" = "true" ]; then
+          # Build on the open PR's tip, so the push fast-forwards and a
+          # reviewer's own commits on the branch survive.
+          PARENT="origin/$BRANCH"
+        else
+          # No open PR, so any branch of this name is abandoned: rebuild it from
+          # the trusted checkout and force-push over whatever was there.
+          PARENT="HEAD"
+        fi
+
+        blob=$(git hash-object -w "$MANIFEST")
+        GIT_INDEX_FILE="${RUNNER_TEMP}/drift-index"
+        export GIT_INDEX_FILE
+        rm -f "$GIT_INDEX_FILE"
+        git read-tree "$PARENT"
+        git update-index --add --cacheinfo "100644,$blob,$MANIFEST"
+        tree=$(git write-tree)
+        unset GIT_INDEX_FILE
+
+        if [ "$tree" = "$(git rev-parse "$PARENT^{tree}")" ]; then
+          echo "The drift branch already carries this manifest; nothing to push."
           exit 0
         fi
-        git config user.name "github-actions[bot]"
-        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git add public/api/networks.json
-        git commit -m "Update deployed network versions in networks.json"
+
+        commit=$(git commit-tree "$tree" -p "$PARENT" \
+          -m 'Update deployed network versions in networks.json')
+
+        push() {
+          git -c credential.helper= \
+              -c credential.helper='!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f' \
+              push "$@"
+        }
+
         if [ "$EXISTING" = "true" ]; then
-          # Building on the open PR's branch, so this always fast-forwards.
-          git push origin "$BRANCH"
+          push origin "$commit:refs/heads/$BRANCH"
           gh pr edit "$BRANCH" --title "$TITLE" --body-file "${RUNNER_TEMP}/networks-drift-body.md"
         else
-          # No open PR, so any branch of this name is abandoned and safe to reset.
-          git checkout -B "$BRANCH"
-          git push --force origin "$BRANCH"
+          push --force origin "$commit:refs/heads/$BRANCH"
           gh pr create --base "$BASE" --head "$BRANCH" \
             --title "$TITLE" --body-file "${RUNNER_TEMP}/networks-drift-body.md"
         fi
