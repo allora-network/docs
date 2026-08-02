@@ -611,6 +611,22 @@ function assertMirrors(componentFile, arrayName, found, expected) {
   );
 }
 
+// Wording the reducer reproduces by hand rather than deriving — an empty-state
+// sentence, a list separator. There is no array to compare here, only prose in
+// two places, so the check is that the component still contains it verbatim.
+// Reword it there and generation stops, instead of the corpus going on saying
+// something the page no longer says.
+function assertMirroredText(componentFile, snippets) {
+  const source = fs.readFileSync(path.join(ROOT, componentFile), 'utf8');
+  const missing = snippets.filter(snippet => !source.includes(snippet));
+  if (missing.length === 0) return;
+  throw new Error(
+    `${componentFile} no longer contains ${missing.map(s => JSON.stringify(s)).join(' or ')}, ` +
+      'which scripts/lib/docsPages.js reproduces verbatim so the generated corpus reads the ' +
+      'same as the page. Update the wording in both, or drop it from the mirror check.'
+  );
+}
+
 // One `{ key: '…', label: '…', code: <bool> }` entry, in the component's own
 // spelling. Deliberately exact: a field written in some other shape does not
 // match, the entry count then disagrees with the number of `key:`s in the
@@ -719,6 +735,13 @@ function topics() {
     ),
     TOPIC_COLUMNS
   );
+  // Only the sentences a reader sees. The separator between IDs and the shape
+  // of a list item are implementation, and asserting on those would fail on any
+  // harmless refactor of the component — churn, not safety.
+  assertMirroredText('components/TopicsTable.js', [
+    'No active topics recorded for {network}.',
+    'No sandbox topics are marked for {network}.',
+  ]);
   const data = manifest(TOPICS_MANIFEST);
   if (!Array.isArray(data.topics)) {
     throw new Error(`${path.relative(ROOT, TOPICS_MANIFEST)} has no "topics" array`);
