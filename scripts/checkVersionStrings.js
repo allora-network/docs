@@ -296,11 +296,13 @@ function reportManifestProblems(problems) {
   );
 }
 
-// One matcher per key: matches the value with an optional leading "v", not
-// preceded or followed by a character that would make it part of a longer
+// One matcher for one version value: matches it with an optional leading "v",
+// not preceded or followed by a character that would make it part of a longer
 // version (so "1.0.6" matches in "allora_sdk 1.0.6." but not in "11.0.61" or
 // "1.0.60"). A trailing "." is only disqualifying when a digit follows it, so
-// a version at the end of a sentence still matches.
+// a version at the end of a sentence still matches. `kind` says whether the
+// value is a key's current one or one it has moved past, which is all that
+// separates the two reports at the end of a run.
 function matcherFor(key, value, kind, current) {
   const bare = bareVersion(value);
   const escaped = bare.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
