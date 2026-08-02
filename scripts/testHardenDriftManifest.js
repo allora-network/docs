@@ -12,8 +12,8 @@
 // exists because something like that was possible, or would be if a rule were
 // dropped.
 //
-// Zero dependencies, `node:assert`, no framework. Run it directly, or via
-// `yarn testharden`; CI runs it on every pull request.
+// Zero dependencies, `node:assert`, no framework. `yarn testdrift` runs this
+// and the probe-guard tests next door; CI runs both on every pull request.
 //
 //   node scripts/testHardenDriftManifest.js
 
@@ -48,10 +48,17 @@ const TRUSTED = {
 let failures = 0;
 let ran = 0;
 
+// What the script printed on the way to refusing, so a test can tell a
+// deliberate refusal from a crash. Without it, `=== null` passes just as
+// happily when the script dies of a typo.
+let lastStderr = '';
+
 // Runs the real script the way the workflow does, and returns what it wrote.
 // `null` means it refused (non-zero exit), which for a malformed proposal is
-// the correct answer.
+// the correct answer -- see assertRefused, which also checks it said why.
+
 function harden(proposed) {
+  lastStderr = '';
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'harden-test-'));
   try {
     const trustedPath = path.join(dir, 'trusted.json');
@@ -69,7 +76,8 @@ function harden(proposed) {
         `--proposed=${proposedPath}`,
         `--out=${outPath}`,
       ], { stdio: 'pipe' });
-    } catch {
+    } catch (error) {
+      lastStderr = String(error.stderr || '');
       return null;
     }
     return JSON.parse(fs.readFileSync(outPath, 'utf8'));
@@ -117,27 +125,28 @@ function urlsIn(value, found = []) {
   return found;
 }
 
-const TRUSTED_HOSTS = new Set(
-  urlsIn(TRUSTED).map(url => {
-    try {
-      return new URL(url).host;
-    } catch {
-      return url;
-    }
-  })
-);
+function canonicalUrl(value) {
+  const text = String(value).trim();
+  try {
+    return new URL(text).href;
+  } catch {
+    return text;
+  }
+}
 
-function assertNoUntrustedHost(out, note) {
+const TRUSTED_URLS = new Set(urlsIn(TRUSTED).map(canonicalUrl));
+
+// The whole URL, not just its host. A host comparison calls
+// `https://allora-rpc.testnet.allora.network/evil/` safe because the host
+// matches -- and that is a different request target, which is precisely what
+// the exact-endpoint invariant exists to pin down. Path, query, port, scheme
+// and userinfo all move where the request lands, so the only URLs allowed to
+// appear in the output are the ones the trusted manifest actually contains.
+function assertOnlyTrustedUrls(out, note) {
   for (const url of urlsIn(out)) {
-    let host;
-    try {
-      host = new URL(url).host;
-    } catch {
-      host = url;
-    }
     assert.ok(
-      TRUSTED_HOSTS.has(host),
-      `${note}: output can reach ${JSON.stringify(url)}, which the trusted manifest never names`
+      TRUSTED_URLS.has(canonicalUrl(url)),
+      `${note}: output carries ${JSON.stringify(url)}, which is not one of the trusted manifest's URLs`
     );
   }
 }
@@ -152,8 +161,10 @@ console.log('hardenDriftManifest: adversarial cases\n');
 
 for (const key of ['__proto__', 'constructor', 'prototype', 'toString']) {
   test(`a network keyed ${key} is dropped`, () => {
-    // Built through JSON so `__proto__` really is an own key, as JSON.parse
-    // makes it -- assigning it in JS would mutate the prototype instead.
+    // A COMPUTED key, which creates an own property and therefore survives
+    // JSON.stringify. Written as a bare `__proto__:` it would set the prototype
+    // and serialise to nothing, and the case would silently test an empty
+    // input -- see the field case below, which had exactly that bug.
     const raw = JSON.stringify({
       ...TRUSTED,
       networks: {
@@ -161,6 +172,7 @@ for (const key of ['__proto__', 'constructor', 'prototype', 'toString']) {
         [key]: { rpc: 'http:169.254.169.254/', abci_version: 'x' },
       },
     });
+    assert.ok(raw.includes(`"${key}"`), `the hostile input does not actually carry a ${key} key`);
     const out = harden(raw);
     assert.ok(out, 'the script should have produced an output file');
     assert.deepStrictEqual(
@@ -168,20 +180,26 @@ for (const key of ['__proto__', 'constructor', 'prototype', 'toString']) {
       ['testnet'],
       `${key} survived into the merged manifest`
     );
-    assertNoUntrustedHost(out, key);
+    assertOnlyTrustedUrls(out, key);
   });
 }
 
 test('a prototype-keyed FIELD cannot smuggle an endpoint', () => {
-  const raw = JSON.stringify({
-    ...TRUSTED,
-    networks: {
-      testnet: { ...TRUSTED.networks.testnet, __proto__: { rpc: 'http://evil.example/' } },
-    },
-  });
+  // A COMPUTED key. Written as a plain `__proto__:` in an object literal it
+  // sets the prototype instead of creating a property, JSON.stringify then
+  // emits nothing at all, and this case tests an input it does not contain --
+  // which is how it passed against the very code it was written to catch.
+  const entry = { ...TRUSTED.networks.testnet, ['__proto__']: { rpc: 'http://evil.example/' } };
+  assert.ok(
+    Object.prototype.hasOwnProperty.call(entry, '__proto__'),
+    'the hostile input does not actually carry a __proto__ own key'
+  );
+  const raw = JSON.stringify({ ...TRUSTED, networks: { testnet: entry } });
+  assert.ok(raw.includes('"__proto__"'), 'the hostile input did not survive serialisation');
+
   const out = harden(raw);
   assert.ok(out, 'the script should have produced an output file');
-  assertNoUntrustedHost(out, '__proto__ field');
+  assertOnlyTrustedUrls(out, '__proto__ field');
 });
 
 // ---------------------------------------------------------------------------
@@ -200,6 +218,14 @@ const HOSTILE_URLS = [
   'https://user:pw@allora-rpc.testnet.allora.network/',      // credentials bolted on
   'HTTP:169.254.169.254/',            // case
   '  http:169.254.169.254/  ',        // padded
+  // Same host, different target. These are the ones a host-only comparison
+  // calls safe, and every one of them moves where `new URL('abci_info', rpc)`
+  // actually lands.
+  'https://allora-rpc.testnet.allora.network/evil/',        // path
+  'https://allora-rpc.testnet.allora.network/?to=evil',     // query
+  'https://allora-rpc.testnet.allora.network:8443/',        // port
+  'http://allora-rpc.testnet.allora.network/',              // scheme downgrade
+  'https://allora-rpc.testnet.allora.network/#evil',        // fragment
 ];
 
 for (const hostile of HOSTILE_URLS) {
@@ -213,7 +239,7 @@ for (const hostile of HOSTILE_URLS) {
       TRUSTED.networks.testnet.rpc,
       'the branch chose the endpoint'
     );
-    assertNoUntrustedHost(out, hostile);
+    assertOnlyTrustedUrls(out, hostile);
   });
 }
 
@@ -222,8 +248,11 @@ test('a scheme-relative URL in a new field is dropped', () => {
     m.networks.testnet.rpc_backup = '//evil.example/abci_info';
   }));
   assert.ok(out, 'the script should have produced an output file');
-  assert.ok(!('rpc_backup' in out.networks.testnet), 'a //-relative destination survived');
-  assertNoUntrustedHost(out, 'scheme-relative');
+  assert.ok(
+    !Object.prototype.hasOwnProperty.call(out.networks.testnet, 'rpc_backup'),
+    'a //-relative destination survived'
+  );
+  assertOnlyTrustedUrls(out, 'scheme-relative');
 });
 
 test('an endpoint the trusted manifest does not have at all is dropped', () => {
@@ -231,7 +260,11 @@ test('an endpoint the trusted manifest does not have at all is dropped', () => {
     m.networks.testnet.metrics = 'https://evil.example/metrics';
   }));
   assert.ok(out, 'the script should have produced an output file');
-  assert.ok(!('metrics' in out.networks.testnet), 'an invented endpoint survived');
+  assert.ok(
+    !Object.prototype.hasOwnProperty.call(out.networks.testnet, 'metrics'),
+    'an invented endpoint survived'
+  );
+  assertOnlyTrustedUrls(out, 'invented endpoint');
 });
 
 test('URLs hidden in an array are dropped', () => {
@@ -239,7 +272,7 @@ test('URLs hidden in an array are dropped', () => {
     m.networks.testnet.rpc_fallbacks = ['http://evil.example/a', 'http:169.254.169.254/'];
   }));
   assert.ok(out, 'the script should have produced an output file');
-  assertNoUntrustedHost(out, 'array');
+  assertOnlyTrustedUrls(out, 'array');
 });
 
 // ---------------------------------------------------------------------------
@@ -254,6 +287,7 @@ for (const field of ['rpc', 'grpc', 'lcd', 'explorer', 'faucet']) {
     }));
     assert.ok(out, 'the script should have produced an output file');
     assert.strictEqual(out.networks.testnet[field], TRUSTED.networks.testnet[field]);
+    assertOnlyTrustedUrls(out, `host swap on ${field}`);
   });
 }
 
@@ -263,6 +297,7 @@ test('the top-level docs URL is reverted', () => {
   }));
   assert.ok(out, 'the script should have produced an output file');
   assert.strictEqual(out.docs, TRUSTED.docs);
+  assertOnlyTrustedUrls(out, 'docs');
 });
 
 // ---------------------------------------------------------------------------
@@ -277,7 +312,7 @@ test('a non-string rpc is replaced by the trusted endpoint', () => {
     }));
     assert.ok(out, `the script refused ${JSON.stringify(value)} instead of replacing it`);
     assert.strictEqual(out.networks.testnet.rpc, TRUSTED.networks.testnet.rpc);
-    assertNoUntrustedHost(out, JSON.stringify(value));
+    assertOnlyTrustedUrls(out, JSON.stringify(value));
   }
 });
 
@@ -287,19 +322,34 @@ test('an array where a network entry belongs falls back to the trusted entry', (
   }));
   assert.ok(out, 'the script should have produced an output file');
   assert.strictEqual(out.networks.testnet.rpc, TRUSTED.networks.testnet.rpc);
-  assertNoUntrustedHost(out, 'array network entry');
+  assertOnlyTrustedUrls(out, 'array network entry');
 });
 
+// `=== null` only says the script exited non-zero, which a crash also does.
+// Each of these also checks it refused on purpose, with a workflow-visible
+// annotation naming the reason.
+function assertRefused(proposed, because) {
+  assert.strictEqual(harden(proposed), null, 'the script produced an output file instead of refusing');
+  assert.ok(
+    lastStderr.includes('::error::'),
+    `expected a deliberate ::error:: refusal, got: ${lastStderr.trim() || '(nothing)'}`
+  );
+  assert.ok(
+    lastStderr.includes(because),
+    `expected the refusal to mention ${JSON.stringify(because)}, got: ${lastStderr.trim()}`
+  );
+}
+
 test('an array where the networks map belongs is refused outright', () => {
-  assert.strictEqual(harden({ ...TRUSTED, networks: [] }), null);
+  assertRefused({ ...TRUSTED, networks: [] }, 'no "networks" object');
 });
 
 test('a proposal with no networks map is refused outright', () => {
-  assert.strictEqual(harden({ nope: true }), null);
+  assertRefused({ nope: true }, 'no "networks" object');
 });
 
 test('invalid JSON is refused outright', () => {
-  assert.strictEqual(harden('{not json'), null);
+  assertRefused('{not json', 'not valid JSON');
 });
 
 // ---------------------------------------------------------------------------
