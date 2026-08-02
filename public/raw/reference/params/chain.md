@@ -2,7 +2,7 @@
 title: Chain Parameters
 description: A glossary and description of chain-level parameters.
 persona: Builder or operator
-verified_against: live testnet LCD /emissions/v10/params for the parameters the chain still exposes; historical defaults and the legacy inference-request parameters checked against allora-chain v0.0.10 (x/emissions/params.go, x/emissions/proto/emissions/state/v1/types.proto), and their absence confirmed across emissions v2-v9 params.proto, 2026-08-02
+verified_against: every entry compared against the live testnet LCD /emissions/v10/params and /mint/v5/params; historical defaults checked against allora-chain v0.0.10 (x/emissions/params.go, x/mint/types/params.go, emissions/state/v1/types.proto) and their absence confirmed across emissions v2-v9 and mint v1beta1/v5 params, 2026-08-02
 last_reviewed: 2026-08-02
 ---
 
@@ -12,9 +12,16 @@ last_reviewed: 2026-08-02
 
 ## Mint Module and Token Inflation Parameters
 
+With the exception of `max_supply`, the parameters in this section are **historical**. They are the
+Cosmos-style inflation parameters of the early mint module, declared in allora-chain through the
+v0.0.x line; no release since defines them. The current mint module takes a different parameter set
+entirely — `mint_denom`, `max_supply`, `f_emission`, `one_month_smoothing_degree`, the
+treasury/participant/investor/team percentages and `maximum_monthly_percentage_yield`. See
+[Mint Parameters](https://docs.allora.network/reference/params/mint) for the values the chain serves today.
+
 #### inflation_rate_change
 
-The maximum permitted annual change in inflation rate. The mint module will throw an error if the inflation rate exceeds this value.
+The maximum permitted annual change in the inflation rate. The mint module will throw an error if the inflation rate moves by more than this value in a year.
 
 Default Value: 357.3582624
 
@@ -26,7 +33,7 @@ Default Value: 357.3582624
 
 #### inflation_min
 
-The minimum permitted inflation rate. The mint module will throw an error if the inflation rate goes below this value
+The minimum permitted inflation rate. The mint module will throw an error if the inflation rate goes below this value.
 
 Default Value: 0
 
@@ -46,21 +53,31 @@ Default Value: 6311520
 
 The capped amount of tokens that will ever be allowed to exist.
 
-Default Value: 1 Billion Allo \* 1e18 (for base unit uAllo): 1e28 uAllo
+Default Value: 1 billion ALLO \* 1e18 (for base unit uallo) = 1e27 uallo, written out as `1000000000000000000000000000`
+
+Unlike the rest of this section, `max_supply` is a current parameter: the live mint module served
+this same value on both testnet and mainnet when this page was last probed, on 2026-08-02.
 
 #### halving_interval
 
-The number of blocks at which to halve the inflation rate of newly minted tokens, like Bitcoin's emissions schedule:
+The number of blocks at which to halve the inflation rate of newly minted tokens, like Bitcoin's emissions schedule.
 
 Default Value: 25246080
 
 #### current_block_provision
 
-Number of tokens that will be minted every block during a halving interval. This chain parameter controls the first value set for the first block. Afterwards, each halvening this value will be divided by two.
+Number of tokens that will be minted every block during a halving interval. This chain parameter controls the first value set for the first block. Afterwards, at each halving, this value is divided by two.
 
-Default Value: 2831000000000000000000
+Default Value: 2831000000000000000 uallo per block (2.831 ALLO)
 
 ## Allora Specific Parameters
+
+Most of this section is **historical**. Of the parameters below, the live emissions module still
+serves only `required_minimum_stake`, `remove_stake_delay_window`, `epsilon_safe_div` and
+`max_string_length` (plus the multi-label parameters in the next section); the rest date from the
+v0.0.x line, when the network ran on repeating inference requests, and appear in no emissions
+parameter set from v2 onwards. Entries that the chain still defines carry a note giving the live
+value. Probed against the testnet LCD on 2026-08-02.
 
 #### reward_cadence
 
@@ -68,7 +85,7 @@ The duration of a reward epoch in blocks. Every `reward_cadence` blocks, rewards
 
 Default Value: 600 blocks
 
-Shorter epochs can lead to more frequent reward updates and responsiveness. This is advantageous for rapidly reacting to changes in the network (eg new topics, models, incentives, etc) and make the rewards available earlier. However small values they also have an impact on network efficiency.
+Shorter epochs can lead to more frequent reward updates and responsiveness. This is advantageous for rapidly reacting to changes in the network (eg new topics, models, incentives, etc) and make the rewards available earlier. However, small values also have an impact on network efficiency.
 
 #### min_topic_unmet_demand
 
@@ -96,9 +113,9 @@ The purpose is to allow to prevent unnecessary processing of requests with minim
 
 #### max_missing_inference_percent
 
-The percentage of inferences rounds missed by a worker, over which the worker gets penalized.
+The percentage of inference rounds missed by a worker, over which the worker gets penalized.
 
-Default Value: 20 %
+Default Value: 20%
 
 Penalizing workers for missing inferences encourages reliability and accountability in the AI inference process. However, setting this value too low may lead to frequent penalties, potentially discouraging worker participation. A value that strikes a balance between both has been set.
 
@@ -106,21 +123,25 @@ Penalizing workers for missing inferences encourages reliability and accountabil
 
 Sets the minimum stake to be considered as a reputer in good standing. If a reputer has less than this stake, than their contribution to reputation scoring will be ignored, and they will not receive any rewards from the system.
 
-Default Value: 100 allo
+Historical default: 100 allo.
+
+**Current chain:** the testnet emissions module served `required_minimum_stake` = `100000` when
+this page was last probed, on 2026-08-02.
 
 Setting a minimum stake helps ensure that participants have a vested interest in the network's success and are not simply sybils, enhancing security and commitment, while at the same time not being too high so that it may limit the accessibility of the network and discourage potential legitimate participants.
 
 #### remove_stake_delay_window
 
-Sets the duration, in seconds, during which a staker's tokens remain staked after initiating the unstaking process. This protects against flash-type attacks.
+The delay between a staker initiating the unstaking process and their tokens actually being released. This protects against flash-type attacks.
 
-Default Value: 86400 seconds (1 day)
+**Current chain:** the parameter is defined in **blocks**. On testnet (v0.17.0)
+the live value was `302400` when this page was last probed, on 2026-08-02. This is the value that
+governs unstaking today.
+
+**Historical default:** 86400 seconds (1 day), from the v0.0.x line, when the parameter was
+expressed in seconds rather than blocks.
 
 A fair delay in unstaking, which can ensure stability in the network by preventing sudden fluctuations in staked tokens and discourage malicious actors, while keeping it low enough so it is not very inconvenient to users who want to unstake their tokens promptly.
-
-Current versions still define this parameter, but in **blocks** rather than seconds. On testnet (v0.17.0) the live value was `302400` when this page was last probed, on 2026-08-02.
-
-The four parameters below configured the repeating inference requests of the early network. They are declared in allora-chain through the v0.0.x line and are absent from every later emissions parameter set, including the live one, so they are recorded here for historical reference only.
 
 #### min_request_cadence
 
@@ -158,7 +179,11 @@ Capping the cadence stops a request from spacing its inferences so far apart tha
 
 Cosmos validators, Allora Reputers, and Allora Workers all deserve to be paid out rewards from token inflation as well as collected transaction fees for using the Allora network. In Allora, we have two [payment flows](https://docs.allora.network/reference/module-accounts) for paying out rewards. Cosmos validators use the standard cosmos-sdk staking flows to get their rewards, and reputers and workers separately get their rewards from the Allora specific algorithm and code. This parameter controls the ratio of rewards between cosmos validators on one side, and reputers and workers on the other.
 
-Default Value: 50%
+Historical default: 50%.
+
+**Current chain:** the live emissions module does not define `percent_rewards_reputers_workers`. It
+defines `validators_vs_allora_percent_reward`, which was `0.25` on testnet when this page was last
+probed, on 2026-08-02.
 
 A higher percentage would pay more transaction fees to reputers and workers, at the expense of giving less rewards to cosmos validators. A lower percentage value would give more rewards to cosmos validators, but pay out less rewards to reputers and workers for their services to the network.
 

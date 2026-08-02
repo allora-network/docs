@@ -2,13 +2,13 @@
 title: Allora Module Accounts
 description: The Allora Chain uses Cosmos SDK module accounts to hold tokens belonging to various different actors on the network.
 persona: Builder or operator
-verified_against: docs content as of 2026-07-30; parameter names cross-checked against pages/reference/params/chain.mdx on 2026-08-02
+verified_against: docs content as of 2026-07-30; parameter names cross-checked against pages/reference/params/chain.mdx, and module account names against allora-chain v0.17.0 x/emissions/types/keys.go, on 2026-08-02
 last_reviewed: 2026-08-02
 ---
 
 # Allora Module Accounts
 
-The Allora Chain uses [Cosmos SDK module accounts](https://docs.cosmos.network/sdk/v0.50/build/modules/bank#module-accounts) to hold tokens belonging to various different actors on the network. This page describes the various places that module accounts hold funds are held, and the flow of money through the network.
+The Allora Chain uses [Cosmos SDK module accounts](https://docs.cosmos.network/sdk/v0.50/build/modules/bank#module-accounts) to hold tokens belonging to various different actors on the network. This page describes the various places where module accounts hold funds, and the flow of money through the network.
 
 ### Actors that Earn Token Rewards
 
@@ -20,22 +20,22 @@ There are three actors in the Allora network that earn token rewards:
 
 ### Sources of Token Rewards
 
-There are also three sources of tokens rewards, that pay the three actors who earn them:
+There are also three sources of token rewards, that pay the three actors who earn them:
 
-- **Cosmos network transaction fees**: Transaction fees on Allora are optional, at least at the time of this writing. However Cosmos SDK does support an optional transaction fee to be paid by the creator of a transaction, paid in units of computational steps taken (like gas for those familiar with the EVM). If the creator of a transaction chooses to add a fee (say, for get a higher priority of being added to a block), that fee will be paid out as token rewards.
-- **Inference request fees**: When making an inference request, the requestor (inference data consumer) will bid a price they are willing to pay for that request. In that bid, they must send that amount of tokens to the network. If and when an inference is fulfilled, the upshot network will pay out the fee collected for that request as rewards.
+- **Cosmos network transaction fees**: Transaction fees on Allora are optional, at least at the time of this writing. However Cosmos SDK does support an optional transaction fee to be paid by the creator of a transaction, paid in units of computational steps taken (like gas for those familiar with the EVM). If the creator of a transaction chooses to add a fee (say, to get a higher priority for being added to a block), that fee will be paid out as token rewards.
+- **Inference request fees**: When making an inference request, the requestor (inference data consumer) will bid a price they are willing to pay for that request. In that bid, they must send that amount of tokens to the network. If and when an inference is fulfilled, the Allora network will pay out the fee collected for that request as rewards.
 - **Token inflationary rewards**: Allora has an inflationary token emissions schedule that halves on regular intervals, similar to Bitcoin. Newly minted tokens are paid out each block as rewards.
 
 ### Module Accounts Used by Allora
 
-The following represents the list of module accounts that are changed or important in the flow of funds across the Allora Appchain. We do not discuss the standard module accounts used in cosmos-sdk validator staking, as they are unmodified from the Cosmos SDK. Note that the actual string used for the module name is the name in (`monospace`) below:
+The following represents the list of module accounts that are changed or important in the flow of funds across the Allora Appchain. We do not discuss the standard module accounts used in cosmos-sdk validator staking, as they are unmodified from the Cosmos SDK. Note that the actual string used for the module name is the name shown in `monospace` below:
 
-- **Mint** (`mint`): The Allora mint module account is the only account allowed to create new tokens. It creates new tokens during its `BeginBlock` according to the [Allora inflation schedule](./params/chain#halving_interval) and then immediately sends those token to the Fee Collector account.
+- **Mint** (`mint`): The Allora mint module account is the only account allowed to create new tokens. It creates new tokens during its `BeginBlock` according to the [Allora emission schedule](./params/mint) and then immediately sends those tokens to the Fee Collector account.
 - **Fee Collector** (`fee_collector`): This module account collects all transaction fees on the network (this happens in the `auth` module during transaction execution).
 - **Distribution** (`distribution`): The distribution module holds the tokens and does the balance accounting for cosmos validator staking. It takes funds from the fee collector account. Cosmos validators can withdraw their staked tokens and receive validator rewards from this module's RPC functions. The Allora codebase does not change this standard cosmos module, but we do frontrun it (described below).
-- **Allora Rewards**(`allorarewards`): The Allora Rewards module account holds the tokens earned by reputers and workers for their services to the network. Reputers and workers share the collected transaction fees and inflationary rewards on the network with cosmos validators at a [percentage rate](./params/chain#percent_rewards_reputers_workers) set in the chain parameters. When rewards are paid out each block, the Allora Rewards module account pays the Allora Staking module, which then also increments the reputer or worker's stake appropriately. 
-- **Allora Staking** (`allorastaking`): Separate from the standard cosmos validator staking modules and workflow, Allora supports staking for our Reputer and Workers actor roles. The Allora Staking module account is our analog to the distribution module. It holds the tokens that stakers send to network when they deposit stake, and it also holds the rewards that stakers receive from transaction fees, newly minted token inflation, and inference request fees. When reputers or workers go to withdraw their stake, the rewards are automatically combined with their stake and automatically claimed.
-- **Allora Requests** (`allorarequests`):  The Allora Requests module account holds the tokens that are paid by Inference Consumers when they make an inference request. This module holds escrowed funds for subscriptions and only pays out when actual inferences are made upon that subscription. That means this module can hold funds for long periods of time before the transaction fees for a given subscription are actually paid out. It pays the Fee Collector account.
+- **Allora Rewards** (`allorarewards`): The Allora Rewards module account holds the tokens earned by reputers and workers for their services to the network. Reputers and workers share the collected transaction fees and inflationary rewards on the network with cosmos validators at a [percentage rate](./params/chain#percent_rewards_reputers_workers) set in the chain parameters. When rewards are paid out each block, the Allora Rewards module account pays the Allora Staking module, which then also increments the reputer or worker's stake appropriately. 
+- **Allora Staking** (`allorastaking`): Separate from the standard cosmos validator staking modules and workflow, Allora supports staking for our Reputer and Workers actor roles. The Allora Staking module account is our analog to the distribution module. It holds the tokens that stakers send to the network when they deposit stake, and it also holds the rewards that stakers receive from transaction fees, newly minted token inflation, and inference request fees. When reputers or workers go to withdraw their stake, the rewards are automatically combined with their stake and automatically claimed.
+- **Allora Requests** (`allorarequests`) — *historical*: this account held the tokens paid by Inference Consumers when they made an inference request, escrowing funds for a subscription and paying out to the Fee Collector only as inferences were made against it. It belongs to the early inference-request model; current releases do not define it, declaring `allorastaking`, `allorarewards` and `allorapendingrewards` instead.
 
 ### Module Execution Order in a Block and the Impact on Payment Flows
 
@@ -67,6 +67,6 @@ Block about to end. Call EndBlock:
 
 Cosmos Validators can use the distribution module and staking module standard cosmos functions to manipulate their validator stake and claim their validator rewards.
 
-For Reputer and Worker rewards, the `reward_cadence` [chain parameter](./params/chain#reward_cadence) controls how often the reputer and staker rewards are paid out. Every `reward_cadence` blocks, the rewards calculation will run in the emissions `EndBlock`, which will cause the Allora Rewards module account to pay the Allora Staking module account directly. The Allora Staking module will then increase the staking balances of all actors who are paid rewards as part of this procedure. In this way Allora is able to autocompound stake positions.
+For Reputer and Worker rewards, the `reward_cadence` [chain parameter](./params/chain#reward_cadence) controls how often the reputer and worker rewards are paid out. Every `reward_cadence` blocks, the rewards calculation will run in the emissions `EndBlock`, which will cause the Allora Rewards module account to pay the Allora Staking module account directly. The Allora Staking module will then increase the staking balances of all actors who are paid rewards as part of this procedure. In this way Allora is able to autocompound stake positions.
 
 Finally when a Reputer or Worker wishes to withdraw their stake, they do so, and the rewards are returned together with the original balance staked by the reputer or worker in one lump sum.
