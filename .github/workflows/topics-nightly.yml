@@ -11,6 +11,10 @@ name: Refresh Topics Data
 #                          at is worse than no PR at all. The job fails loudly
 #                          when the secret is missing rather than quietly
 #                          producing an unchecked one.
+#
+# The whole job runs on the default branch only — see the `guard` job. A
+# dispatch from any other ref does nothing at all, rather than running that
+# ref's scripts with a write-capable PAT in scope.
 
 on:
   schedule:
@@ -27,8 +31,51 @@ concurrency:
   group: refresh-topics-data
   cancel-in-progress: false
 
+env:
+  BRANCH: chore/refresh-topics-data
+  # The one file this workflow is allowed to change.
+  MANIFEST: public/api/topics.json
+  BASE: main
+
 jobs:
+  # Everything past this gate checks the repository out and runs scripts from
+  # that tree while a write-capable token is available to the job. Only the
+  # default branch's tree is trusted with that combination -- it is the one that
+  # cannot change without review -- so the decision is made here, in a job with
+  # no credentials, no checkout and nothing to exfiltrate. GitHub only schedules
+  # workflows from the default branch, so this never blocks a nightly run; a
+  # dispatch from any other ref logs one line and stops.
+  guard:
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      trusted: ${{ steps.check.outputs.trusted }}
+    steps:
+      - name: Decide whether this ref may run the job
+        id: check
+        env:
+          # Hardcoded like the pull request base, so the gate never depends on a
+          # webhook payload field being present -- but cross-checked against the
+          # payload when it carries one, so renaming the default branch fails
+          # loudly here instead of silently disabling the automation.
+          TRUSTED_BRANCH: main
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          if [ -n "$DEFAULT_BRANCH" ] && [ "$DEFAULT_BRANCH" != "$TRUSTED_BRANCH" ]; then
+            echo "::error::This workflow trusts '$TRUSTED_BRANCH', but the repository's default branch is '$DEFAULT_BRANCH'. Update TRUSTED_BRANCH and the pull request base in the automation workflows."
+            exit 1
+          fi
+          if [ "$GITHUB_REF_NAME" != "$TRUSTED_BRANCH" ]; then
+            echo "trusted=false" >> "$GITHUB_OUTPUT"
+            echo "Dispatched from '$GITHUB_REF_NAME', not the trusted branch ('$TRUSTED_BRANCH'): doing nothing. This workflow runs repository scripts with write-capable credentials in scope, which is only safe from a ref that cannot change without review."
+            exit 0
+          fi
+          echo "trusted=true" >> "$GITHUB_OUTPUT"
+
   refresh-topics-data:
+    needs: guard
+    if: needs.guard.outputs.trusted == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -48,15 +95,16 @@ jobs:
 
       # Third-party actions are pinned to full commit SHAs: this job can write
       # to the repository, and a tag is a mutable pointer.
-      #
-      # Checking out with the PAT is what makes the push below come from the
-      # PAT too (persist-credentials writes it into the remote's auth header),
-      # which is what makes GitHub emit the `synchronize` event that re-runs the
-      # pull request's checks.
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          token: ${{ secrets.DOCS_AUTOMATION_TOKEN }}
+          # No credentials left behind in .git/config. The generator runs
+          # between here and the push and has no business being able to write to
+          # the repository; the push step supplies the PAT itself, so the token
+          # exists in exactly one step's environment rather than for the whole
+          # job. The push still comes from the PAT, which is what makes GitHub
+          # emit the `synchronize` event that runs the PR's checks.
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -71,40 +119,38 @@ jobs:
       - name: Detect changes
         id: diff
         run: |
-          if git diff --quiet -- public/api/topics.json; then
+          if git diff --quiet -- "$MANIFEST"; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "Topic data is unchanged; nothing to open a PR for."
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            git --no-pager diff --stat -- public/api/topics.json
+            git --no-pager diff --stat -- "$MANIFEST"
           fi
 
+      # The ref is already settled by the `guard` job: this step only runs on
+      # the trusted default branch, so the base below is simply that branch.
+      #
+      # This is also the only step that sees the PAT, and it reaches git through
+      # a credential helper that reads it from the environment -- never written
+      # into .git/config (persist-credentials: false above) and never passed on
+      # a command line where a process listing could catch it.
       - name: Open pull request
         if: steps.diff.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ secrets.DOCS_AUTOMATION_TOKEN }}
-          BRANCH: chore/refresh-topics-data
-          BASE: main
         run: |
           set -euo pipefail
-          # Automation pull requests are opened from the default branch and
-          # against it, never from whatever ref a manual dispatch happened to
-          # use. A dispatch from a release or feature branch is a legitimate way
-          # to test this job, and it must not push a machine branch built on
-          # that ref or open a pull request targeting it.
-          if [ "$GITHUB_REF_NAME" != "$BASE" ]; then
-            echo "Running from '$GITHUB_REF_NAME', not the default branch ('$BASE'): regenerated the data, skipping the push and the pull request."
-            exit 0
-          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -B "$BRANCH"
-          git add public/api/topics.json
+          git add "$MANIFEST"
           git commit -m "chore: refresh topics data from chain state"
           # The branch is machine-owned and fully regenerated each run, so a
           # plain force-push is correct (and --force-with-lease cannot be used:
           # the shallow checkout has no remote-tracking ref for it).
-          git push --force origin "$BRANCH"
+          git -c credential.helper= \
+              -c credential.helper='!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f' \
+              push --force origin "$BRANCH"
           if [ -z "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
             gh pr create \
               --base "$BASE" \
