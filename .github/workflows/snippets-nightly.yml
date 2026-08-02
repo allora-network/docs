@@ -57,6 +57,11 @@ jobs:
       # mutable pointer, and this job holds a funded wallet's mnemonic.
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          # This job pushes nothing, and it runs third-party snippet code and
+          # third-party package installs. Leaving a repository credential in
+          # .git/config for all of that to find would be a gift.
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -182,6 +187,42 @@ jobs:
             # failure the label exists to prevent.
             gh issue create --title "$TITLE" --body-file issue-body.md --label "$LABEL"
           fi
+
+      # The mirror image of the step above, and what makes "one issue per
+      # outage" true rather than aspirational. Without it the first outage's
+      # issue stays open forever, so every later and entirely unrelated outage
+      # is appended to it as a comment: one issue for all time, with a title
+      # describing a failure that was fixed months ago.
+      #
+      # Needs no redaction gate: the comment is a fixed sentence plus a commit
+      # SHA and a run URL, with no snippet output in it.
+      - name: Close the failure issue when the run recovered
+        if: ${{ !cancelled() && steps.snippets.outcome == 'success' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: 'Nightly snippet run failed'
+          LABEL: 'snippets-nightly'
+        run: |
+          set -euo pipefail
+          # The same paginated, label-filtered lookup the failure path uses, so
+          # the two always agree on which issue is the open one. No label is
+          # created here: if the label does not exist yet, then neither does an
+          # issue to close.
+          MATCHES=$(gh api --paginate -X GET "repos/${{ github.repository }}/issues" \
+            -f state=open -f labels="$LABEL" -f per_page=100 \
+            --jq ".[] | select(.pull_request == null) | select(.title == \"$TITLE\") | .number")
+          EXISTING=$(printf '%s\n' "$MATCHES" | head -n 1)
+
+          if [ -z "$EXISTING" ]; then
+            echo 'No open nightly-snippet issue; nothing to close.'
+            exit 0
+          fi
+
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          gh issue close "$EXISTING" --comment \
+            "Every snippet passed again on \`${{ github.sha }}\`, so this outage is over and the issue closes itself. Run log: $RUN_URL"
+          echo "Closed issue #$EXISTING."
 
       # Also `!cancelled()`: the job must go red on a snippet failure even if a
       # step between here and the run had a bad night.
