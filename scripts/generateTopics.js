@@ -245,10 +245,10 @@ const NOTEWORTHY_TEXT = /[\p{Cc}\p{Cf}]/u;
 const LONG_TEXT = 200;
 
 function noteUntrustedText(net, topics) {
+  const odd = value => typeof value === 'string' && (NOTEWORTHY_TEXT.test(value) || value.length > LONG_TEXT);
   topics
-    .filter(
-      topic => NOTEWORTHY_TEXT.test(topic.metadata) || topic.metadata.length > LONG_TEXT
-    )
+    // `loss_method` is chain-supplied free text too, and was not being looked at.
+    .filter(topic => odd(topic.metadata) || odd(topic.loss_method))
     .forEach(topic => {
       process.stdout.write(
         `${net.network}: topic ${topic.id} has metadata carrying control characters or ` +
