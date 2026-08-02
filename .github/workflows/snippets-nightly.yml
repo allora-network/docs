@@ -33,26 +33,43 @@ concurrency:
 jobs:
   run-snippets:
     runs-on: ubuntu-latest
-    # Worst case is every worker snippet burning its full window without ever
-    # printing a submission; the happy path stops as soon as each one submits.
-    timeout-minutes: 90
+    # A cancelled job writes no report and opens no issue, so this cap has to
+    # sit above the worst case the runner can legitimately spend -- not above
+    # the happy path, which is minutes (every window ends the moment its
+    # snippet prints what it is expected to print). Worst case, from
+    # scripts/snippets.config.json and the runner's own budgets:
+    #
+    #   shared toolchain setup   4 steps x 600s (venv, pip upgrade,
+    #                            pip install, npm install)          =  40 min
+    #   Go warm-up               2 Go snippets x 4 steps x 900s
+    #                            (mod init, get, tidy, build)       = 120 min
+    #   snippet windows          sum of timeoutSeconds over the 11
+    #                            runnable snippets (3360s)          =  56 min
+    #                                                       total   = 216 min
+    #
+    # 240 leaves ~24 minutes for checkout, the language setup actions, the
+    # upload and the issue. Re-do this arithmetic when a snippet's
+    # timeoutSeconds, a warm-up budget, or the number of Go snippets changes.
+    timeout-minutes: 240
 
     steps:
+      # Every third-party action is pinned to a full commit SHA: a tag is a
+      # mutable pointer, and this job holds a funded wallet's mnemonic.
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.11'
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: '1.24'
 
@@ -74,7 +91,13 @@ jobs:
       # and NOT in issue bodies -- both of which come out of this job. The runner
       # already redacts at the source; this is the belt-and-braces pass over
       # anything on its way out, and it runs before the upload and the issue.
+      #
+      # Both of those steps are gated on this one having SUCCEEDED. If redaction
+      # fails, nothing leaves the job and the run is red on this step alone --
+      # publishing a possibly-unredacted log to work around a broken redactor
+      # would defeat the point of having one.
       - name: Redact credentials from anything leaving the job
+        id: redact
         if: always()
         shell: bash
         env:
@@ -83,8 +106,8 @@ jobs:
         run: node scripts/redactSecrets.js snippet-run.log snippet-failures.md
 
       - name: Upload run log
-        if: always()
-        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() && steps.redact.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: snippet-run-log
           path: |
@@ -92,8 +115,13 @@ jobs:
             snippet-failures.md
           if-no-files-found: warn
 
+      # `!cancelled()` rather than the default implicit `success()`: with the
+      # implicit guard, a transient failure of the upload step above would
+      # silently suppress the failure report, and a broken snippet would go
+      # unnoticed until someone read the run log. Redaction is still required
+      # (see above) -- an issue body is public.
       - name: Report the failure as an issue
-        if: steps.snippets.outcome == 'failure'
+        if: ${{ !cancelled() && steps.snippets.outcome == 'failure' && steps.redact.outcome == 'success' }}
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -125,9 +153,16 @@ jobs:
           # carries a marker label, so the lookup is over a handful of issues and
           # is fully paginated -- scanning the N newest open issues would silently
           # start opening a new issue every night once the repo has more than N.
-          gh label create "$LABEL" \
+          #
+          # That makes the label load-bearing: an issue opened without it is
+          # invisible to the lookup below, so the next night finds nothing and
+          # opens another one, and so on for the length of the outage. Create it
+          # up front (--force is a no-op update when it already exists) and let a
+          # failure here fail the step. A red run is a fixable signal; a drift of
+          # untracked duplicate issues is not.
+          gh label create "$LABEL" --force \
             --color 'BFD4F2' \
-            --description 'Opened by the nightly snippet run' >/dev/null 2>&1 || true
+            --description 'Opened by the nightly snippet run' >/dev/null
 
           # Buffer the full paginated result before taking the first match --
           # piping gh straight into `head` would SIGPIPE it, and `pipefail`
@@ -142,10 +177,14 @@ jobs:
             gh issue comment "$EXISTING" --body-file issue-body.md
           else
             echo 'Opening a new issue'
-            gh issue create --title "$TITLE" --body-file issue-body.md --label "$LABEL" \
-              || gh issue create --title "$TITLE" --body-file issue-body.md
+            # No unlabeled fallback: an issue this job cannot label is an issue
+            # it cannot find again, which is exactly the duplicate-per-night
+            # failure the label exists to prevent.
+            gh issue create --title "$TITLE" --body-file issue-body.md --label "$LABEL"
           fi
 
+      # Also `!cancelled()`: the job must go red on a snippet failure even if a
+      # step between here and the run had a bad night.
       - name: Fail the job when a snippet failed
-        if: steps.snippets.outcome == 'failure'
+        if: ${{ !cancelled() && steps.snippets.outcome == 'failure' }}
         run: exit 1
