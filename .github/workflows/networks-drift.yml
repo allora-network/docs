@@ -1,5 +1,16 @@
 name: Check Network Version Drift
 
+# Opens (or updates) one long-lived pull request when a network's deployed
+# version has moved ahead of public/api/networks.json.
+#
+# Required repository secret:
+#   DOCS_AUTOMATION_TOKEN  a fine-grained PAT scoped to this repository. It is
+#                          mandatory: a branch pushed with the default
+#                          GITHUB_TOKEN emits no `synchronize` event, so the
+#                          drift PR's checks never re-run when the nightly job
+#                          refreshes it. The job fails loudly when the secret is
+#                          missing rather than quietly producing an unchecked PR.
+
 on:
   schedule:
     # Daily at 06:00 UTC, so a chain upgrade is picked up without waiting for a PR.
@@ -10,23 +21,57 @@ permissions:
   contents: write
   pull-requests: write
 
+# One run at a time. A manual dispatch racing the scheduled one would have both
+# writing the same drift branch and both calling `gh pr create`: one run's
+# manifest update overwrites the other's, or the second PR creation fails.
+# cancel-in-progress is false because a half-finished run leaves the branch in
+# an arbitrary state -- the queued run is the one that should wait.
+concurrency:
+  group: networks-drift
+  cancel-in-progress: false
+
 env:
   BRANCH: networks-version-drift
+  # Automation pull requests target the default branch and are only opened from
+  # it. Hardcoded rather than read from github.ref_name, so a dispatch from a
+  # release branch can exercise the drift check without ever proposing a merge
+  # into that branch.
+  BASE: main
 
 jobs:
   networks-drift:
     runs-on: ubuntu-latest
 
     steps:
+    # Checked first: failing here names the missing secret, instead of letting
+    # it surface as an opaque checkout or push failure later. An expired PAT is
+    # then a red run rather than an unchecked pull request.
+    - name: Require the automation token
+      env:
+        DOCS_AUTOMATION_TOKEN: ${{ secrets.DOCS_AUTOMATION_TOKEN }}
+      run: |
+        if [ -z "$DOCS_AUTOMATION_TOKEN" ]; then
+          echo "::error::The DOCS_AUTOMATION_TOKEN secret is not set. This workflow pushes a branch and opens a pull request, and a push made with the default GITHUB_TOKEN does not trigger the pull request's checks. Add the secret (a fine-grained PAT scoped to this repository) or disable this workflow."
+          exit 1
+        fi
+
+    # Third-party actions are pinned to full commit SHAs: this job can write to
+    # the repository, and a tag is a mutable pointer.
+    #
+    # Checking out with the PAT is what makes the pushes below come from the PAT
+    # too (persist-credentials writes it into the remote's auth header), which
+    # is what makes GitHub emit the `synchronize` event that re-runs the drift
+    # pull request's checks after each refresh.
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       with:
+        token: ${{ secrets.DOCS_AUTOMATION_TOKEN }}
         # Full history so the drift branch can be checked out and pushed to
         # without a shallow-clone dance.
         fetch-depth: 0
 
     - name: Set up Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
       with:
         node-version: '20'
 
@@ -72,11 +117,18 @@ jobs:
     - name: Commit the manifest and open or update the pull request
       if: steps.drift.outputs.drift == 'true'
       env:
-        GH_TOKEN: ${{ secrets.DOCS_AUTOMATION_TOKEN || secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ secrets.DOCS_AUTOMATION_TOKEN }}
         EXISTING: ${{ steps.base.outputs.existing }}
         TITLE: 'Network version drift: update public/api/networks.json'
       run: |
         set -euo pipefail
+        # Only the default branch proposes changes. A dispatch from a release or
+        # feature branch is a legitimate way to exercise the drift check, and it
+        # must not push the machine branch or open a pull request off that ref.
+        if [ "$GITHUB_REF_NAME" != "$BASE" ]; then
+          echo "Running from '$GITHUB_REF_NAME', not the default branch ('$BASE'): drift was detected and reported in the step log, skipping the commit, the push and the pull request."
+          exit 0
+        fi
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git add public/api/networks.json
@@ -89,7 +141,7 @@ jobs:
           # No open PR, so any branch of this name is abandoned and safe to reset.
           git checkout -B "$BRANCH"
           git push --force origin "$BRANCH"
-          gh pr create --base main --head "$BRANCH" \
+          gh pr create --base "$BASE" --head "$BRANCH" \
             --title "$TITLE" --body-file "${RUNNER_TEMP}/networks-drift-body.md"
         fi
 
