@@ -1,5 +1,17 @@
 name: Refresh Topics Data
 
+# Opens a pull request with regenerated topic data.
+#
+# Required repository secret:
+#   DOCS_AUTOMATION_TOKEN  a fine-grained PAT scoped to this repository. It is
+#                          mandatory, not a nicety: a branch pushed with the
+#                          default GITHUB_TOKEN emits no `synchronize` event, so
+#                          the pull request's own checks never run (or never
+#                          re-run), and an automation PR nobody's CI has looked
+#                          at is worse than no PR at all. The job fails loudly
+#                          when the secret is missing rather than quietly
+#                          producing an unchecked one.
+
 on:
   schedule:
     # Nightly at 04:00 UTC, so the published topic list tracks chain state
@@ -20,11 +32,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Checked before anything else: the token is what makes the push and the
+      # pull request useful, and failing here names the missing secret instead
+      # of surfacing as a confusing checkout or push error later. An expired PAT
+      # is then a red run, which is the point.
+      - name: Require the automation token
+        shell: bash
+        env:
+          DOCS_AUTOMATION_TOKEN: ${{ secrets.DOCS_AUTOMATION_TOKEN }}
+        run: |
+          if [ -z "$DOCS_AUTOMATION_TOKEN" ]; then
+            echo "::error::The DOCS_AUTOMATION_TOKEN secret is not set. This workflow pushes a branch and opens a pull request, and a push made with the default GITHUB_TOKEN does not trigger the pull request's checks. Add the secret (a fine-grained PAT scoped to this repository) or disable this workflow."
+            exit 1
+          fi
+
+      # Third-party actions are pinned to full commit SHAs: this job can write
+      # to the repository, and a tag is a mutable pointer.
+      #
+      # Checking out with the PAT is what makes the push below come from the
+      # PAT too (persist-credentials writes it into the remote's auth header),
+      # which is what makes GitHub emit the `synchronize` event that re-runs the
+      # pull request's checks.
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          token: ${{ secrets.DOCS_AUTOMATION_TOKEN }}
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
 
@@ -47,10 +82,20 @@ jobs:
       - name: Open pull request
         if: steps.diff.outputs.changed == 'true'
         env:
-          GH_TOKEN: ${{ secrets.DOCS_AUTOMATION_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.DOCS_AUTOMATION_TOKEN }}
           BRANCH: chore/refresh-topics-data
+          BASE: main
         run: |
           set -euo pipefail
+          # Automation pull requests are opened from the default branch and
+          # against it, never from whatever ref a manual dispatch happened to
+          # use. A dispatch from a release or feature branch is a legitimate way
+          # to test this job, and it must not push a machine branch built on
+          # that ref or open a pull request targeting it.
+          if [ "$GITHUB_REF_NAME" != "$BASE" ]; then
+            echo "Running from '$GITHUB_REF_NAME', not the default branch ('$BASE'): regenerated the data, skipping the push and the pull request."
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -B "$BRANCH"
@@ -62,7 +107,7 @@ jobs:
           git push --force origin "$BRANCH"
           if [ -z "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
             gh pr create \
-              --base "${{ github.ref_name }}" \
+              --base "$BASE" \
               --head "$BRANCH" \
               --title "chore: refresh topics data from chain state" \
               --body "Regenerated \`public/api/topics.json\` from live testnet and mainnet chain state via \`scripts/generateTopics.js\`. The topics table on the Existing Allora Network Topics page renders from this file."
