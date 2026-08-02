@@ -25,6 +25,11 @@ name: Check Upstream Versions
 # default GITHUB_TOKEN does not trigger this repository's own workflows, so the
 # fallback used to produce version bumps that nothing had checked. When the
 # secret is absent or expired, the run fails on the step below and names it.
+#
+# The whole job runs on the default branch only — see the `guard` job. A
+# dispatch from any other ref does nothing at all, rather than running that
+# ref's scripts with write-capable tokens in scope and mutating the shared
+# pull request and tracking issue from them.
 
 on:
   schedule:
@@ -43,7 +48,45 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Everything past this gate checks the repository out and runs scripts from
+  # that tree while write-capable tokens are available to the job -- and those
+  # scripts decide what the shared pull request and tracking issue say. Only the
+  # default branch's tree is trusted with that combination -- it is the one that
+  # cannot change without review -- so the decision is made here, in a job with
+  # no credentials, no checkout and nothing to exfiltrate. GitHub only schedules
+  # workflows from the default branch, so this never blocks a nightly run; a
+  # dispatch from any other ref logs one line and stops.
+  guard:
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      trusted: ${{ steps.check.outputs.trusted }}
+    steps:
+    - name: Decide whether this ref may run the job
+      id: check
+      env:
+        # Hardcoded like the pull request base, so the gate never depends on a
+        # webhook payload field being present -- but cross-checked against the
+        # payload when it carries one, so renaming the default branch fails
+        # loudly here instead of silently disabling the automation.
+        TRUSTED_BRANCH: main
+        DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      run: |
+        set -euo pipefail
+        if [ -n "$DEFAULT_BRANCH" ] && [ "$DEFAULT_BRANCH" != "$TRUSTED_BRANCH" ]; then
+          echo "::error::This workflow trusts '$TRUSTED_BRANCH', but the repository's default branch is '$DEFAULT_BRANCH'. Update TRUSTED_BRANCH and the pull request base in the automation workflows."
+          exit 1
+        fi
+        if [ "$GITHUB_REF_NAME" != "$TRUSTED_BRANCH" ]; then
+          echo "trusted=false" >> "$GITHUB_OUTPUT"
+          echo "Dispatched from '$GITHUB_REF_NAME', not the trusted branch ('$TRUSTED_BRANCH'): doing nothing. This workflow runs repository scripts with write-capable credentials in scope and mutates a shared pull request and tracking issue, which is only safe from a ref that cannot change without review."
+          exit 0
+        fi
+        echo "trusted=true" >> "$GITHUB_OUTPUT"
+
   check-versions:
+    needs: guard
+    if: needs.guard.outputs.trusted == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -52,6 +95,12 @@ jobs:
     # the repository, and a tag is a mutable pointer.
     - name: Checkout repository
       uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      with:
+        # Nothing here pushes with these credentials: peter-evans below saves,
+        # unsets and restores any persisted auth and configures the token it was
+        # given, so leaving a write-capable credential in .git/config while
+        # bumpVersions.js runs would buy nothing and risk something.
+        persist-credentials: false
 
     - name: Set up Node.js
       uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -86,34 +135,22 @@ jobs:
           echo "This exact bump was already declined in a closed pull request; not reopening."
         fi
 
-    # Two conditions the pull request step cannot express itself: `secrets` is
-    # not available in an `if:`, and `github.ref_name` needs to be reported when
-    # it blocks rather than silently skipping.
-    - name: Check the preconditions for opening a pull request
-      id: gate
+    # The ref is already settled by the `guard` job. What is left is the secret,
+    # which the pull request step cannot check itself: `secrets` is not
+    # available in an `if:`, so an absent PAT would otherwise surface as a
+    # confusing failure inside the action.
+    - name: Require the automation token
       if: steps.bump.outputs.changed == 'true' && steps.declined.outputs.count == '0'
       env:
         DOCS_AUTOMATION_TOKEN: ${{ secrets.DOCS_AUTOMATION_TOKEN }}
-        BASE: main
       run: |
-        set -euo pipefail
         if [ -z "$DOCS_AUTOMATION_TOKEN" ]; then
           echo "::error::The DOCS_AUTOMATION_TOKEN secret is not set. A version-bump pull request opened with the default GITHUB_TOKEN does not trigger this repository's checks, so it would arrive with nothing verifying it. Add the secret (a fine-grained PAT scoped to this repository) or disable this workflow."
           exit 1
         fi
-        # Automation pull requests are opened from the default branch and
-        # against it. A dispatch from a release or feature branch is a
-        # legitimate way to exercise the version check, and must not propose a
-        # merge into that branch.
-        if [ "$GITHUB_REF_NAME" != "$BASE" ]; then
-          echo "open=false" >> "$GITHUB_OUTPUT"
-          echo "Running from '$GITHUB_REF_NAME', not the default branch ('$BASE'): the bump was computed and logged, skipping the pull request."
-          exit 0
-        fi
-        echo "open=true" >> "$GITHUB_OUTPUT"
 
     - name: Open or update the bump pull request
-      if: steps.gate.outputs.open == 'true'
+      if: steps.bump.outputs.changed == 'true' && steps.declined.outputs.count == '0'
       uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
       with:
         token: ${{ secrets.DOCS_AUTOMATION_TOKEN }}
@@ -126,6 +163,12 @@ jobs:
 
     # Findings the bot will not write. Kept in one long-lived issue: updated in
     # place while they hold, left alone once closed unless the versions change.
+    #
+    # This step and the one after it mutate a surface shared with every reader
+    # of the repository, so what they publish must come from the default
+    # branch's scripts and nothing else. That is the `guard` job's doing: this
+    # job does not run at all on any other ref, so neither issue step can
+    # publish a branch-only finding or close the issue on a branch's say-so.
     - name: Open or update the version-candidates issue
       if: steps.bump.outputs.review_changed == 'true'
       env:

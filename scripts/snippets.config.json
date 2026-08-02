@@ -50,8 +50,10 @@
     "  pip / npm       Extra packages for the clean toolchain.",
     "  files           Sibling snippets to copy in under a different name, for",
     "                  snippets that import a companion module.",
-    "  skip / reason   Opt a file out of execution. A reason is mandatory in",
-    "                  review: an unexplained skip is a silent coverage hole.",
+    "  skip / reason   Opt a file out of execution. A non-empty reason is",
+    "                  enforced, not merely expected: an unexplained skip is a",
+    "                  silent coverage hole, so the runner refuses to start on",
+    "                  one. Say what would have to be true to test it again.",
     "",
     "An entry naming a file that no longer exists is a hard error, so exclusions",
     "cannot outlive the snippet they were written for.",
@@ -130,7 +132,7 @@
     },
     "worker_model.py": {
       "skip": true,
-      "reason": "trains on candles from a third-party market-data API (api.binance.com) whose availability depends on the runner's egress region; a block there would be reported as a docs failure it is not. Run it locally: python model.py.",
+      "reason": "trains on candles from a third-party market-data API (api.binance.com) whose availability depends on the runner's egress region; a block there would be reported as a docs failure it is not. Run it locally: python snippets/worker_model.py.",
       "timeoutSeconds": 600,
       "expect": "Predicted BTC/USD price in 24 hours:",
       "pip": ["numpy", "pandas", "requests", "scikit-learn"]
