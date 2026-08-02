@@ -212,10 +212,43 @@ function payloadOf(data) {
 
 function readExisting() {
   try {
-    return JSON.parse(fs.readFileSync(OUTPUT_PATH, 'utf8'));
+    const parsed = JSON.parse(fs.readFileSync(OUTPUT_PATH, 'utf8'));
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
   } catch {
     return null;
   }
+}
+
+/**
+ * The exact shape this script writes, which is also the shape everything
+ * downstream assumes: components/TopicsTable.js calls `.slice(0, 10)` on it to
+ * render the date, and scripts/lib/docsPages.js reads it to put that date into
+ * the generated corpus.
+ */
+const GENERATED_AT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
+
+function hasUsableTimestamp(data) {
+  return (
+    typeof data.generated_at === 'string' &&
+    GENERATED_AT.test(data.generated_at) &&
+    !Number.isNaN(Date.parse(data.generated_at))
+  );
+}
+
+/** Why the committed file needs rewriting, or null when it does not. */
+function stalenessOf(existing, data) {
+  if (existing === null) return 'is missing or unreadable';
+  // `generated_at` is excluded from the payload comparison so an unchanged
+  // chain produces an empty diff. That exclusion also meant a missing or
+  // malformed timestamp read as "unchanged" forever: the file was never
+  // rewritten, and the page that renders it crashed on `.slice` instead. A
+  // timestamp this script cannot vouch for is a reason to rewrite, not a
+  // detail to skip over.
+  if (!hasUsableTimestamp(existing)) {
+    return `has no usable generated_at (got ${JSON.stringify(existing.generated_at)})`;
+  }
+  if (payloadOf(existing) !== payloadOf(data)) return 'no longer matches chain state';
+  return null;
 }
 
 async function main() {
@@ -240,17 +273,16 @@ async function main() {
     topics: perNetwork.flat(),
   };
 
-  const existing = readExisting();
-  const unchanged = existing !== null && payloadOf(existing) === payloadOf(data);
+  const stale = stalenessOf(readExisting(), data);
   const relativePath = path.relative(path.join(__dirname, '..'), OUTPUT_PATH);
 
-  if (unchanged) {
+  if (stale === null) {
     process.stdout.write(`${relativePath} is up to date (${data.topics.length} active topics)\n`);
     return;
   }
 
   if (checkOnly) {
-    process.stderr.write(`${relativePath} is stale — run: node scripts/generateTopics.js\n`);
+    process.stderr.write(`${relativePath} ${stale} — run: node scripts/generateTopics.js\n`);
     process.exitCode = 1;
     return;
   }
