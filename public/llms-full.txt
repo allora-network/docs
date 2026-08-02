@@ -9331,16 +9331,25 @@ curl -s https://docs.allora.network/api/networks.json
 ### /api/versions.json
 
 The current version of each Allora component the docs reference, so you can pin
-an install without scraping prose. Four keys: `chain_testnet` and
+an install without scraping prose. Four version keys: `chain_testnet` and
 `chain_mainnet`, the `allora-chain` release each network is **running** — a
 deployment fact rather than something you install; `allora_sdk`, the Python
 SDK's release on PyPI; and `builder_kit`, the version of the Forge Builder Kit.
 The chain keys carry a leading `v` and the package versions do not, so add or
 strip it to match whatever you are pinning.
 
+A fifth key, `superseded`, is not a version: it maps each of those four keys to
+the values it has already moved past, appended whenever the version is bumped.
+Read it if you need to tell "old release of ours" from "version of something
+else" — a build gate uses it to fail the docs when a superseded value is still
+written down as a current one. Its arrays are empty until the first bump.
+
 ```bash
 curl -s https://docs.allora.network/api/versions.json
 ```
+
+So a reader of this file should take the four top-level string values as the
+current versions, and `superseded` as history — not as a fifth component.
 
 ## How these files stay current
 

@@ -300,6 +300,33 @@ function renderIssueBody(candidates, marker) {
   return lines.join('\n');
 }
 
+// Files the value a key is leaving behind under versions.json's `superseded`
+// key, so scripts/checkVersionStrings.js keeps failing on it after the bump.
+// Without this the bump silently widens what the docs may say: the moment
+// 1.0.6 stops being current, every hand-typed 1.0.6 in an install command
+// stops being checked, which is exactly when it becomes wrong.
+const SUPERSEDED_KEY = 'superseded';
+
+function recordSuperseded(versions, key, previous) {
+  if (typeof previous !== 'string' || previous === '') return;
+
+  const inventory = versions[SUPERSEDED_KEY];
+  if (inventory === undefined || inventory === null || typeof inventory !== 'object' || Array.isArray(inventory)) {
+    // Bail loudly rather than reshape a file a human maintains: a bump that
+    // quietly dropped the inventory would take the check down with it.
+    throw new Error(
+      `public/api/versions.json has no "${SUPERSEDED_KEY}" object. Add one with an ` +
+        'array per version key before the bump job can record what it replaces.'
+    );
+  }
+  if (!Array.isArray(inventory[key])) {
+    throw new Error(
+      `public/api/versions.json "${SUPERSEDED_KEY}" has no array for key "${key}".`
+    );
+  }
+  if (!inventory[key].includes(previous)) inventory[key].push(previous);
+}
+
 function appendOutputs(fields) {
   const outputFile = process.env.GITHUB_OUTPUT;
   if (!outputFile) return;
@@ -359,6 +386,7 @@ async function main() {
 
   if (applied.length > 0 && write) {
     applied.forEach(finding => {
+      recordSuperseded(versions, finding.key, finding.current);
       versions[finding.key] = finding.next;
     });
     fs.writeFileSync(VERSIONS_FILE, `${JSON.stringify(versions, null, 2)}\n`);

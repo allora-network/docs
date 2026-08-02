@@ -279,9 +279,12 @@ function resolveVersion(of, { bare = false } = {}) {
   const key = String(of).replace(/-/g, '_');
   const value = table[key];
   if (typeof value !== 'string' || value === '') {
+    // `superseded` is bookkeeping for scripts/checkVersionStrings.js, not a
+    // version id, so it is not offered as one here either.
+    const ids = Object.keys(table).filter(id => typeof table[id] === 'string');
     throw new Error(
       `unknown version id "${of}" — ${path.relative(ROOT, VERSIONS_FILE)} defines: ` +
-        `${Object.keys(table).join(', ')} (hyphens and underscores are interchangeable)`
+        `${ids.join(', ')} (hyphens and underscores are interchangeable)`
     );
   }
   return bare ? value.replace(/^v/, '') : value;
