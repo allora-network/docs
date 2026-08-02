@@ -48,6 +48,15 @@ const SITE_SUMMARY = [
 // Rendering
 // ─────────────────────────────────────────────────────────────────────────────
 
+// A page title is author prose, and "Query [topic] data" is a perfectly good
+// one. Dropped into a markdown link label unescaped, its `]` closes the label
+// early: the line stops being a link, an agent reading llms.txt cannot resolve
+// that page, and --check cannot read the URL back out to notice. So the three
+// characters that mean something inside a label — `[`, `]` and the escape
+// character itself — are escaped on the way out and unescaped on the way back.
+const escapeLinkText = text => String(text).replace(/([\\[\]])/g, '\\$1');
+const unescapeLinkText = text => String(text).replace(/\\([\\[\]])/g, '$1');
+
 function renderIndex(rootPages, sections) {
   const lines = [`# ${SITE_NAME}`, ''];
   SITE_SUMMARY.forEach(line => lines.push(`> ${line}`));
@@ -58,7 +67,8 @@ function renderIndex(rootPages, sections) {
   );
   lines.push('');
 
-  const entry = page => `- [${page.title}](${SITE_URL}${page.url}): ${page.description}`;
+  const entry = page =>
+    `- [${escapeLinkText(page.title)}](${SITE_URL}${page.url}): ${page.description}`;
 
   rootPages.forEach(page => lines.push(entry(page)));
   if (rootPages.length > 0) lines.push('');
@@ -112,24 +122,60 @@ function renderFull(pages) {
 
 function build() {
   const { rootPages, sections, all } = collectAllPages();
+  const index = renderIndex(rootPages, sections);
+  assertIndexRoundTrips(index, all);
 
   return {
-    index: renderIndex(rootPages, sections),
+    index,
     full: renderFull(all),
     pages: all,
   };
 }
 
-// Pulls the page URLs back out of a rendered llms.txt so --check can report a
-// page-set drift ("this page is not listed") separately from a content drift.
-function indexUrls(text) {
-  const urls = [];
-  const entry = /^- \[[^\]]*\]\(([^)]+)\):/gm;
+// Pulls the entries back out of a rendered llms.txt: the label (unescaped) and
+// the URL. --check uses the URLs to report a page-set drift ("this page is not
+// listed") separately from a content drift; the self-check below uses both.
+function indexEntries(text) {
+  const entries = [];
+  // A label is any run of characters that are neither `]` nor a backslash, plus
+  // any backslash-escaped character — the inverse of escapeLinkText.
+  const entry = /^- \[((?:[^\\\]]|\\.)*)\]\(([^)]+)\):/gm;
   let match;
   while ((match = entry.exec(text)) !== null) {
-    urls.push(match[1]);
+    entries.push({ title: unescapeLinkText(match[1]), url: match[2] });
   }
-  return urls;
+  return entries;
+}
+
+function indexUrls(text) {
+  return indexEntries(text).map(entry => entry.url);
+}
+
+// The index is only useful if it can be read back: an agent resolving a page
+// and --check detecting drift both parse these lines. Rather than trusting the
+// escaping to cover every character a title or URL might ever contain, the
+// generator parses its own output and refuses to publish an index that does not
+// come back exactly as it went in.
+function assertIndexRoundTrips(index, pages) {
+  const parsed = indexEntries(index);
+
+  if (parsed.length !== pages.length) {
+    throw new Error(
+      `llms.txt renders ${pages.length} pages but only ${parsed.length} of its lines parse ` +
+        'back as entries. A title or URL contains something the link syntax cannot carry.'
+    );
+  }
+
+  pages.forEach((page, i) => {
+    const expected = `${SITE_URL}${page.url}`;
+    if (parsed[i].title === page.title && parsed[i].url === expected) return;
+    throw new Error(
+      `${page.relativePath} does not survive a round trip through llms.txt: wrote ` +
+        `title ${JSON.stringify(page.title)} at ${expected}, read back ` +
+        `${JSON.stringify(parsed[i].title)} at ${parsed[i].url}. Escaping in ` +
+        'scripts/generateLlmsTxt.js needs to cover whatever that title or URL contains.'
+    );
+  });
 }
 
 function check(generated) {
