@@ -242,10 +242,13 @@ The network endpoints manifest, with one entry per network under `networks`
 (today `testnet` and `mainnet`). Each entry carries the chain ID, the deployed
 `allora-chain` release, the versioned `emissions` namespace to use in LCD and
 gRPC query paths, and the RPC, gRPC, LCD, explorer, and faucet URLs — `faucet`
-is omitted on networks that have none, so treat it as optional. The file
-documents its own fields in a `field_notes` object and records when it was last
-updated in `updated`. [Networks](https://docs.allora.network/reference/networks) is the prose reference,
-and its tables render from this same file.
+is omitted on networks that have none, so treat it as optional. It also carries
+`sandbox_topic_ids`, the topics on that network that need no whitelist and carry
+no penalty, which is the only place that list is declared: the topics job reads
+it from here to set the `sandbox` flag in `/api/topics.json`. The file documents
+its own fields in a `field_notes` object and records when it was last updated in
+`updated`. [Networks](https://docs.allora.network/reference/networks) is the prose reference, and its
+tables render from this same file.
 
 ```bash
 curl -s https://docs.allora.network/api/networks.json

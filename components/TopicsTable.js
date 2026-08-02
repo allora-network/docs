@@ -1,6 +1,19 @@
 import { Table, Td, Th, Tr } from 'nextra/components'
+import { useMDXComponents } from 'nextra/mdx'
 
 import topicsData from '../public/api/topics.json'
+
+// Borrow the theme's MDX element mapping so a list rendered from data is styled
+// exactly like one written in markdown, as components/NetworksTable.js does.
+// Falls back to plain tags outside an MDX provider.
+function useListElements() {
+  const components = useMDXComponents() || {}
+  return {
+    Ul: components.ul || 'ul',
+    Li: components.li || 'li',
+    Code: components.code || 'code',
+  }
+}
 
 /**
  * Renders the active-topics table for one Allora network straight from
@@ -37,11 +50,25 @@ export function topicsFor(network) {
   return topicsData.topics.filter(topic => topic.network === network)
 }
 
-/** Comma-separated sandbox topic IDs for one network, e.g. "69 and 77". */
-export function sandboxTopicIds(network) {
-  return topicsFor(network)
-    .filter(topic => topic.sandbox)
-    .map(topic => topic.id)
+/**
+ * The sandbox ("playground") topics of one network — no whitelist, no
+ * penalties, meant for a first worker submission.
+ *
+ * The flag comes from the data, which comes from `sandbox_topic_ids` in
+ * `public/api/networks.json`: the one place the list is declared. Pages render
+ * it through the components below rather than spelling the IDs out in prose,
+ * so activating a sandbox topic is a one-line change to that manifest.
+ */
+export function sandboxTopicsFor(network) {
+  return topicsFor(network).filter(topic => topic.sandbox)
+}
+
+/** Sandbox topic IDs as a sentence fragment: "69 and 77", "69, 77 and 80". */
+export function sandboxTopicIdList(network) {
+  const ids = sandboxTopicsFor(network).map(topic => topic.id)
+  if (ids.length === 0) return 'none'
+  if (ids.length === 1) return String(ids[0])
+  return `${ids.slice(0, -1).join(', ')} and ${ids[ids.length - 1]}`
 }
 
 /** The date the committed topic data was last regenerated from chain state. */
@@ -52,6 +79,36 @@ export function TopicsGeneratedOn() {
 /** Number of active topics on one network, per the committed data. */
 export function TopicsCount({ network }) {
   return <>{topicsFor(network).length}</>
+}
+
+/** Inline: the sandbox topic IDs of one network, e.g. "69 and 77". */
+export function SandboxTopicIds({ network }) {
+  return <>{sandboxTopicIdList(network)}</>
+}
+
+/**
+ * The sandbox topics of one network as a list, each with its on-chain name.
+ *
+ * scripts/lib/docsPages.js renders the same list into the agent-facing corpus;
+ * the two must agree, including the empty-state sentence below.
+ */
+export function SandboxTopics({ network }) {
+  const { Ul, Li, Code } = useListElements()
+  const topics = sandboxTopicsFor(network)
+
+  if (topics.length === 0) {
+    return <p>No sandbox topics are marked for {network}.</p>
+  }
+
+  return (
+    <Ul>
+      {topics.map(topic => (
+        <Li key={topic.id}>
+          <strong>{topic.id}</strong> — <Code>{topic.metadata}</Code>
+        </Li>
+      ))}
+    </Ul>
+  )
 }
 
 export function TopicsTable({ network }) {

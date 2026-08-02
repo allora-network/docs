@@ -24,10 +24,16 @@ on **2026-07-31**. Topics activate and deactivate over time, so
 
 ## Start here: the sandbox topic
 
-Testnet topic **69** (`PLAYGROUND: 1 day BTC/USD Price Prediction`) is the no-penalty sandbox
-onboarding topic: a playground for making your first worker submissions, with no whitelist
-required. Testnet topic **77** (`PLAYGROUND FAST - 5 minute BTC/USD Price Prediction`) is its
-fast-epoch counterpart for quicker feedback loops. Both are marked `sandbox` in the table below.
+Testnet's sandbox topics are the no-penalty onboarding playground: somewhere to make your first
+worker submissions, with no whitelist required and nothing at stake if you get one wrong.
+
+- **69** — `PLAYGROUND: 1 day BTC/USD Price Prediction`
+- **77** — `PLAYGROUND FAST - 5 minute BTC/USD Price Prediction`
+
+The `PLAYGROUND FAST` topic is the short-epoch counterpart of the daily one, for quicker feedback
+while you iterate. Both are marked `sandbox` in the table below and carry a `sandbox` flag in
+`/api/topics.json`, which is where the list above is read from — so it cannot fall out of step
+with the tables.
 
 ## Testnet topics (`allora-testnet-1`)
 
