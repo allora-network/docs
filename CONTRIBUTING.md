@@ -140,9 +140,14 @@ the only place a snippet can be opted out of execution — with a written reason
 A snippet passes only when it prints the result its page documents (its `expect`
 pattern). Exiting 0 is not enough, and for a worker loop neither is staying
 alive: the loop catches its own exceptions and prints them, so a worker whose
-registration or submission failed would otherwise look perfectly healthy. Give
-every new snippet an `expect` — the runner refuses to run a non-terminating one
-without it.
+registration or submission failed would otherwise look perfectly healthy. Every
+snippet that runs needs an `expect` — the runner refuses to start without one,
+so a new file is a configuration error until someone says what proves it worked.
+
+Credentials go only to the snippets that ask for them. Each snippet's `requires`
+list is the whole of what its process can see, and package installation runs
+with no credentials at all, so a dependency of a read-only snippet has no
+mnemonic in its environment to take.
 
 To run the suite yourself, export `ALLORA_API_KEY` and `ALLORA_WALLET_MNEMONIC`
 (a funded testnet wallet) and run `yarn runsnippets`. `yarn runsnippets --list`
