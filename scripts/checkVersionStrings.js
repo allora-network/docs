@@ -86,11 +86,18 @@ const HEADING_PREFIX = /^\s{0,3}#{1,6}\s+[*`_]{0,2}$/;
 // whose terminator would otherwise pass for a reason.
 const ESCAPE_HATCH = /version-literal-ok:\s*\w/;
 
-// Anchored: the whole value must be a semantic version, optionally "v"-prefixed
-// and optionally carrying a prerelease and/or build suffix ("1.0.6-rc.1",
-// "v0.17.0+build.5", "1.0.6-rc.1+build.5"). Unanchored, "v0.17.0oops" passed
-// here and then shipped through every generated view that reads this file.
-const VERSION_VALUE = /^v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
+// The official SemVer 2.0.0 grammar, anchored, with the leading "v" this repo's
+// chain keys carry made optional. Accepts "v0.17.0", "1.0.6-rc.1",
+// "v0.17.0+build.5", "1.0.6-rc.1+build.5"; rejects "v0.17.0oops", a dangling
+// "1.0.6-" or "1.0.6+", leading zeros ("01.0.0", "1.0.0-01") and empty
+// dot-separated identifiers ("1.0.0-alpha..1").
+//
+// A looser "digits, dots and punctuation" shape was the first fix here, and it
+// let malformed values through in exactly the way the original bug did — this
+// file is the source every generated surface reads, so what it accepts is what
+// the docs can publish.
+const VERSION_VALUE =
+  /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
 
 // The one key in versions.json that is not a version id.
 const SUPERSEDED_KEY = 'superseded';
