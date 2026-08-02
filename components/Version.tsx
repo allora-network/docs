@@ -29,7 +29,7 @@ const { superseded: _superseded, ...currentVersions } = versionsJson
 const versions: Record<string, string> = currentVersions
 
 /** Every id `<Version of="..."/>` accepts, in the JSON's own (underscore) spelling. */
-export const VERSION_IDS: string[] = Object.keys(versions)
+const VERSION_IDS: string[] = Object.keys(versions)
 
 /**
  * Resolves a version id to its string. Throws on an unknown id so a typo fails

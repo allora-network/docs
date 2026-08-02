@@ -245,9 +245,25 @@ async function resolveGitHubVersion(repo, { pyprojectFallback = false } = {}) {
 
 async function latestPyPiVersion() {
   const data = await getJson('https://pypi.org/pypi/allora_sdk/json');
-  const version = data && data.info && data.info.version;
-  if (!version || !semver.isValid(version)) {
-    throw new Error(`PyPI returned no usable version for allora_sdk (got ${JSON.stringify(version)}).`);
+
+  // `info.version` is whatever PyPI published last, which may be a release
+  // candidate: PEP 440 spells those `1.0.7rc1`, `1.0.7.dev0`, `1.0.7.post1` —
+  // none of them semantic versions. Taking that field alone meant an ordinary
+  // upstream prerelease aborted the whole run, discarding the findings already
+  // computed for every other key, when the GitHub sources handle the same
+  // situation by filtering. So the full release list is read and the newest
+  // stable one chosen, the same rule newestStable applies to tags.
+  const published = data && data.releases && typeof data.releases === 'object'
+    ? Object.keys(data.releases)
+    : [];
+  const latest = data && data.info && data.info.version;
+  const version = newestStable(published.length > 0 ? published : [latest].filter(Boolean));
+
+  if (!version) {
+    throw new Error(
+      `PyPI published no stable semantic version for allora_sdk ` +
+        `(latest is ${JSON.stringify(latest)}).`
+    );
   }
   return { version, via: 'PyPI', published: true };
 }

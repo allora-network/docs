@@ -95,4 +95,6 @@ function compare(a, b) {
   return comparePrerelease(left.prerelease, right.prerelease);
 }
 
-module.exports = { SEMVER, parse, isValid, isPrerelease, compare };
+// parse() and SEMVER stay module-private: nothing outside needs the parts, and
+// an export nobody calls is a contract to keep in step for no benefit.
+module.exports = { isValid, isPrerelease, compare };

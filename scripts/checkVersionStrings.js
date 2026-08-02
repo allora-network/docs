@@ -329,13 +329,28 @@ function reportManifestProblems(problems) {
   );
 }
 
-// One matcher for one version value: matches it with an optional leading "v",
-// not preceded or followed by a character that would make it part of a longer
-// version (so "1.0.6" matches in "allora_sdk 1.0.6." but not in "11.0.61" or
-// "1.0.60"). A trailing "." is only disqualifying when a digit follows it, so
-// a version at the end of a sentence still matches. `kind` says whether the
-// value is a key's current one or one it has moved past, which is all that
-// separates the two reports at the end of a run.
+// One matcher for one version value: the value with an optional leading "v",
+// bounded only by what would make it part of a *longer version* — a digit or a
+// dot before it, a digit or a dot-digit after it. So "1.0.6" matches in
+// "allora_sdk 1.0.6." but not in "11.0.61", "1.0.60" or "1.0.6.1".
+//
+// The bounds used to be `\w`, which is the shape a version almost never appears
+// in on its own. Every packaging convention this project documents glues a
+// version to a word with punctuation `\w` covers or excludes wrongly, so the
+// gate was blind to the exact strings it exists to catch:
+//
+//   allorad_0.17.0_linux_amd64        the release asset — the worked example in
+//                                     components/Version.tsx's own docstring
+//   alloranetwork/allorad:v0.17.0-amd64   a container tag
+//   allora_sdk-1.0.6-py3-none-any.whl     a wheel
+//
+// A consequence, accepted deliberately: a genuine prerelease mention
+// ("v0.17.0-rc.1") now matches its release prefix and needs the documented
+// `version-literal-ok: <reason>` escape hatch. A loud false positive with an
+// audit trail beats a silent miss on the forms the docs actually use.
+//
+// `kind` says whether the value is a key's current one or one it has moved
+// past, which is all that separates the two reports at the end of a run.
 function matcherFor(key, value, kind, current) {
   const bare = bareVersion(value);
   const escaped = bare.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -345,7 +360,7 @@ function matcherFor(key, value, kind, current) {
     bare,
     kind,
     current,
-    pattern: new RegExp(`(?<![\\w.])v?${escaped}(?!\\w|\\.\\d|[-+])`, 'g'),
+    pattern: new RegExp(`(?<![\\d.])v?${escaped}(?!\\d|\\.\\d)`, 'g'),
   };
 }
 
