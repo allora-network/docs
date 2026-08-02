@@ -2,7 +2,7 @@
 title: Running a full node
 description: How to become a Validator on Allora.
 persona: Validator operator
-verified_against: docs content as of 2025-05-22; CometBFT subcommand name re-checked against cosmos-sdk v0.50.14, the version allora-chain v0.17.0 builds on, on 2026-08-02
+verified_against: docs content as of 2025-05-22; CometBFT subcommand name re-checked against cosmos-sdk v0.50.14, the version allora-chain v0.17.0 builds on, and the Docker notes against the page's own compose commands, on 2026-08-02
 last_reviewed: 2026-08-02
 ---
 
@@ -299,7 +299,7 @@ docker compose up node
 ```
 To run only a head: `docker compose up head`
 
-**NOTE:** You also can comment the head service in the Dockerfile.
+**NOTE:** You can also comment out the `head` service in `docker-compose.yml`, so that a plain `docker compose up` never starts it.
 
 ### Monitoring Logs
 

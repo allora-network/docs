@@ -81,6 +81,14 @@
       "requires": ["wallet"],
       "expect": "submitted in transaction"
     },
+    "lcd_latest_inference.py": {
+      "requires": [],
+      "expect": "Latest inference: [0-9]"
+    },
+    "lcd_latest_inference.ts": {
+      "requires": [],
+      "expect": "Latest inference: [0-9]"
+    },
     "migrate_worker.py": {
       "mode": "long-running",
       "timeoutSeconds": 420,
