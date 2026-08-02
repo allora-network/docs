@@ -2,7 +2,7 @@
 title: Chain Parameters
 description: A glossary and description of chain-level parameters.
 persona: Builder or operator
-verified_against: docs content as of 2026-07-16; unit conversions and on-chain-present values re-checked against the live testnet LCD /emissions/v10/params on 2026-08-02
+verified_against: live testnet LCD /emissions/v10/params for the parameters the chain still exposes; legacy inference-request parameters checked against allora-chain v0.0.10 (x/emissions/proto/emissions/state/v1/types.proto, x/emissions/params.go), 2026-08-02
 last_reviewed: 2026-08-02
 ---
 
@@ -64,7 +64,7 @@ Default Value: 2831000000000000000000
 
 #### reward_cadence
 
-The duration of a reward epoch in blocks. Every `reward_cadence` seconds, rewards are recomputed within `EndBlock`.
+The duration of a reward epoch in blocks. Every `reward_cadence` blocks, rewards are recomputed within `EndBlock`.
 
 Default Value: 600 blocks
 
@@ -144,11 +144,11 @@ Setting a maximum validity time ensures that AI inference requests are processed
 
 #### max_request_cadence
 
-Sets the maximum allowable time, in seconds, for an AI inference request to remain valid before expiration.
+Sets the maximum allowable time, in seconds, between consecutive AI calls from a repeating inference request — the slowest cadence a request may be scheduled at. It is the upper bound to `min_request_cadence`'s lower bound.
 
 Default Value: 29030400 seconds (336 days)
 
-A shorter validity period ensures that AI inference requests are designed to be processed more quickly and with up-to-date information. However, because lowering this value may lead to the rejection of legitimate requests if they take longer to process, the maximum allowed equals the max inference request, which is a conservative and flexible decision to allow inference requests creators for maximal planning ahead.
+Capping the cadence stops a request from spacing its inferences so far apart that it occupies the network without producing useful data. The cap is set equal to `max_inference_request_validity`, a conservative and flexible choice that lets request creators plan as far ahead as a request is allowed to remain valid.
 
 #### percent_rewards_reputers_workers
 
