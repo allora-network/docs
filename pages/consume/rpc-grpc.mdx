@@ -2,7 +2,7 @@
 title: Accessing Allora Data Through RPC
 description: In addition to the Allora API, you can also access Allora network data directly through RPC (Remote Procedure Call) endpoints.
 persona: App developer
-verified_against: docs content as of 2026-07-16; examples executed against the live testnet LCD (emissions/v10) on 2026-08-02
+verified_against: docs content as of 2026-07-16; examples live in snippets/ and are executed against the live testnet LCD (emissions/v10) by the nightly snippet run, last locally on 2026-08-02
 last_reviewed: 2026-08-02
 ---
 
@@ -98,53 +98,12 @@ on testnet and `emissions/v9` on mainnet.
 
 ### JavaScript/TypeScript Example
 
-```typescript
-import axios from 'axios';
-
-// See /reference/networks for the LCD URL and emissions namespace of each network.
-const LCD_URL = 'https://allora-api.testnet.allora.network';
-const EMISSIONS = 'emissions/v10';
-
-async function getLatestInference(topicId: number) {
-  const url = `${LCD_URL}/${EMISSIONS}/latest_network_inferences/${topicId}`;
-  const response = await axios.get(url);
-  return response.data;
-}
-
-// Example usage
-getLatestInference(1)
-  .then(data => {
-    // combined_value is a list of labeled values; a single-output topic has one entry ("y")
-    console.log('Latest inference:', data.network_inferences.combined_value[0].value);
-    console.log('Inference block height:', data.inference_block_height);
-  })
-  .catch(error => {
-    console.error('Failed to get inference:', error);
-  });
+```typescript file=../../snippets/lcd_latest_inference.ts
 ```
 
 ### Python Example
 
-```python
-import requests
-
-# See /reference/networks for the LCD URL and emissions namespace of each network.
-LCD_URL = "https://allora-api.testnet.allora.network"
-EMISSIONS = "emissions/v10"
-
-
-def get_latest_inference(topic_id):
-    url = f"{LCD_URL}/{EMISSIONS}/latest_network_inferences/{topic_id}"
-    response = requests.get(url, timeout=30)
-    response.raise_for_status()
-    return response.json()
-
-
-# Example usage
-data = get_latest_inference(1)
-# combined_value is a list of labeled values; a single-output topic has one entry ("y")
-print(f"Latest inference: {data['network_inferences']['combined_value'][0]['value']}")
-print(f"Inference block height: {data['inference_block_height']}")
+```python file=../../snippets/lcd_latest_inference.py
 ```
 
 ## RPC vs API: When to Use Each

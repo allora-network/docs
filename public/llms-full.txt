@@ -5269,48 +5269,51 @@ on testnet and `emissions/v9` on mainnet.
 ### JavaScript/TypeScript Example
 
 ```typescript
-import axios from 'axios';
+// See https://docs.allora.network/reference/networks for the LCD URL and
+// emissions namespace of each network.
+const LCD_URL = "https://allora-api.testnet.allora.network";
+const EMISSIONS = "emissions/v10";
 
-// See /reference/networks for the LCD URL and emissions namespace of each network.
-const LCD_URL = 'https://allora-api.testnet.allora.network';
-const EMISSIONS = 'emissions/v10';
-
-async function getLatestInference(topicId: number) {
+async function getLatestInference(topicId: number): Promise<any> {
   const url = `${LCD_URL}/${EMISSIONS}/latest_network_inferences/${topicId}`;
-  const response = await axios.get(url);
-  return response.data;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`LCD request failed: ${response.status} ${response.statusText}`);
+  }
+  return response.json();
 }
 
-// Example usage
-getLatestInference(1)
-  .then(data => {
-    // combined_value is a list of labeled values; a single-output topic has one entry ("y")
-    console.log('Latest inference:', data.network_inferences.combined_value[0].value);
-    console.log('Inference block height:', data.inference_block_height);
-  })
-  .catch(error => {
-    console.error('Failed to get inference:', error);
-  });
+async function main() {
+  const data = await getLatestInference(1);
+  // combined_value is a list of labeled values; a single-output topic has one entry ("y")
+  console.log(`Latest inference: ${data.network_inferences.combined_value[0].value}`);
+  console.log(`Inference block height: ${data.inference_block_height}`);
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
 ```
 
 ### Python Example
 
 ```python
-import requests
+import json
+import urllib.request
 
-# See /reference/networks for the LCD URL and emissions namespace of each network.
+# See https://docs.allora.network/reference/networks for the LCD URL and
+# emissions namespace of each network.
 LCD_URL = "https://allora-api.testnet.allora.network"
 EMISSIONS = "emissions/v10"
 
 
 def get_latest_inference(topic_id):
     url = f"{LCD_URL}/{EMISSIONS}/latest_network_inferences/{topic_id}"
-    response = requests.get(url, timeout=30)
-    response.raise_for_status()
-    return response.json()
+    with urllib.request.urlopen(url, timeout=30) as response:
+        return json.load(response)
 
 
-# Example usage
 data = get_latest_inference(1)
 # combined_value is a list of labeled values; a single-output topic has one entry ("y")
 print(f"Latest inference: {data['network_inferences']['combined_value'][0]['value']}")
@@ -5930,7 +5933,7 @@ docker compose up node
 ```
 To run only a head: `docker compose up head`
 
-**NOTE:** You also can comment the head service in the Dockerfile.
+**NOTE:** You can also comment out the `head` service in `docker-compose.yml`, so that a plain `docker compose up` never starts it.
 
 ### Monitoring Logs
 
@@ -8377,7 +8380,7 @@ allorad q emissions [Command] --node <RPC_URL>
   - `topic_id` Identifier of the topic whose information will be returned
   - `worker_address` Given worker to query on
 
-In v0.17.0 this query was renamed from `GetWorkerLatestInference` (`worker-latest-inference`) to `GetWorkerLatestInputInferenceByTopicId` (`latest-input-inference`), and now returns an `InputInference` instead of a dense `Inference`. The REST path is `/emissions/v10/topics/{topic_id}/workers/{worker_address}/latest_input_inference`.
+In v0.17.0 this query was renamed from `GetWorkerLatestInferenceByTopicId` (`worker-latest-inference`) to `GetWorkerLatestInputInferenceByTopicId` (`latest-input-inference`), and now returns an `InputInference` instead of a dense `Inference`. The REST path is `/emissions/v10/topics/{topic_id}/workers/{worker_address}/latest_input_inference`.
 
 ## Tx Functions
 
@@ -8639,7 +8642,7 @@ Block about to end. Call EndBlock:
 
 Cosmos Validators can use the distribution module and staking module standard cosmos functions to manipulate their validator stake and claim their validator rewards.
 
-For Reputer and Worker rewards, the `reward_cadence` [chain parameter](https://docs.allora.network/reference/params/chain#reward_cadence) controls how often the reputer and staker rewards are paid out. Every `reward_cadence` epochs, the rewards calculation will run in the emissions `EndBlock`, which will cause the Allora Rewards module account to pay the Allora Staking module account directly. The Allora Staking module will then increase the staking balances of all actors who are paid rewards as part of this procedure. In this way Allora is able to autocompound stake positions.
+For Reputer and Worker rewards, the `reward_cadence` [chain parameter](https://docs.allora.network/reference/params/chain#reward_cadence) controls how often the reputer and staker rewards are paid out. Every `reward_cadence` blocks, the rewards calculation will run in the emissions `EndBlock`, which will cause the Allora Rewards module account to pay the Allora Staking module account directly. The Allora Staking module will then increase the staking balances of all actors who are paid rewards as part of this procedure. In this way Allora is able to autocompound stake positions.
 
 Finally when a Reputer or Worker wishes to withdraw their stake, they do so, and the rewards are returned together with the original balance staked by the reputer or worker in one lump sum.
 
@@ -8930,7 +8933,7 @@ Default Value: 2831000000000000000000
 
 #### reward_cadence
 
-The duration of a reward epoch in blocks. Every `reward_cadence` seconds, rewards are recomputed within `EndBlock`.
+The duration of a reward epoch in blocks. Every `reward_cadence` blocks, rewards are recomputed within `EndBlock`.
 
 Default Value: 600 blocks
 
@@ -9010,11 +9013,11 @@ Setting a maximum validity time ensures that AI inference requests are processed
 
 #### max_request_cadence
 
-Sets the maximum allowable time, in seconds, for an AI inference request to remain valid before expiration.
+Sets the maximum allowable time, in seconds, between consecutive AI calls from a repeating inference request — the slowest cadence a request may be scheduled at. It is the upper bound to `min_request_cadence`'s lower bound.
 
 Default Value: 29030400 seconds (336 days)
 
-A shorter validity period ensures that AI inference requests are designed to be processed more quickly and with up-to-date information. However, because lowering this value may lead to the rejection of legitimate requests if they take longer to process, the maximum allowed equals the max inference request, which is a conservative and flexible decision to allow inference requests creators for maximal planning ahead.
+Capping the cadence stops a request from spacing its inferences so far apart that it occupies the network without producing useful data. The cap is set equal to `max_inference_request_validity`, a conservative and flexible choice that lets request creators plan as far ahead as a request is allowed to remain valid.
 
 #### percent_rewards_reputers_workers
 
