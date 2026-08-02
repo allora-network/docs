@@ -2,8 +2,8 @@
 title: How to Query Reputer Data using allorad
 description: Commands for pulling information about reputers via allorad.
 persona: Reputer operator
-verified_against: docs content as of 2024-10-08
-last_reviewed: 2024-10-08
+verified_against: allora-chain v0.17.0 (x/emissions/module/autocli.go)
+last_reviewed: 2026-08-02
 ---
 
 # How to Query Reputer Data using `allorad`
