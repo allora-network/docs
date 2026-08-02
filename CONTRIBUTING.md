@@ -151,7 +151,14 @@ mnemonic in its environment to take.
 
 To run the suite yourself, export `ALLORA_API_KEY` and `ALLORA_WALLET_MNEMONIC`
 (a funded testnet wallet) and run `yarn runsnippets`. `yarn runsnippets --list`
-prints the plan without running anything.
+prints the plan without running anything, and `yarn runsnippets --budget` prints
+how long the nightly job can legitimately take — a new snippet that pushes that
+past the job's `timeout-minutes` fails the run rather than silently getting the
+job cancelled halfway one night.
+
+Trying a snippet change on a branch means running it locally: the nightly
+workflow only runs from the default branch, because it hands the funded wallet's
+mnemonic to whatever code the ref it runs from contains.
 
 Fragments, config excerpts, and shell one-liners stay inline — only programs
 that are meant to run belong in `snippets/`.

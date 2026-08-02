@@ -11,10 +11,12 @@ name: Check Network Version Drift
 #                          refreshes it. The job fails loudly when the secret is
 #                          missing rather than quietly producing an unchecked PR.
 #
-# Two rules keep this job's write capability away from code it does not trust:
-# it runs only on the default branch (see the `guard` job), and it never checks
-# out the drift branch — that branch is read one file at a time and written by
-# git plumbing, so nothing on it is ever executed here.
+# Three rules keep this job's write capability away from anything it does not
+# trust. It runs only on the default branch (see the `guard` job). It never
+# checks out the drift branch — that branch is read one file at a time and
+# written by git plumbing, so nothing on it is ever executed here. And the file
+# it does read decides values, never destinations: every endpoint is taken from
+# the trusted checkout, so the branch cannot choose what this job fetches.
 
 on:
   schedule:
@@ -39,10 +41,9 @@ env:
   BRANCH: networks-version-drift
   # The one file this workflow is allowed to change.
   MANIFEST: public/api/networks.json
-  # Automation pull requests target the default branch and are only opened from
-  # it. Hardcoded rather than read from github.ref_name, so a dispatch from a
-  # release branch can exercise the drift check without ever proposing a merge
-  # into that branch.
+  # The branch this workflow proposes into, and (see the `guard` job) the only
+  # branch it will run from at all. Hardcoded rather than derived from the ref,
+  # so the two can never disagree.
   BASE: main
 
 jobs:
@@ -74,9 +75,14 @@ jobs:
           echo "::error::This workflow trusts '$TRUSTED_BRANCH', but the repository's default branch is '$DEFAULT_BRANCH'. Update TRUSTED_BRANCH and the pull request base in the automation workflows."
           exit 1
         fi
-        if [ "$GITHUB_REF_NAME" != "$TRUSTED_BRANCH" ]; then
+        # The FULL ref, never github.ref_name. ref_name strips the refs/heads/
+        # or refs/tags/ prefix, so a TAG named "main" presents the same string
+        # as the branch and would walk straight through a ref_name comparison.
+        # A tag is not the reviewed branch: it can be created by anyone who can
+        # push one, and it can be moved. Only refs/heads/<trusted> is trusted.
+        if [ "$GITHUB_REF" != "refs/heads/$TRUSTED_BRANCH" ]; then
           echo "trusted=false" >> "$GITHUB_OUTPUT"
-          echo "Dispatched from '$GITHUB_REF_NAME', not the trusted branch ('$TRUSTED_BRANCH'): doing nothing. This workflow runs repository scripts with write-capable credentials in scope, which is only safe from a ref that cannot change without review."
+          echo "Dispatched from '$GITHUB_REF', not the trusted branch ('refs/heads/$TRUSTED_BRANCH'): doing nothing. This workflow runs repository scripts with write-capable credentials in scope, which is only safe from a ref that cannot change without review."
           exit 0
         fi
         echo "trusted=true" >> "$GITHUB_OUTPUT"
@@ -94,6 +100,7 @@ jobs:
       env:
         DOCS_AUTOMATION_TOKEN: ${{ secrets.DOCS_AUTOMATION_TOKEN }}
       run: |
+        set -euo pipefail
         if [ -z "$DOCS_AUTOMATION_TOKEN" ]; then
           echo "::error::The DOCS_AUTOMATION_TOKEN secret is not set. This workflow pushes a branch and opens a pull request, and a push made with the default GITHUB_TOKEN does not trigger the pull request's checks. Add the secret (a fine-grained PAT scoped to this repository) or disable this workflow."
           exit 1
@@ -123,8 +130,12 @@ jobs:
     # If a drift PR is already open, compare against what that PR already
     # proposes rather than against the default branch, so an unchanged chain is
     # a no-op: no commit, no push, no PR churn. It also means a reviewer's own
-    # edits on that branch (notably the deployed_version bump the PR body asks
-    # for) are built on top of rather than discarded.
+    # value edits on that branch -- notably the deployed_version bump the PR body
+    # asks for -- are built on top of rather than discarded. Endpoints are the
+    # exception, and deliberately so: an endpoint edited on the drift branch is
+    # replaced with the trusted checkout's, because that is the one field the
+    # branch must not be able to decide (see the merge below). Move an endpoint
+    # on the default branch, not on the machine branch.
     #
     # Only the manifest crosses over, and it crosses as data: `git show` of one
     # path, into the trusted working tree. The branch itself is NEVER checked
@@ -138,14 +149,24 @@ jobs:
       id: base
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        REPO_OWNER: ${{ github.repository_owner }}
       run: |
         set -euo pipefail
-        # Whether a pull request is open decides, further down, between a
-        # fast-forward and a force-push. Reading "no" when the answer is
-        # actually "gh could not tell us" would force-push over an open pull
-        # request's branch and throw away the reviewer's commits on it, so an
-        # answer that is not a number is a hard error rather than a default.
-        open_prs=$(gh pr list --head "$BRANCH" --state open --json number --jq 'length')
+        # A branch name is not an identity: anyone can open a pull request from a
+        # fork whose head branch is called networks-version-drift, and a bare
+        # --head lookup would count it as ours -- then build on it, edit it, and
+        # push to a branch its author does not control. Only a pull request whose
+        # head branch lives in this repository is this workflow's.
+        #
+        # Whether one is open also decides, further down, between a fast-forward
+        # and a force-push. Reading "no" when the answer is actually "gh could
+        # not tell us" would force-push over an open pull request's branch and
+        # throw away the reviewer's commits on it, so an answer that is not a
+        # number is a hard error rather than a default.
+        mine=$(gh pr list --head "$BRANCH" --state open \
+          --json number,isCrossRepository,headRepositoryOwner \
+          --jq '[.[] | select(.isCrossRepository == false and .headRepositoryOwner.login == env.REPO_OWNER)]')
+        open_prs=$(printf '%s' "$mine" | jq 'length')
         case "$open_prs" in
           '' | *[!0-9]*)
             echo "::error::Could not determine whether a drift pull request is open (gh answered '$open_prs'). Refusing to continue: treating that as 'none open' would force-push over the branch of a pull request that may well exist."
@@ -164,7 +185,22 @@ jobs:
             echo "::error::A drift pull request is open on $BRANCH, but $MANIFEST could not be read from that branch. Refusing to continue: the only other course is to treat the branch as abandoned and force-push over an open pull request."
             exit 1
           fi
-          git show "origin/$BRANCH:$MANIFEST" > "$MANIFEST"
+
+          # The branch's manifest decides VALUES, never DESTINATIONS. Handing it
+          # over whole would let a branch choose the URLs the step below fetches
+          # from a scheduled job on the default branch -- link-local metadata,
+          # something on the runner's loopback, an endpoint that records what it
+          # is sent -- and the response is written into the manifest and printed
+          # in the pull request body, so a read exfiltrates too. The merge keeps
+          # every endpoint from the trusted checkout and takes only the recorded
+          # values from the branch.
+          git show "origin/$BRANCH:$MANIFEST" > "${RUNNER_TEMP}/proposed-manifest.json"
+          node ./scripts/hardenDriftManifest.js \
+            --trusted="$MANIFEST" \
+            --proposed="${RUNNER_TEMP}/proposed-manifest.json" \
+            --out="$MANIFEST"
+
+          echo "number=$(printf '%s' "$mine" | jq -r '.[0].number')" >> "$GITHUB_OUTPUT"
           echo "existing=true" >> "$GITHUB_OUTPUT"
           echo "Continuing from the open drift pull request on $BRANCH (its $MANIFEST only; the branch is not checked out)."
         else
@@ -204,6 +240,7 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.DOCS_AUTOMATION_TOKEN }}
         EXISTING: ${{ steps.base.outputs.existing }}
+        PR_NUMBER: ${{ steps.base.outputs.number }}
         TITLE: 'Network version drift: update public/api/networks.json'
         GIT_AUTHOR_NAME: 'github-actions[bot]'
         GIT_AUTHOR_EMAIL: '41898282+github-actions[bot]@users.noreply.github.com'
@@ -223,6 +260,30 @@ jobs:
         fi
 
         blob=$(git hash-object -w "$MANIFEST")
+
+        # The chain can also drift back. If the newly probed versions are
+        # exactly what the default branch already records, there is nothing left
+        # to propose -- pushing anyway would leave an open pull request whose
+        # only diff against its own base is a date, which reads as a bug to
+        # everyone who finds it. Close it instead and let the next real change
+        # open a fresh one.
+        #
+        # Compared on the `networks` subtree, not the whole file: a --write that
+        # finds drift also stamps `updated` with today's date, so comparing the
+        # blobs would say "different" on every single run and this would never
+        # fire at all.
+        proposed_networks=$(jq -S '.networks' < "$MANIFEST")
+        base_networks=$(git show "HEAD:$MANIFEST" | jq -S '.networks')
+        if [ "$proposed_networks" = "$base_networks" ]; then
+          echo "The probed versions match $BASE; there is nothing to propose."
+          if [ "$EXISTING" = "true" ]; then
+            gh pr close "$PR_NUMBER" --comment \
+              "Closing automatically: every network now reports the version already recorded on \`$BASE\`, so this pull request no longer proposes a change. A fresh one opens by itself the next time a network's version actually drifts."
+            echo "Closed the now-empty drift pull request #$PR_NUMBER."
+          fi
+          exit 0
+        fi
+
         GIT_INDEX_FILE="${RUNNER_TEMP}/drift-index"
         export GIT_INDEX_FILE
         rm -f "$GIT_INDEX_FILE"
@@ -247,7 +308,10 @@ jobs:
 
         if [ "$EXISTING" = "true" ]; then
           push origin "$commit:refs/heads/$BRANCH"
-          gh pr edit "$BRANCH" --title "$TITLE" --body-file "${RUNNER_TEMP}/networks-drift-body.md"
+          # By number, not by branch name -- the name could resolve to a fork's
+          # pull request, and the step above already established which number is
+          # actually ours.
+          gh pr edit "$PR_NUMBER" --title "$TITLE" --body-file "${RUNNER_TEMP}/networks-drift-body.md"
         else
           push --force origin "$commit:refs/heads/$BRANCH"
           gh pr create --base "$BASE" --head "$BRANCH" \

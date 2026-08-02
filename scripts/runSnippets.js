@@ -8,9 +8,11 @@
 // each snippet in its own directory, and exits non-zero if any of them fail.
 //
 // Snippets are DISCOVERED from the directory: drop a new .py/.ts/.js/.go file in
-// snippets/ and it is picked up on the next run with the default settings. Per
-// snippet overrides (including opting a file out of execution) live in
-// scripts/snippets.config.json.
+// snippets/ and the next run picks it up. It does not run on defaults alone,
+// though -- it needs an `expect` pattern in scripts/snippets.config.json saying
+// what it prints when it works, and the runner refuses to start until it has
+// one. Everything else (timeout, mode, credentials, opting a file out) defaults
+// sensibly and is overridden in the same file.
 //
 // A snippet passes only when it prints the result its page documents (its
 // `expect` pattern). Merely exiting 0, or merely staying alive, is not enough:
@@ -27,6 +29,8 @@
 // Usage:
 //   node scripts/runSnippets.js                 # run everything
 //   node scripts/runSnippets.js --list          # print the plan, run nothing
+//   node scripts/runSnippets.js --budget        # print the worst-case run budget
+//   node scripts/runSnippets.js --budget-cap-minutes=240   # ...and check it fits
 //   node scripts/runSnippets.js --only=quickstart_consume.py
 //   node scripts/runSnippets.js --report=out.md # machine-readable failure report
 //   node scripts/runSnippets.js --keep-work-dir # keep logs/venv (never the key)
@@ -71,13 +75,54 @@ const keyFiles = new Set();
 let workDirToRemove = null;
 let cleanedUp = false;
 
+// The snippet currently running, if any. Cleanup kills it before anything else:
+// a worker snippet is a loop that keeps signing testnet transactions with the
+// funded wallet, and Ctrl-C or a cancelled CI job that only tore down the runner
+// would leave it doing exactly that, unattended and unwatched.
+let activeChild = null;
+
 function registerWorkDir(dir, keep) {
   workDirToRemove = keep ? null : dir;
+}
+
+// Kill the whole process group, not just the process we spawned. A snippet is a
+// Python or Node interpreter that may itself have spawned children, and killing
+// only the interpreter can leave those orphaned and still running. Children are
+// spawned `detached`, which makes each one a process-group leader, so its pid
+// doubles as the group id and a negative pid reaches everything under it.
+function killTree(child, signal) {
+  if (!child || !child.pid) return;
+  // The group is signalled unconditionally, and never gated on whether the
+  // child itself has exited: a process group outlives its leader. Checking
+  // first would skip precisely the case this function exists for -- the
+  // interpreter took the SIGTERM and died, a grandchild ignored it, and the
+  // escalation ten seconds later finds a dead leader and a group still running.
+  try {
+    process.kill(-child.pid, signal);
+  } catch (err) {
+    // ESRCH: the group is already gone, which is the outcome we wanted.
+    if (err.code === 'ESRCH') return;
+    // Anything else (EPERM, or a platform that gave us no group) still deserves
+    // an attempt at the process itself, if it is still there to receive it --
+    // a partial kill beats none.
+    if (child.exitCode === null && child.signalCode === null) {
+      try {
+        child.kill(signal);
+      } catch {
+        /* best effort: there is nothing further to try */
+      }
+    }
+  }
 }
 
 function cleanup() {
   if (cleanedUp) return;
   cleanedUp = true;
+  // First, before the key file and the work directory: stopping the transactions
+  // matters more than tidying up after them, and this is the only chance to do
+  // it -- once this process exits, an orphaned worker has no supervisor left.
+  killTree(activeChild, 'SIGKILL');
+  activeChild = null;
   for (const file of keyFiles) {
     try {
       fs.rmSync(file, { force: true });
@@ -151,6 +196,8 @@ const PYTHON = process.env.PYTHON || 'python3';
 function parseArgs(argv) {
   const opts = {
     list: false,
+    budget: false,
+    budgetCapMinutes: null,
     only: null,
     report: null,
     keepWorkDir: false,
@@ -159,7 +206,15 @@ function parseArgs(argv) {
   };
   for (const arg of argv) {
     if (arg === '--list') opts.list = true;
-    else if (arg.startsWith('--only=')) opts.only = arg.slice('--only='.length);
+    else if (arg === '--budget') opts.budget = true;
+    else if (arg.startsWith('--budget-cap-minutes=')) {
+      opts.budgetCapMinutes = Number(arg.slice('--budget-cap-minutes='.length));
+      opts.budget = true;
+      if (!Number.isFinite(opts.budgetCapMinutes) || opts.budgetCapMinutes <= 0) {
+        console.error(`--budget-cap-minutes needs a positive number, got "${arg}"`);
+        process.exit(2);
+      }
+    } else if (arg.startsWith('--only=')) opts.only = arg.slice('--only='.length);
     else if (arg.startsWith('--report=')) opts.report = arg.slice('--report='.length);
     else if (arg.startsWith('--snippets-dir=')) opts.snippetsDir = path.resolve(arg.slice('--snippets-dir='.length));
     else if (arg.startsWith('--config=')) opts.configPath = path.resolve(arg.slice('--config='.length));
@@ -265,6 +320,31 @@ function discover(opts, config) {
         `only record of why a snippet stopped being tested, and what would have to\n` +
         `be true to test it again. Write one, or remove the skip.`
     );
+  }
+
+  // `files` names get joined onto the run directory and onto the snippets
+  // directory, so anything with a path separator in it would write or read
+  // outside both. The config is in-repo and reviewed, but a rule that only holds
+  // because nobody has broken it yet is not a rule -- and the check costs a
+  // line. Both halves must be a plain entry name, and the source must be a
+  // snippet that exists.
+  for (const snippet of plan) {
+    for (const [dest, source] of Object.entries(snippet.files)) {
+      for (const [role, value] of [['destination', dest], ['source', source]]) {
+        if (value !== path.basename(value) || value === '.' || value === '..') {
+          throw new Error(
+            `${snippet.name}: "files" ${role} "${value}" is not a plain filename. ` +
+              `These are copied into the snippet's run directory, so a path with ` +
+              `separators in it would read or write outside it.`
+          );
+        }
+      }
+      if (!fs.existsSync(path.join(opts.snippetsDir, source))) {
+        throw new Error(
+          `${snippet.name}: "files" names "${source}", which is not in ${opts.snippetsDir}.`
+        );
+      }
+    }
   }
 
   return plan;
@@ -417,7 +497,13 @@ function setupGo(workDir) {
 // ---------------------------------------------------------------------------
 
 function prepareRunDir(workDir, snippet, opts) {
-  const runDir = path.join(workDir, 'runs', snippet.name.replace(/\W+/g, '_'));
+  // The snippet's own filename, not a sanitised version of it. Sanitising was a
+  // collision waiting to happen: `a-b.go` and `a_b.go` both became `a_b_go`, so
+  // the second Go snippet would inherit the first one's go.mod and compiled
+  // binary and fail in its warm-up instead of running. The name is already a
+  // valid directory entry -- it came from readdir -- and names are unique within
+  // a directory, so using it as-is is collision-free by construction.
+  const runDir = path.join(workDir, 'runs', snippet.name);
   fs.mkdirSync(runDir, { recursive: true });
   fs.copyFileSync(snippet.file, path.join(runDir, snippet.name));
   for (const [dest, source] of Object.entries(snippet.files)) {
@@ -482,6 +568,10 @@ function warmUpStep(label, command, args, cwd, env, timeoutSeconds) {
       env,
       stdio: 'pipe',
       timeout: timeoutSeconds * 1000,
+      // SIGKILL rather than the default SIGTERM: a package manager or compiler
+      // that has stopped responding is exactly the process least likely to
+      // honour a polite request, and this budget has already expired.
+      killSignal: 'SIGKILL',
       maxBuffer: 32 * 1024 * 1024,
     });
   } catch (err) {
@@ -540,8 +630,13 @@ function warmUp(snippet, runDir, toolchains, toolchain) {
 // failed would otherwise sit there looking healthy for the whole window and be
 // reported green. A snippet passes only when it prints the result the page says
 // it prints.
-function classify(snippet, { code, timedOut, output }) {
-  if (snippet.failOn && snippet.failOn.test(output)) {
+//
+// Judged from `sawExpect`/`sawFailOn`, which were decided as the output
+// streamed, never by re-matching the retained buffer -- that buffer is
+// truncated, so re-matching it would silently fail a snippet whose result
+// scrolled out of the window.
+function classify(snippet, { code, timedOut, sawExpect, sawFailOn }) {
+  if (sawFailOn) {
     return { ok: false, note: `printed an error it swallowed (/${snippet.failOnDescription}/)` };
   }
   // discover() refuses to start without a pattern for every runnable snippet,
@@ -554,7 +649,7 @@ function classify(snippet, { code, timedOut, output }) {
       note: 'has no "expect" pattern configured, so nothing it printed could count as success',
     };
   }
-  const satisfied = snippet.expect.test(output);
+  const satisfied = sawExpect;
 
   if (timedOut) {
     return {
@@ -569,6 +664,16 @@ function classify(snippet, { code, timedOut, output }) {
   return { ok: true, note: `exited 0 after printing /${snippet.expectDescription}/` };
 }
 
+// How much output is kept for the log and the failure report. The verdict does
+// NOT depend on this: see the scan window below.
+const OUTPUT_LIMIT = 200000;
+
+// How much of the stream is carried across chunk boundaries when looking for the
+// `expect` and `failOn` markers. A marker can straddle two reads, so each chunk
+// is matched together with the tail of the previous one; 8 KiB is far longer
+// than any line these snippets print.
+const SCAN_OVERLAP = 8192;
+
 function execute(snippet, runDir, toolchains) {
   const { command, args, cwd, env } = commandFor(snippet, runDir, toolchains);
   return new Promise(resolve => {
@@ -580,32 +685,57 @@ function execute(snippet, runDir, toolchains) {
       // No TTY and no stdin: a snippet that tries to prompt must fail rather
       // than hang until the job's own timeout kills the whole run.
       stdio: ['ignore', 'pipe', 'pipe'],
+      // Its own process group, so stopping it stops whatever it spawned too --
+      // see killTree.
+      detached: true,
     });
+    activeChild = child;
 
     let output = '';
     let settled = null; // 'success' | 'failure' -- decided from streamed output
     let timedOut = false;
 
+    // The verdict, accumulated as the stream arrives. Once a marker has been
+    // seen it stays seen: the output buffer below is truncated, and a snippet
+    // that printed its result and then chattered past the limit used to have
+    // that result thrown away and be reported as a failure.
+    let sawExpect = false;
+    let sawFailOn = false;
+    let scanTail = '';
+
     const stop = () => {
-      child.kill('SIGTERM');
-      setTimeout(() => child.kill('SIGKILL'), 10000).unref();
+      killTree(child, 'SIGTERM');
+      setTimeout(() => killTree(child, 'SIGKILL'), 10000).unref();
     };
 
     const collect = chunk => {
+      // Match first, on a window that spans the chunk boundary, and only then
+      // append to the bounded buffer.
+      const window = scanTail + chunk;
+      if (!sawFailOn && snippet.failOn && snippet.failOn.test(window)) sawFailOn = true;
+      if (!sawExpect && snippet.expect && snippet.expect.test(window)) sawExpect = true;
+      scanTail = window.length > SCAN_OVERLAP ? window.slice(-SCAN_OVERLAP) : window;
+
       output += chunk;
-      // Keep memory bounded on a chatty worker loop; the tail is what matters.
-      if (output.length > 200000) output = output.slice(-200000);
+      // Keep memory bounded on a chatty worker loop; the tail is what matters
+      // for reading the failure afterwards. Nothing is decided from this buffer.
+      if (output.length > OUTPUT_LIMIT) output = output.slice(-OUTPUT_LIMIT);
+
       if (settled) return;
-      if (snippet.failOn && snippet.failOn.test(output)) {
+      if (sawFailOn) {
         settled = 'failure';
         stop();
-      } else if (snippet.mode === 'long-running' && snippet.expect && snippet.expect.test(output)) {
+      } else if (snippet.mode === 'long-running' && sawExpect) {
         // The worker did the thing. No reason to hold the runner open for the
         // rest of the window.
         settled = 'success';
         stop();
       }
     };
+    // Decode once, here, so a multi-byte character split across two reads is
+    // not turned into replacement characters that a marker could hide behind.
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
     child.stdout.on('data', collect);
     child.stderr.on('data', collect);
 
@@ -614,29 +744,115 @@ function execute(snippet, runDir, toolchains) {
       stop();
     }, snippet.timeoutSeconds * 1000);
 
-    child.on('error', err => {
+    const finish = result => {
       clearTimeout(timer);
-      resolve({ ok: false, output: `${output}\nfailed to launch ${command}: ${err.message}` });
+      if (activeChild === child) activeChild = null;
+      resolve(result);
+    };
+
+    child.on('error', err => {
+      finish({
+        ok: false,
+        output: `${output}\nfailed to launch ${command}: ${err.message}`,
+        note: `could not be launched (${err.message})`,
+      });
     });
 
     child.on('close', code => {
-      clearTimeout(timer);
       if (settled === 'success') {
-        resolve({ ok: true, output, note: `printed /${snippet.expectDescription}/` });
+        finish({ ok: true, output, note: `printed /${snippet.expectDescription}/` });
         return;
       }
       if (settled === 'failure') {
-        resolve({
+        finish({
           ok: false,
           output,
           note: `printed an error it swallowed (/${snippet.failOnDescription}/)`,
         });
         return;
       }
-      const verdict = classify(snippet, { code, timedOut, output });
-      resolve({ ...verdict, output });
+      finish({ ...classify(snippet, { code, timedOut, sawExpect, sawFailOn }), output });
     });
   });
+}
+
+// ---------------------------------------------------------------------------
+// Run budget
+//
+// The nightly job's `timeout-minutes` is a number somebody typed; the time this
+// runner is allowed to take is computed from snippets.config.json. Those two
+// drift apart the moment a snippet is added, and the drift is invisible until
+// the night the job is cancelled halfway -- writing no report, opening no issue,
+// and looking like nothing was wrong. So the number is derived here and the
+// workflow checks it against its own cap, which turns silent drift into a red
+// run with an arithmetic breakdown.
+//
+// Worst case, not expected case: every window burned in full. The happy path is
+// minutes, because each window ends the moment its snippet prints what it must.
+// ---------------------------------------------------------------------------
+
+const MARGIN_MINUTES = 15; // checkout, the language setup actions, upload, issue
+
+function computeBudget(plan, toolchain) {
+  const runnable = plan.filter(s => !s.skip);
+  const languages = new Set(runnable.map(s => s.language));
+  const lines = [];
+  let seconds = 0;
+
+  if (languages.has('python')) {
+    // venv, then (only if there is anything to install) pip upgrade + install.
+    const packages = new Set([...toolchain.pip, ...runnable.flatMap(s => s.pip)]);
+    const steps = 1 + (packages.size > 0 ? 2 : 0);
+    seconds += steps * SETUP_TIMEOUT_SECONDS;
+    lines.push(`Python setup    ${steps} x ${SETUP_TIMEOUT_SECONDS}s`);
+  }
+  if (languages.has('node')) {
+    const packages = new Set([...toolchain.npm, ...runnable.flatMap(s => s.npm)]);
+    const steps = packages.size > 0 ? 1 : 0;
+    seconds += steps * SETUP_TIMEOUT_SECONDS;
+    lines.push(`Node setup      ${steps} x ${SETUP_TIMEOUT_SECONDS}s`);
+  }
+
+  const goSnippets = runnable.filter(s => s.language === 'go');
+  if (goSnippets.length > 0) {
+    // mod init, mod tidy, build -- plus `go get` when a module is configured.
+    const stepsEach = 3 + (toolchain.goModule ? 1 : 0);
+    const goSeconds = goSnippets.reduce((total, s) => total + stepsEach * s.warmupTimeoutSeconds, 0);
+    seconds += goSeconds;
+    lines.push(`Go warm-up      ${goSnippets.length} snippet(s) x ${stepsEach} steps`);
+  }
+
+  const windows = runnable.reduce((total, s) => total + s.timeoutSeconds, 0);
+  seconds += windows;
+  lines.push(`Snippet windows ${runnable.length} runnable, ${windows}s total`);
+
+  return { seconds, minutes: Math.ceil(seconds / 60), lines, runnable: runnable.length };
+}
+
+function reportBudget(plan, toolchain, capMinutes) {
+  const budget = computeBudget(plan, toolchain);
+  console.log('\nWorst-case run budget');
+  budget.lines.forEach(line => console.log(`  ${line}`));
+  console.log(`  ${'='.repeat(40)}`);
+  console.log(`  worst case ${budget.seconds}s = ${budget.minutes} min`);
+  console.log(`  + ${MARGIN_MINUTES} min for checkout, language setup, upload and the issue`);
+  console.log(`  => the job's timeout-minutes must be at least ${budget.minutes + MARGIN_MINUTES}`);
+
+  if (capMinutes === null) return 0;
+
+  const required = budget.minutes + MARGIN_MINUTES;
+  if (capMinutes < required) {
+    console.error(
+      `\n::error::The snippets job allows ${capMinutes} minutes, but the snippets ` +
+        `configured in scripts/snippets.config.json can legitimately take ${budget.minutes} ` +
+        `and need ${required} with room for the rest of the job. A job cancelled at its ` +
+        `cap writes no report and opens no issue, so raise timeout-minutes to at least ` +
+        `${required} (and update the arithmetic in the comment above it).`
+    );
+    return 1;
+  }
+  console.log(`  the job allows ${capMinutes} min: ${capMinutes - required} min to spare`);
+  return 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -694,6 +910,7 @@ async function main() {
         (snippet.expect ? `, must print /${snippet.expectDescription}/` : '');
     console.log(`  ${snippet.name.padEnd(28)} ${detail}`);
   }
+  if (opts.budget) return reportBudget(plan, config.toolchain, opts.budgetCapMinutes);
   if (opts.list) return 0;
 
   const runnable = plan.filter(s => !s.skip);
@@ -755,8 +972,11 @@ async function main() {
       // snippet itself.
       result = { ok: false, phase: 'warm-up', note: setupFailure.note, output: setupFailure.output };
     } else {
-      const runDir = prepareRunDir(workDir, snippet, opts);
       try {
+        // Inside the try: a failed copy is this snippet's failure, reported
+        // alongside the others, not an exception that ends the run and takes
+        // the whole report with it.
+        const runDir = prepareRunDir(workDir, snippet, opts);
         const warmUpSeconds = warmUp(snippet, runDir, toolchains, config.toolchain);
         if (warmUpSeconds > 0) {
           console.log(
@@ -803,9 +1023,17 @@ async function main() {
   return failures.length === 0 ? 0 : 1;
 }
 
+// Set the code and let Node exit on its own rather than calling process.exit().
+// Writes to a pipe are asynchronous, and the nightly job pipes this straight
+// into `tee` -- process.exit() drops whatever is still queued, which is exactly
+// the summary, and on the failure path exactly the message the issue is built
+// from. Nothing here holds the event loop open (the escalation timers are
+// unref'd), so the process still ends as soon as its output has drained.
 main()
-  .then(code => process.exit(code))
+  .then(code => {
+    process.exitCode = code;
+  })
   .catch(err => {
     console.error(`\n${err.message}`);
-    process.exit(2);
+    process.exitCode = 2;
   });

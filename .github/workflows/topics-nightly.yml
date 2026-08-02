@@ -66,9 +66,14 @@ jobs:
             echo "::error::This workflow trusts '$TRUSTED_BRANCH', but the repository's default branch is '$DEFAULT_BRANCH'. Update TRUSTED_BRANCH and the pull request base in the automation workflows."
             exit 1
           fi
-          if [ "$GITHUB_REF_NAME" != "$TRUSTED_BRANCH" ]; then
+          # The FULL ref, never github.ref_name. ref_name strips the refs/heads/
+          # or refs/tags/ prefix, so a TAG named "main" presents the same string
+          # as the branch and would walk straight through a ref_name comparison.
+          # A tag is not the reviewed branch: it can be created by anyone who can
+          # push one, and it can be moved. Only refs/heads/<trusted> is trusted.
+          if [ "$GITHUB_REF" != "refs/heads/$TRUSTED_BRANCH" ]; then
             echo "trusted=false" >> "$GITHUB_OUTPUT"
-            echo "Dispatched from '$GITHUB_REF_NAME', not the trusted branch ('$TRUSTED_BRANCH'): doing nothing. This workflow runs repository scripts with write-capable credentials in scope, which is only safe from a ref that cannot change without review."
+            echo "Dispatched from '$GITHUB_REF', not the trusted branch ('refs/heads/$TRUSTED_BRANCH'): doing nothing. This workflow runs repository scripts with write-capable credentials in scope, which is only safe from a ref that cannot change without review."
             exit 0
           fi
           echo "trusted=true" >> "$GITHUB_OUTPUT"
@@ -88,6 +93,7 @@ jobs:
         env:
           DOCS_AUTOMATION_TOKEN: ${{ secrets.DOCS_AUTOMATION_TOKEN }}
         run: |
+          set -euo pipefail
           if [ -z "$DOCS_AUTOMATION_TOKEN" ]; then
             echo "::error::The DOCS_AUTOMATION_TOKEN secret is not set. This workflow pushes a branch and opens a pull request, and a push made with the default GITHUB_TOKEN does not trigger the pull request's checks. Add the secret (a fine-grained PAT scoped to this repository) or disable this workflow."
             exit 1
@@ -119,13 +125,52 @@ jobs:
       - name: Detect changes
         id: diff
         run: |
-          if git diff --quiet -- "$MANIFEST"; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "Topic data is unchanged; nothing to open a PR for."
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            git --no-pager diff --stat -- "$MANIFEST"
+          set -euo pipefail
+          # `git diff --quiet` answers with its exit code: 0 unchanged, 1
+          # changed, anything else an error. Only 1 means "changed" -- reading
+          # every non-zero code that way would turn a broken repository into a
+          # commit-and-push attempt on data nobody has looked at.
+          status=0
+          git diff --quiet -- "$MANIFEST" || status=$?
+          case "$status" in
+            0)
+              echo "changed=false" >> "$GITHUB_OUTPUT"
+              echo "Topic data is unchanged; nothing to open a PR for."
+              ;;
+            1)
+              echo "changed=true" >> "$GITHUB_OUTPUT"
+              git --no-pager diff --stat -- "$MANIFEST"
+              ;;
+            *)
+              echo "::error::git diff exited $status for $MANIFEST -- neither 'unchanged' nor 'changed'. Refusing to guess which."
+              exit 1
+              ;;
+          esac
+
+      # "Nothing changed" is not the same as "nothing to do". If a refresh PR is
+      # open and live state has since come back to what main already says, that
+      # PR is now proposing rows the chain no longer reports -- and because the
+      # no-diff path used to return here, it would sit there indefinitely,
+      # getting staler, waiting to be merged over good data. Close it.
+      - name: Close the refresh pull request when it has gone stale
+        if: steps.diff.outputs.changed == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+          number=$(gh pr list --head "$BRANCH" --state open \
+            --json number,isCrossRepository,headRepositoryOwner \
+            --jq '[.[] | select(.isCrossRepository == false and .headRepositoryOwner.login == env.REPO_OWNER)] | first // empty | .number')
+
+          if [ -z "$number" ]; then
+            echo "No open refresh pull request; nothing to close."
+            exit 0
           fi
+
+          gh pr close "$number" --comment \
+            "Closing automatically: live chain state now matches the topic data already on \`$BASE\`, so this pull request proposes rows that are no longer current. A fresh one opens by itself the next time the data actually changes."
+          echo "Closed stale pull request #$number."
 
       # The ref is already settled by the `guard` job: this step only runs on
       # the trusted default branch, so the base below is simply that branch.
@@ -138,6 +183,7 @@ jobs:
         if: steps.diff.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ secrets.DOCS_AUTOMATION_TOKEN }}
+          REPO_OWNER: ${{ github.repository_owner }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
@@ -151,7 +197,16 @@ jobs:
           git -c credential.helper= \
               -c credential.helper='!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f' \
               push --force origin "$BRANCH"
-          if [ -z "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
+          # A branch name is not an identity: anyone can open a pull request from
+          # a fork whose head branch is called chore/refresh-topics-data, and a
+          # bare --head lookup would count it as ours. The automation would then
+          # push data and never open its own pull request, silently, for as long
+          # as that fork PR stayed open. Only a pull request from a branch in
+          # this repository is this workflow's.
+          existing=$(gh pr list --head "$BRANCH" --state open \
+            --json number,isCrossRepository,headRepositoryOwner \
+            --jq '[.[] | select(.isCrossRepository == false and .headRepositoryOwner.login == env.REPO_OWNER)] | first // empty | .number')
+          if [ -z "$existing" ]; then
             gh pr create \
               --base "$BASE" \
               --head "$BRANCH" \
