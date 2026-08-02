@@ -384,11 +384,23 @@ function importedConstants(bodyLines, mdxFile) {
     const available = loadModuleConstants(path.resolve(path.dirname(mdxFile), source));
     match[1]
       .split(',')
-      .map(name => name.trim().split(/\s+as\s+/)[0].trim())
+      .map(entry => entry.trim())
       .filter(Boolean)
-      .forEach(name => {
-        localNames.add(name);
-        if (available[name] !== undefined) constants[name] = available[name];
+      .forEach(entry => {
+        // `{ CHAIN_VERSION_TESTNET as V }` carries two names, used in different
+        // places: the module exports the first, the page interpolates the
+        // second. Only the exported name was kept, so `{V}` matched neither the
+        // resolved constants nor the "a local import declared this" set — and
+        // passed straight through both, shipping the placeholder into the
+        // corpus. That is the single outcome this path exists to prevent, so
+        // both names are tracked: look up by the export, key by the alias, and
+        // register the alias as locally imported so an unresolvable one still
+        // stops generation.
+        const [exported, alias] = entry.split(/\s+as\s+/).map(part => part.trim());
+        const local = alias || exported;
+        if (!local) return;
+        localNames.add(local);
+        if (available[exported] !== undefined) constants[local] = available[exported];
       });
   });
   return { constants, localNames };
@@ -514,6 +526,37 @@ function markdownTable(header, rows) {
     `| ${header.map(() => '---').join(' | ')} |`,
     ...rows.map(row => `| ${row.map(cell).join(' | ')} |`),
   ];
+}
+
+// ── untrusted text from the chain ───────────────────────────────────────────
+//
+// A topic's `metadata` and `loss_method` are whatever the account that created
+// the topic typed. They are not ours, nobody reviews them, and they are the
+// only values in the whole corpus that arrive from outside this repository —
+// yet they land in a markdown table row and inside a code span, both of which
+// are syntax a value can escape from.
+//
+// A newline ends the row. A run of backticks closes the span and reopens as
+// something else. A cell of unbounded length wrecks a table for every reader of
+// it. So the values are normalised at this boundary — the one place they cross
+// from data into documentation syntax — rather than trusted because the chain
+// happened to return them.
+//
+// Escaping, not rejecting, on purpose: refusing to publish would let anyone who
+// can create a topic stop the docs from updating at all.
+
+const MAX_CHAIN_TEXT = 200;
+
+function chainText(value) {
+  const text = String(value)
+    // Control and format characters: line breaks that would end a table row,
+    // and the bidi/zero-width formatters that can make rendered text disagree
+    // with the bytes underneath it.
+    .replace(/[\p{Cc}\p{Cf}]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return text.length > MAX_CHAIN_TEXT ? `${text.slice(0, MAX_CHAIN_TEXT - 1)}…` : text;
 }
 
 // The row/column lists below mirror the presentation lists in
@@ -687,12 +730,15 @@ function renderTopicsTable(attributes) {
     TOPIC_COLUMNS,
     rows.map(topic => [
       // The site marks a sandbox topic with a bold id and a "sandbox" badge;
-      // markdown has no badge, so the same two facts render as text.
-      topic.sandbox ? `**${topic.id}** (sandbox)` : String(topic.id),
-      topic.metadata,
-      String(topic.epoch_length),
-      topic.category,
-      topic.loss_method,
+      // markdown has no badge, so the same two facts render as text. `id` and
+      // `epoch_length` are validated as unsigned integers upstream and are
+      // interpolated as numbers; `metadata` and `loss_method` are free text
+      // from whoever created the topic, so they go through chainText.
+      topic.sandbox ? `**${Number(topic.id)}** (sandbox)` : String(Number(topic.id)),
+      chainText(topic.metadata),
+      String(Number(topic.epoch_length)),
+      chainText(topic.category),
+      chainText(topic.loss_method),
     ])
   );
 }
@@ -720,7 +766,9 @@ function renderSandboxTopics(attributes) {
   const network = requireNetworkAttribute('<SandboxTopics/>', attributes);
   const rows = sandboxTopicsFor(network);
   if (rows.length === 0) return [`No sandbox topics are marked for ${network}.`];
-  return rows.map(topic => `- **${topic.id}** — \`${topic.metadata}\``);
+  // codeSpan widens the fence past any backtick run in the value, so a topic
+  // name containing backticks cannot close the span and start writing markdown.
+  return rows.map(topic => `- **${Number(topic.id)}** — ${codeSpan(chainText(topic.metadata))}`);
 }
 
 /** Mirrors topicsGeneratedOn in components/TopicsTable.js. */
@@ -1213,6 +1261,24 @@ function mdxToMarkdown(mdxFile, bodyLines, { stripLeadingH1 = true } = {}) {
     const code = line.match(/^\s*<Code>\{`([\s\S]*)`\}<\/Code>\s*$/);
     if (code) {
       const text = interpolate(code[1], /\$\{([A-Za-z_$][A-Za-z0-9_$]*)\}/g);
+      // This block's content is a JavaScript template literal in the source, so
+      // the site evaluates every `${…}` in it. Anything still standing here is
+      // a value the page shows and the corpus would not — a copy-paste command
+      // carrying `${SOMETHING}` where the version belongs, which is the exact
+      // failure the unresolved-constant check further down exists to prevent.
+      // It only catches names imported from a *local* module, so a page
+      // interpolating something imported from a package would slip past it.
+      // An escaped `\${…}` is a literal the author asked for and is left alone.
+      const survivor = text.match(/(?<!\\)\$\{([A-Za-z_$][A-Za-z0-9_$]*)\}/);
+      if (survivor) {
+        throw new Error(
+          `${path.relative(ROOT, mdxFile)} builds a code block interpolating ` +
+            `\${${survivor[1]}}, which scripts/lib/docsPages.js could not resolve to a ` +
+            'value. The rendered page would show the value and the generated corpus would ' +
+            'show the placeholder. Import it from a local module this script can read ' +
+            '(components/versions.ts), or write the value literally.'
+        );
+      }
       emit(`\`\`\`${preLanguage || ''}`);
       text.split(/\r?\n/).forEach(emit);
       emit('```');
@@ -1422,6 +1488,25 @@ function collectAllPages() {
       console.error(`  ${page.relativePath} — missing or empty: ${missing.join(', ')}`);
     });
     console.error('\nRun `yarn frontmatter` to fill in missing keys, then review the values.');
+    process.exit(1);
+  }
+
+  // Invariant: one URL, one page. `foo.mdx` and `foo/index.mdx` both serve
+  // /foo, and nothing upstream forbids having both — but then llms.txt lists
+  // that URL twice, two raw files claim it, and only one of them is reachable
+  // by the documented "append .md" rule. /reference/llms-and-agents promises
+  // the mapping is total in both directions, so a collision has to stop
+  // generation rather than quietly make that page wrong.
+  const byUrl = new Map();
+  all.forEach(page => byUrl.set(page.url, [...(byUrl.get(page.url) || []), page.relativePath]));
+  const collisions = [...byUrl.entries()].filter(([, files]) => files.length > 1);
+  if (collisions.length > 0) {
+    console.error(
+      `Docs page collection failed: ${collisions.length} URL(s) are claimed by more than one ` +
+        'page, so the generated views would list the same URL twice.\n'
+    );
+    collisions.forEach(([url, files]) => console.error(`  ${url} — ${files.join(', ')}`));
+    console.error('\nKeep one page per URL: either the `<name>.mdx` or the `<name>/index.mdx`.');
     process.exit(1);
   }
 

@@ -161,9 +161,30 @@ function buildPullRequestBody(drifted, probeErrors) {
     return;
   }
 
-  const raw = fs.readFileSync(manifestPath, 'utf8');
-  const manifest = JSON.parse(raw);
-  const networks = Object.entries(manifest.networks || {});
+  // Parsed defensively because this job *writes* the manifest back: an
+  // unreadable or wrongly-shaped file used to surface as a bare SyntaxError, or
+  // as "Cannot read properties of null", with no mention of which file was at
+  // fault — from a process whose next move is to overwrite it.
+  let manifest;
+  try {
+    manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  } catch (error) {
+    console.error(`Could not read ${manifestPath}: ${error.message}`);
+    process.exitCode = 2;
+    return;
+  }
+
+  if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) {
+    console.error(`${manifestPath} is valid JSON but not an object.`);
+    process.exitCode = 2;
+    return;
+  }
+
+  const networks = Object.entries(
+    manifest.networks && typeof manifest.networks === 'object' && !Array.isArray(manifest.networks)
+      ? manifest.networks
+      : {}
+  );
 
   if (networks.length === 0) {
     console.error(`No networks defined in ${manifestPath}`);

@@ -37,16 +37,31 @@ const BADGE_CLASS =
 // from one written as markdown (top margin, themed horizontal scrollbar).
 const TABLE_CLASS = 'nextra-scrollbar nx-mt-6 nx-p-0 first:nx-mt-0'
 
-/** ISO date (YYYY-MM-DD) of the run that last changed the topic data. */
-export const topicsGeneratedOn = topicsData.generated_at.slice(0, 10)
+// Everything below that is not a component stays module-private. Only the
+// components are imported by pages, and an exported helper nothing consumes is
+// a second contract to keep in step with the manifest for no benefit.
 
-/** Metadata for one network: chain ID, emissions API version, active count. */
-export function topicsNetworkInfo(network) {
-  return topicsData.networks.find(entry => entry.network === network)
-}
+/**
+ * ISO date (YYYY-MM-DD) of the run that last changed the topic data.
+ *
+ * scripts/generateTopics.js will not write a `generated_at` that is not a real
+ * calendar instant, and scripts/lib/docsPages.js refuses to build the corpus
+ * from one — but this runs at import time, so without a check of its own the
+ * failure would be `Cannot read properties of undefined` with no file named.
+ */
+const topicsGeneratedOn = (() => {
+  const value = topicsData.generated_at
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T/.test(value)) {
+    throw new Error(
+      `public/api/topics.json has no ISO-8601 "generated_at" (got ${JSON.stringify(value)}); ` +
+        'regenerate it with `yarn topics`'
+    )
+  }
+  return value.slice(0, 10)
+})()
 
 /** The topics of one network, already ordered by numeric topic ID. */
-export function topicsFor(network) {
+function topicsFor(network) {
   return topicsData.topics.filter(topic => topic.network === network)
 }
 
@@ -59,12 +74,12 @@ export function topicsFor(network) {
  * it through the components below rather than spelling the IDs out in prose,
  * so activating a sandbox topic is a one-line change to that manifest.
  */
-export function sandboxTopicsFor(network) {
+function sandboxTopicsFor(network) {
   return topicsFor(network).filter(topic => topic.sandbox)
 }
 
 /** Sandbox topic IDs as a sentence fragment: "69 and 77", "69, 77 and 80". */
-export function sandboxTopicIdList(network) {
+function sandboxTopicIdList(network) {
   const ids = sandboxTopicsFor(network).map(topic => topic.id)
   if (ids.length === 0) return 'none'
   if (ids.length === 1) return String(ids[0])
