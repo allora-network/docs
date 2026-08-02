@@ -504,10 +504,11 @@ function manifest(file) {
   return parsed;
 }
 
-// A markdown table. Only `|` is escaped: cells carry markdown of their own
-// (bold labels, inline code) on purpose.
+// A markdown table. Backslashes are escaped before `|` so a cell value ending
+// in a backslash cannot neutralize the pipe escape and break the row; other
+// markdown in cells (bold labels, inline code) is kept on purpose.
 function markdownTable(header, rows) {
-  const cell = value => String(value).replace(/\|/g, '\\|');
+  const cell = value => String(value).replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
   return [
     `| ${header.map(cell).join(' | ')} |`,
     `| ${header.map(() => '---').join(' | ')} |`,
