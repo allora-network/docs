@@ -2,8 +2,8 @@
 title: How to Query Network Data using allorad
 description: To query network-level data on the Allora chain using the allorad CLI, you need to interact with various RPC methods designed to return aggregate or holistic information about the network.
 persona: Topic creator
-verified_against: docs content as of 2024-10-08
-last_reviewed: 2024-10-08
+verified_against: allora-chain v0.17.0 (x/emissions/module/autocli.go)
+last_reviewed: 2026-08-02
 ---
 
 # How to Query Network Data using `allorad`
@@ -23,20 +23,22 @@ These functions read from the appchain only and do not write. Add the **Command*
 allorad q emissions [Command] --node <RPC_URL>
 ```
 
-### Get Latest Available Network Inferences
+### Get Latest Network Inferences
 
-- **RPC Method:** `GetLatestAvailableNetworkInferences`
-- **Command:** `latest-available-network-inferences [topic_id]`
-- **Description:** Returns the latest network inference for a given topic, but only if all necessary information to compute the inference is present. The result is only provided when complete data from the network is available to ensure accuracy.
+- **RPC Method:** `GetLatestNetworkInferences`
+- **Command:** `latest-network-inferences [topic_id]`
+- **Description:** Returns the latest network inference and weights for a given topic. The chain returns whatever information it currently has available for the topic.
 - **Positional Arguments:**
-    - `topic_id`: The identifier of the topic for which you want to retrieve the latest available network inference.
+    - `topic_id`: The identifier of the topic for which you want to retrieve the latest network inference.
+
+An outlier-resistant variant (single-label regression topics only) is available as `GetLatestNetworkInferencesOutlierResistant` (`latest-network-inferences-outlier-resistant [topic_id]`).
 
 #### Use Case:
 **Why use it?**
-- This command is useful when you need to retrieve the most recent network-wide inference for a topic, ensuring that all necessary data has been collected and processed. It is ideal for situations where decision-making relies on the completeness of the data and where partial data may lead to inaccurate conclusions.
+- This command is the primary way to retrieve the most recent network-wide inference for a topic. The response carries an `inference_block_height` field, so you can tell how recent the returned inference is before acting on it.
 
 **Example Scenario:**
-- If you want to make a decision based on network predictions, but only when the inference is fully computed, use this command. For example, you might want the latest ETH price prediction, but only when all worker and forecaster data is available to provide an accurate result.
+- You want the latest ETH price prediction produced by the network, together with the worker and forecaster values that fed into it.
 
 ---
 

@@ -2,8 +2,8 @@
 title: How to Create a Topic
 description: Inferences for the same domain are aggregated into the same topic.
 persona: Topic creator
-verified_against: docs content as of 2026-07-16
-last_reviewed: 2026-07-16
+verified_against: allora-chain v0.17.0 (x/emissions/module/autocli.go, emissions/v10 tx.proto)
+last_reviewed: 2026-08-02
 ---
 
 import { Callout } from 'nextra/components'
@@ -96,37 +96,67 @@ type MsgCreateNewTopic struct {
 
 Using the [`allorad` CLI](/get-started/cli#installing-allorad) to create a topic:
 
-The command takes the following positional arguments, in order:
+The command takes 25 positional arguments, in this order. The example below passes the value shown in the right-hand column for each one:
+
+| # | Argument | Value in the example |
+|---|----------|----------------------|
+| 1 | `creator` | `"$YOUR_ADDRESS"` |
+| 2 | `metadata` | `"ETH prediction in 24h"` |
+| 3 | `loss_method` | `"mse"` |
+| 4 | `epoch_length` | `3600` |
+| 5 | `ground_truth_lag` | `0` |
+| 6 | `worker_submission_window` | `3` |
+| 7 | `p_norm` | `3` |
+| 8 | `alpha_regret` | `1` |
+| 9 | `allow_negative` | `true` |
+| 10 | `epsilon` | `0.001` |
+| 11 | `merit_sortition_alpha` | `0.1` |
+| 12 | `active_inferer_quantile` | `0.25` |
+| 13 | `active_forecaster_quantile` | `0.25` |
+| 14 | `active_reputer_quantile` | `0.25` |
+| 15 | `enable_worker_whitelist` | `false` |
+| 16 | `enable_reputer_whitelist` | `false` |
+| 17 | `c_norm` | `0.75` |
+| 18 | `topic_type` | `1` (regression) |
+| 19 | `output_arity` | `1` (single output) |
+| 20 | `require_unity` | `false` |
+| 21 | `unity_tolerance` | `0` |
+| 22 | `max_labels_per_submission` | `1` |
+| 23 | `label_whitelist` | `'[]'` (empty = unrestricted) |
+| 24 | `label_default_value` | `0` |
+| 25 | `label_case_sensitive` | `false` |
+
+Set `YOUR_ADDRESS`, `RPC_URL` and `CHAIN_ID` in your shell, then run:
 
 ```shell bash
 allorad tx emissions create-topic \
-  allo13tr5nx74zjdh7ya8kgyuu0hweppnnx8d4ux7pj \    # creator address
-  "ETH prediction in 24h" \                        # metadata
-  "mse" \                                          # loss_method
-  3600 \                                           # epoch_length
-  0 \                                              # ground_truth_lag
-  3 \                                              # worker_submission_window
-  3 \                                              # p_norm
-  1 \                                              # alpha_regret
-  true \                                           # allow_negative
-  0.001 \                                          # epsilon
-  0.1 \                                            # merit_sortition_alpha
-  0.25 \                                           # active_inferer_quantile
-  0.25 \                                           # active_forecaster_quantile
-  0.25 \                                           # active_reputer_quantile
-  false \                                          # enable_worker_whitelist
-  false \                                          # enable_reputer_whitelist
-  0.75 \                                           # c_norm
-  1 \                                              # topic_type (1 = regression)
-  1 \                                              # output_arity (1 = single output)
-  false \                                          # require_unity
-  0 \                                              # unity_tolerance
-  1 \                                              # max_labels_per_submission
-  '[]' \                                           # label_whitelist (empty = unrestricted)
-  0 \                                              # label_default_value
-  false \                                          # label_case_sensitive
-  --node <RPC_URL> \
-  --chain-id <CHAIN_ID>
+  "$YOUR_ADDRESS" \
+  "ETH prediction in 24h" \
+  "mse" \
+  3600 \
+  0 \
+  3 \
+  3 \
+  1 \
+  true \
+  0.001 \
+  0.1 \
+  0.25 \
+  0.25 \
+  0.25 \
+  false \
+  false \
+  0.75 \
+  1 \
+  1 \
+  false \
+  0 \
+  1 \
+  '[]' \
+  0 \
+  false \
+  --node "$RPC_URL" \
+  --chain-id "$CHAIN_ID"
 ```
 
 Be sure to swap out [`RPC_URL`](/get-started/setup-wallet#rpc-url-and-chain-id), `YOUR_ADDRESS`, [`CHAIN_ID`](/get-started/setup-wallet#rpc-url-and-chain-id) and all other arguments as appropriate with the desired values.
@@ -183,13 +213,12 @@ changes are rejected while a worker submission window is open. `topic_type`, `ou
 ## Fund a Topic
 
 - **RPC Method:** `FundTopic`
-- **Command:** `fund-topic [sender] [topic_id] [amount] [extra_data]`
+- **Command:** `fund-topic [sender] [topic_id] [amount]`
 - **Description:** Sends funds to a specific topic to be used for paying for inferences or other topic-related activities.
 - **Positional Arguments:**
     - `sender`: The address of the sender providing the funds.
     - `topic_id`: The identifier of the topic to receive the funds.
     - `amount`: The amount of funds being sent to the topic.
-    - `extra_data`: Additional data or metadata associated with the funding transaction.
 
 ### Use Case:
 **Why use it?**  

@@ -1346,7 +1346,7 @@ Despite the complexities involved in the setup and operation of different partic
 
 Interacting with the Allora Network also involves querying data of existing topics on-chain. This can be efficiently done using the Allorad CLI tool. The CLI tool provides a command-line interface to interact with the network, enabling users to retrieve on-chain data seamlessly.
 
-Follow the tutorial [here](https://docs.allora.network/operate/topics/query-network-data#get-latest-available-network-inferences) to learn how to query an inference on-chain using the `allorad` CLI tool.
+Follow the tutorial [here](https://docs.allora.network/operate/topics/query-network-data#get-latest-network-inferences) to learn how to query an inference on-chain using the `allorad` CLI tool.
 
 ## Delegating Stake to a Reputer
 
@@ -5198,9 +5198,11 @@ For a complete list of available RPC endpoints and commands, see the [allorad re
 Each network uses a different RPC URL and Chain ID which are needed to specify which network to run commands on when using specific commands on allorad.
 
 ### Testnet
-- **RPC URLs**:
-  - `https://allora-rpc.testnet.allora.network/`
+- **RPC URL** (CometBFT): `https://allora-rpc.testnet.allora.network/`
+- **LCD URL** (Cosmos SDK REST): `https://allora-api.testnet.allora.network/`
 - **Chain ID**: `allora-testnet-1`
+
+See [Networks](https://docs.allora.network/reference/networks) for the current endpoints of every network, including the versioned `emissions` namespace each one serves.
 
 ## RPC Endpoints for Consumers
 
@@ -5258,45 +5260,29 @@ The `combined_value` field is a list of labeled values representing the optimize
 
 ## Using RPC in Your Applications
 
-### JavaScript/TypeScript Example
+The CometBFT `abci_query` method takes **protobuf-encoded** request bytes and returns protobuf-encoded response bytes — it does not accept or return JSON. Calling it from a plain HTTP client therefore requires generated protobuf stubs for the emissions module. For everything below, the Cosmos SDK **LCD (REST)** endpoints expose the same queries as JSON over `GET`, which is what a typical application should use.
 
-Here's an example of how to query the Allora network using RPC in a JavaScript/TypeScript application:
+Every `allorad q emissions` query has a matching LCD path. The one used below is
+`/<emissions-namespace>/latest_network_inferences/{topic_id}`, where the namespace is `emissions/v10`
+on testnet and `emissions/v9` on mainnet.
+
+### JavaScript/TypeScript Example
 
 ```typescript
 import axios from 'axios';
 
-async function getLatestInference(topicId: number, rpcUrl: string) {
-  try {
-    const response = await axios.post(rpcUrl, {
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'abci_query',
-      params: {
-        path: `/allora.emissions.v10.Query/GetLatestNetworkInferences`,
-        data: Buffer.from(JSON.stringify({ topic_id: topicId })).toString('hex'),
-        prove: false
-      }
-    });
+// See /reference/networks for the LCD URL and emissions namespace of each network.
+const LCD_URL = 'https://allora-api.testnet.allora.network';
+const EMISSIONS = 'emissions/v10';
 
-    // Parse the response
-    const result = response.data.result;
-    if (result.response.code !== 0) {
-      throw new Error(`Query failed with code ${result.response.code}`);
-    }
-
-    // Decode the response value
-    const decodedValue = Buffer.from(result.response.value, 'base64').toString();
-    const parsedValue = JSON.parse(decodedValue);
-
-    return parsedValue;
-  } catch (error) {
-    console.error('Error querying Allora RPC:', error);
-    throw error;
-  }
+async function getLatestInference(topicId: number) {
+  const url = `${LCD_URL}/${EMISSIONS}/latest_network_inferences/${topicId}`;
+  const response = await axios.get(url);
+  return response.data;
 }
 
 // Example usage
-getLatestInference(1, 'https://allora-rpc.testnet.allora.network/')
+getLatestInference(1)
   .then(data => {
     // combined_value is a list of labeled values; a single-output topic has one entry ("y")
     console.log('Latest inference:', data.network_inferences.combined_value[0].value);
@@ -5309,50 +5295,26 @@ getLatestInference(1, 'https://allora-rpc.testnet.allora.network/')
 
 ### Python Example
 
-Here's an example of how to query the Allora network using RPC in a Python application:
-
 ```python
 import requests
-import json
-import base64
 
-def get_latest_inference(topic_id, rpc_url):
-    try:
-        payload = {
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "abci_query",
-            "params": {
-                "path": "/allora.emissions.v10.Query/GetLatestNetworkInferences",
-                "data": bytes(json.dumps({"topic_id": topic_id}), 'utf-8').hex(),
-                "prove": False
-            }
-        }
-        
-        response = requests.post(rpc_url, json=payload)
-        response.raise_for_status()
-        
-        result = response.json()["result"]
-        if result["response"]["code"] != 0:
-            raise Exception(f"Query failed with code {result['response']['code']}")
-        
-        # Decode the response value
-        decoded_value = base64.b64decode(result["response"]["value"]).decode('utf-8')
-        parsed_value = json.loads(decoded_value)
-        
-        return parsed_value
-    except Exception as e:
-        print(f"Error querying Allora RPC: {e}")
-        raise
+# See /reference/networks for the LCD URL and emissions namespace of each network.
+LCD_URL = "https://allora-api.testnet.allora.network"
+EMISSIONS = "emissions/v10"
+
+
+def get_latest_inference(topic_id):
+    url = f"{LCD_URL}/{EMISSIONS}/latest_network_inferences/{topic_id}"
+    response = requests.get(url, timeout=30)
+    response.raise_for_status()
+    return response.json()
+
 
 # Example usage
-try:
-    data = get_latest_inference(1, "https://allora-rpc.testnet.allora.network/")
-    # combined_value is a list of labeled values; a single-output topic has one entry ("y")
-    print(f"Latest inference: {data['network_inferences']['combined_value'][0]['value']}")
-    print(f"Inference block height: {data['inference_block_height']}")
-except Exception as e:
-    print(f"Failed to get inference: {e}")
+data = get_latest_inference(1)
+# combined_value is a list of labeled values; a single-output topic has one entry ("y")
+print(f"Latest inference: {data['network_inferences']['combined_value'][0]['value']}")
+print(f"Inference block height: {data['inference_block_height']}")
 ```
 
 ## RPC vs API: When to Use Each
@@ -5538,7 +5500,7 @@ Validators participate in the consensus mechanism of the appchain, running Comet
 
 ### Receive Rewards
 
-Validators [receive rewards]() based on the amount of stake they hold or have delegated to them.
+Validators [receive rewards](https://docs.allora.network/learn/consensus-and-rewards) based on the amount of stake they hold or have delegated to them.
 
 ## Learn More
 
@@ -5637,7 +5599,7 @@ Once this is set up, run `docker compose up`.
 ## Deploy in k8s with helm chart
 
 Upshot team uses a [universal-helm](https://upshot-tech.github.io/helm-charts/) chart to deploy applications into kubernetes clusters.
-There is an `index-provider/values.yaml` provided as an example that sets up the node components.
+The chart ships an [`example--allora-validator.yaml`](https://github.com/upshot-tech/helm-charts/blob/main/charts/universal-helm/example--allora-validator.yaml) values file that sets up the node components. Download it and edit it for your environment before installing.
 
 ### Dependencies
 
@@ -5656,9 +5618,9 @@ helm repo add upshot https://upshot-tech.github.io/helm-charts
 
 ```bash
 helm install \
-  index-provider \
+  allora-validator \
   upshot/universal-helm \
-  -f appchain/values.yaml
+  -f example--allora-validator.yaml
 ```
 
 ### Edit Chain Parameters
@@ -5840,7 +5802,7 @@ chmod +x state_sync.sh
 Reset existing data while keeping the address book:
 
 ```shell
-allorad tendermint unsafe-reset-all --home $HOME/.allorad --keep-addr-book
+allorad comet unsafe-reset-all --home $HOME/.allorad --keep-addr-book
 ```
 
 **Warning**: This command deletes blockchain data. Only run this on a fresh node or when you intend to resync from scratch.
@@ -6480,37 +6442,67 @@ type MsgCreateNewTopic struct {
 
 Using the [`allorad` CLI](https://docs.allora.network/get-started/cli#installing-allorad) to create a topic:
 
-The command takes the following positional arguments, in order:
+The command takes 25 positional arguments, in this order. The example below passes the value shown in the right-hand column for each one:
+
+| # | Argument | Value in the example |
+|---|----------|----------------------|
+| 1 | `creator` | `"$YOUR_ADDRESS"` |
+| 2 | `metadata` | `"ETH prediction in 24h"` |
+| 3 | `loss_method` | `"mse"` |
+| 4 | `epoch_length` | `3600` |
+| 5 | `ground_truth_lag` | `0` |
+| 6 | `worker_submission_window` | `3` |
+| 7 | `p_norm` | `3` |
+| 8 | `alpha_regret` | `1` |
+| 9 | `allow_negative` | `true` |
+| 10 | `epsilon` | `0.001` |
+| 11 | `merit_sortition_alpha` | `0.1` |
+| 12 | `active_inferer_quantile` | `0.25` |
+| 13 | `active_forecaster_quantile` | `0.25` |
+| 14 | `active_reputer_quantile` | `0.25` |
+| 15 | `enable_worker_whitelist` | `false` |
+| 16 | `enable_reputer_whitelist` | `false` |
+| 17 | `c_norm` | `0.75` |
+| 18 | `topic_type` | `1` (regression) |
+| 19 | `output_arity` | `1` (single output) |
+| 20 | `require_unity` | `false` |
+| 21 | `unity_tolerance` | `0` |
+| 22 | `max_labels_per_submission` | `1` |
+| 23 | `label_whitelist` | `'[]'` (empty = unrestricted) |
+| 24 | `label_default_value` | `0` |
+| 25 | `label_case_sensitive` | `false` |
+
+Set `YOUR_ADDRESS`, `RPC_URL` and `CHAIN_ID` in your shell, then run:
 
 ```shell bash
 allorad tx emissions create-topic \
-  allo13tr5nx74zjdh7ya8kgyuu0hweppnnx8d4ux7pj \    # creator address
-  "ETH prediction in 24h" \                        # metadata
-  "mse" \                                          # loss_method
-  3600 \                                           # epoch_length
-  0 \                                              # ground_truth_lag
-  3 \                                              # worker_submission_window
-  3 \                                              # p_norm
-  1 \                                              # alpha_regret
-  true \                                           # allow_negative
-  0.001 \                                          # epsilon
-  0.1 \                                            # merit_sortition_alpha
-  0.25 \                                           # active_inferer_quantile
-  0.25 \                                           # active_forecaster_quantile
-  0.25 \                                           # active_reputer_quantile
-  false \                                          # enable_worker_whitelist
-  false \                                          # enable_reputer_whitelist
-  0.75 \                                           # c_norm
-  1 \                                              # topic_type (1 = regression)
-  1 \                                              # output_arity (1 = single output)
-  false \                                          # require_unity
-  0 \                                              # unity_tolerance
-  1 \                                              # max_labels_per_submission
-  '[]' \                                           # label_whitelist (empty = unrestricted)
-  0 \                                              # label_default_value
-  false \                                          # label_case_sensitive
-  --node <RPC_URL> \
-  --chain-id <CHAIN_ID>
+  "$YOUR_ADDRESS" \
+  "ETH prediction in 24h" \
+  "mse" \
+  3600 \
+  0 \
+  3 \
+  3 \
+  1 \
+  true \
+  0.001 \
+  0.1 \
+  0.25 \
+  0.25 \
+  0.25 \
+  false \
+  false \
+  0.75 \
+  1 \
+  1 \
+  false \
+  0 \
+  1 \
+  '[]' \
+  0 \
+  false \
+  --node "$RPC_URL" \
+  --chain-id "$CHAIN_ID"
 ```
 
 Be sure to swap out [`RPC_URL`](https://docs.allora.network/get-started/setup-wallet#rpc-url-and-chain-id), `YOUR_ADDRESS`, [`CHAIN_ID`](https://docs.allora.network/get-started/setup-wallet#rpc-url-and-chain-id) and all other arguments as appropriate with the desired values.
@@ -6565,13 +6557,12 @@ changes are rejected while a worker submission window is open. `topic_type`, `ou
 ## Fund a Topic
 
 - **RPC Method:** `FundTopic`
-- **Command:** `fund-topic [sender] [topic_id] [amount] [extra_data]`
+- **Command:** `fund-topic [sender] [topic_id] [amount]`
 - **Description:** Sends funds to a specific topic to be used for paying for inferences or other topic-related activities.
 - **Positional Arguments:**
     - `sender`: The address of the sender providing the funds.
     - `topic_id`: The identifier of the topic to receive the funds.
     - `amount`: The amount of funds being sent to the topic.
-    - `extra_data`: Additional data or metadata associated with the funding transaction.
 
 ### Use Case:
 **Why use it?**
@@ -6760,20 +6751,20 @@ allorad q emissions [Command] --node <RPC_URL>
 
 ---
 
-### Get Latest Available Network Inferences for a Topic
+### Get Latest Network Inferences for a Topic
 
-- **RPC Method:** `GetLatestAvailableNetworkInferences`
-- **Command:** `latest-available-network-inferences [topic_id]`
-- **Description:** Retrieves the latest network inference for a given topic, but only if all necessary information to compute the inference is present.
+- **RPC Method:** `GetLatestNetworkInferences`
+- **Command:** `latest-network-inferences [topic_id]`
+- **Description:** Retrieves the latest network inference and weights for a given topic, using whatever information the network currently has available.
 - **Positional Arguments:**
     - `topic_id`: The identifier of the topic.
 
 #### Use Case:
 **Why use it?**
-- This command is useful for getting the most recent network-wide inference for a topic when all necessary data has been collected.
+- This command is the primary way to get the most recent network-wide inference for a topic.
 
 **Example Scenario:**
-- You want to retrieve the latest ETH price prediction, but only if all the data from workers and forecasters has been collected.
+- You want to retrieve the latest ETH price prediction along with the worker and forecaster values that produced it.
 
 ---
 
@@ -6922,20 +6913,22 @@ These functions read from the appchain only and do not write. Add the **Command*
 allorad q emissions [Command] --node <RPC_URL>
 ```
 
-### Get Latest Available Network Inferences
+### Get Latest Network Inferences
 
-- **RPC Method:** `GetLatestAvailableNetworkInferences`
-- **Command:** `latest-available-network-inferences [topic_id]`
-- **Description:** Returns the latest network inference for a given topic, but only if all necessary information to compute the inference is present. The result is only provided when complete data from the network is available to ensure accuracy.
+- **RPC Method:** `GetLatestNetworkInferences`
+- **Command:** `latest-network-inferences [topic_id]`
+- **Description:** Returns the latest network inference and weights for a given topic. The chain returns whatever information it currently has available for the topic.
 - **Positional Arguments:**
-    - `topic_id`: The identifier of the topic for which you want to retrieve the latest available network inference.
+    - `topic_id`: The identifier of the topic for which you want to retrieve the latest network inference.
+
+An outlier-resistant variant (single-label regression topics only) is available as `GetLatestNetworkInferencesOutlierResistant` (`latest-network-inferences-outlier-resistant [topic_id]`).
 
 #### Use Case:
 **Why use it?**
-- This command is useful when you need to retrieve the most recent network-wide inference for a topic, ensuring that all necessary data has been collected and processed. It is ideal for situations where decision-making relies on the completeness of the data and where partial data may lead to inaccurate conclusions.
+- This command is the primary way to retrieve the most recent network-wide inference for a topic. The response carries an `inference_block_height` field, so you can tell how recent the returned inference is before acting on it.
 
 **Example Scenario:**
-- If you want to make a decision based on network predictions, but only when the inference is fully computed, use this command. For example, you might want the latest ETH price prediction, but only when all worker and forecaster data is available to provide an accurate result.
+- You want the latest ETH price prediction produced by the network, together with the worker and forecaster values that fed into it.
 
 ---
 
@@ -7829,7 +7822,7 @@ allorad q emissions [Command] --node <RPC_URL>
 
 ### Params
 
-- **RPC Method:** `Params`
+- **RPC Method:** `GetParams`
 - **Command:** `params`
 - **Description:** Get the current module parameters.
 
@@ -7855,14 +7848,13 @@ allorad q emissions [Command] --node <RPC_URL>
 - **Positional Arguments:**
   - `topic_id` Identifier of the topic whose information will be returned.
 
-### Get Active Topics
+### Get Active Topics At Block
 
-- **RPC Method:** `GetActiveTopics`
-- **Command:** `active-topics [pagination]`
-- **Description:** Get topic by topic_id.
+- **RPC Method:** `GetActiveTopicsAtBlock`
+- **Command:** `active-topics-at-block [block_height]`
+- **Description:** Get the topics that were active at a given block height.
 - **Positional Arguments:**
-  - `pagination` The json key-value pair of the limit of topics outputted
-    - **Example:** `'{"limit":10}'`
+  - `block_height` Block height to query.
 
 ### Is Topic Active
 
@@ -7871,12 +7863,6 @@ allorad q emissions [Command] --node <RPC_URL>
 - **Description:** True if the topic is active, else false.
 - **Positional Arguments:**
   - `topic_id` Identifier of the topic whose information will be returned.
-
-### Get Rewardable Topics
-
-- **RPC Method:** `GetRewardableTopics`
-- **Command:** `rewardable-topics`
-- **Description:** Get Rewardable Topics.
 
 ### Get Delegate Reward Per Share
 
@@ -7890,7 +7876,7 @@ allorad q emissions [Command] --node <RPC_URL>
 ### Get Delegate Stake Placement
 
 - **RPC Method:** `GetDelegateStakePlacement`
-- **Command:** `delegate-reward-per-share [topic_id] [delegator] [target]`
+- **Command:** `delegate-stake-placement [topic_id] [delegator] [target]`
 - **Description:** Get the amount of token delegated to a target by a delegator in a topic.
 - **Positional Arguments:**
   - `topic_id` Identifier of the topic whose information will be returned.
@@ -7971,36 +7957,28 @@ allorad q emissions [Command] --node <RPC_URL>
   - `topic_id` Identifier of the topic whose information will be returned.
   - `block_height` Block height to query.
 
-### Get Latest Available Network Inference
+### Get Forecaster Score EMA
 
-- **RPC Method:** `GetLatestAvailableNetworkInference`
-- **Command:** `latest-available-network-inference [topic_id]`
-- **Description:** Returns network inference only if all available information to compute the inference is present.
-- **Positional Arguments:**
-  - `topic_id` Identifier of the topic whose information will be returned.
-
-### Get Latest Forecaster Score
-
-- **RPC Method:** `GetLatestForecasterScore`
-- **Command:** `latest-forecaster-score [topic_id] [forecaster]`
+- **RPC Method:** `GetForecasterScoreEma`
+- **Command:** `forecaster-score-ema [topic_id] [forecaster]`
 - **Description:** Returns the latest score for a forecaster in a topic.
 - **Positional Arguments:**
   - `topic_id` Identifier of the topic whose information will be returned.
   - `forecaster` Address of the forecaster.
 
-### Get Latest Inferer Score
+### Get Inferer Score EMA
 
-- **RPC Method:** `GetLatestInfererScore`
-- **Command:** `latest-inferer-score [topic_id] [inferer]`
+- **RPC Method:** `GetInfererScoreEma`
+- **Command:** `inferer-score-ema [topic_id] [inferer]`
 - **Description:** Returns the latest score for an inferer in a topic.
 - **Positional Arguments:**
   - `topic_id` Identifier of the topic whose information will be returned.
   - `inferer` Address of the inferer.
 
-### Get Latest Reputer Score
+### Get Reputer Score EMA
 
-- **RPC Method:** `GetLatestReputerScore`
-- **Command:** `latest-reputer-score [topic_id] [reputer]`
+- **RPC Method:** `GetReputerScoreEma`
+- **Command:** `reputer-score-ema [topic_id] [reputer]`
 - **Description:** Returns the latest score for a reputer in a topic.
 - **Positional Arguments:**
   - `topic_id` Identifier of the topic whose information will be returned.
@@ -8135,7 +8113,7 @@ allorad q emissions [Command] --node <RPC_URL>
 ### Get Reputers Scores At Block
 
 - **RPC Method:** `GetReputersScoresAtBlock`
-- **Command:** `reputer-scores [topic_id] [block_height]`
+- **Command:** `reputer-scores-at-block [topic_id] [block_height]`
 - **Description:** Return reputer scores at a block height.
 - **Positional Arguments:**
   - `topic_id` Identifier of the topic whose information will be returned.
@@ -8144,7 +8122,7 @@ allorad q emissions [Command] --node <RPC_URL>
 ### Get Stake Removal For Reputer And Topic Id
 
 - **RPC Method:** `GetStakeRemovalForReputerAndTopicId`
-- **Command:** `reputer-scores [reputer] [topic_id]`
+- **Command:** `stake-removal [reputer] [topic_id]`
 - **Description:** Return stake removal information for a reputer in a topic.
 - **Positional Arguments:**
   - `reputer` Address of the reputer.
@@ -8291,10 +8269,13 @@ allorad q emissions [Command] --node <RPC_URL>
   - `topic_id` Identifier of the topic whose information will be returned
   - `block_height` Number of blocks that precede the specific block you are trying to query
 
-### Execute GetMultiReputerStakeInTopic RPC Method
+### Get Multiple Reputer Stakes in a Topic
 - **RPC Method:** `GetMultiReputerStakeInTopic`
-- **Command:** `get-multi-reputer-stake-in-topic`
-- **Description:** Execute the GetMultiReputerStakeInTopic RPC method.
+- **Command:** `multi-reputer-stake [addresses] [topic_id]`
+- **Description:** Returns the stake for each reputer in a given list. The list can be up to `max_page_limit` in length; reputers with no stake default to 0.
+- **Positional Arguments:**
+  - `addresses` List of reputer addresses
+  - `topic_id` Identifier of the topic whose information will be returned
 
 ### Get All Inferences Produced for a Topic in a Particular Timestamp
 - **RPC Method:** `GetInferencesAtBlock`
@@ -8305,7 +8286,7 @@ allorad q emissions [Command] --node <RPC_URL>
   - `block_height` Number of blocks that precede the specific block you are trying to query
 
 ### Check if Reputer is Registered in the Topic
-- **RPC Method:** `IsReputerRegistered`
+- **RPC Method:** `IsReputerRegisteredInTopicId`
 - **Command:** `is-reputer-registered [topic_id] [address]`
 - **Description:** True if reputer is registered in the topic.
 - **Positional Arguments:**
@@ -8320,7 +8301,7 @@ allorad q emissions [Command] --node <RPC_URL>
   - `address` Address to check
 
 ### Check if Worker is Registered in the Topic
-- **RPC Method:** `IsWorkerRegistered`
+- **RPC Method:** `IsWorkerRegisteredInTopicId`
 - **Command:** `is-worker-registered [topic_id] [address]`
 - **Description:** True if worker is registered in the topic.
 - **Positional Arguments:**
@@ -8328,20 +8309,19 @@ allorad q emissions [Command] --node <RPC_URL>
   - `address` Address to check
 
 ### Get the Latest Network Inferences and Weights for a Topic
-- **RPC Method:** `GetLatestNetworkInference`
-- **Command:** `latest-network-inference [topic_id]`
-- **Description:** Get the latest Network inferences and weights for a topic.
+- **RPC Method:** `GetLatestNetworkInferences`
+- **Command:** `latest-network-inferences [topic_id]`
+- **Description:** Get the latest Network inferences and weights for a topic. Returns whatever information it has available. An outlier-resistant variant is available as `GetLatestNetworkInferencesOutlierResistant` (`latest-network-inferences-outlier-resistant [topic_id]`).
 - **Positional Arguments:**
   - `topic_id` Identifier of the topic whose information will be returned
 
 ### Get the Network Inferences for a Topic at a Block Height
 - **RPC Method:** `GetNetworkInferencesAtBlock`
-- **Command:** `network-inferences-at-block [topic_id] [block_height_last_inference] [block_height_last_reward]`
-- **Description:** Get the Network Inferences for a topic at a block height where the last inference was made and the last reward was given.
+- **Command:** `network-inferences-at-block [topic_id] [block_height_last_inference]`
+- **Description:** Get the Network Inferences for a topic at a block height where the last inference was made.
 - **Positional Arguments:**
   - `topic_id` Identifier of the topic whose information will be returned
   - `block_height_last_inference` Block height where the last inference was made
-  - `block_height_last_reward` Block height where the last reward was given
 
 ### Get the Network Loss Bundle for a Topic at Given Block Height
 - **RPC Method:** `GetNetworkLossBundleAtBlock`
@@ -8352,7 +8332,7 @@ allorad q emissions [Command] --node <RPC_URL>
   - `block` Block to query on
 
 ### Get Amount of Stake in a Topic for a Delegator
-- **RPC Method:** `GetStakeDelegatorInTopic`
+- **RPC Method:** `GetStakeFromDelegatorInTopic`
 - **Command:** `stake-delegator-in-topic [delegator_address] [topic_id]`
 - **Description:** Get amount of stake in a topic for a delegator.
 - **Positional Arguments:**
@@ -8360,7 +8340,7 @@ allorad q emissions [Command] --node <RPC_URL>
   - `topic_id` Identifier of the topic whose information will be returned
 
 ### Get Amount of Stake from Delegator in a Topic for a Reputer
-- **RPC Method:** `GetStakeDelegatorInTopicReputer`
+- **RPC Method:** `GetStakeFromDelegatorInTopicInReputer`
 - **Command:** `stake-delegator-in-topic-reputer [delegator_address] [reputer_address] [topic_id]`
 - **Description:** Get amount of stake from delegator in a topic for a reputer.
 - **Positional Arguments:**
@@ -8369,7 +8349,7 @@ allorad q emissions [Command] --node <RPC_URL>
   - `topic_id` Identifier of the topic whose information will be returned
 
 ### Get Reputer Stake in a Topic
-- **RPC Method:** `GetStakeInTopicReputer`
+- **RPC Method:** `GetReputerStakeInTopic`
 - **Command:** `stake-in-topic-reputer [address] [topic_id]`
 - **Description:** Get reputer stake in a topic, including stake delegated to them in that topic.
 - **Positional Arguments:**
@@ -8377,7 +8357,7 @@ allorad q emissions [Command] --node <RPC_URL>
   - `topic_id` Identifier of the topic whose information will be returned
 
 ### Get Total Delegate Stake in a Topic and Reputer
-- **RPC Method:** `GetTotalDelegatedStakeInTopicReputer`
+- **RPC Method:** `GetDelegateStakeInTopicInReputer`
 - **Command:** `stake-total-delegated-in-topic-reputer [reputer_address] [topic_id]`
 - **Description:** Get total delegate stake in a topic and reputer.
 - **Positional Arguments:**
@@ -8469,7 +8449,7 @@ Detailed instructions on [how to create a topic](https://docs.allora.network/ope
 
 ### Remove an Admin Address from the Whitelist
 - **RPC Method:** `RemoveFromWhitelistAdmin`
-- **Command:** `remove-from-whitelist-admin`
+- **Command:** `remove-from-whitelist-admin [sender] [address]`
 - **Description:** Remove an admin address from the whitelist used for admin functions on-chain.
 - **Positional Arguments:**
   - `sender` Address of the sender
@@ -8477,38 +8457,38 @@ Detailed instructions on [how to create a topic](https://docs.allora.network/ope
 
 ### Register Network Actor
 - **RPC Method:** `Register`
-- **Command:** `register [sender] [lib_p2p_key] [multi_address] [topic_ids] [initial_stake] [owner] [is_reputer]`
+- **Command:** `register [sender] [topic_id] [owner] [is_reputer]`
 - **Description:** Register a new reputer or worker for a topic.
 - **Positional Arguments:**
-  - `sender`
-  - `lib_p2p_key`
-  - `multi_address`
-  - `topic_ids`
-  - `owner`
-  - `is_reputer`
+  - `sender` This is the address of the transaction sender
+  - `topic_id` Identifier of the topic to register in
+  - `owner` Address that will receive the actor's payouts
+  - `is_reputer` Set to `true` to register as a reputer, `false` for a worker
 
 ### Remove a Reputer or Worker from a Topic
 - **RPC Method:** `RemoveRegistration`
-- **Command:** `remove-registration [creator] [owner] [is_reputer]`
+- **Command:** `remove-registration [sender] [topic_id] [is_reputer]`
 - **Description:** Remove a reputer or worker from a topic.
 - **Positional Arguments:**
-  - `creator` Address of the creator
-  - `owner` Address of the owner of the reputer/worker
+  - `sender` This is the address of the transaction sender
+  - `topic_id` Identifier of the topic to deregister from
   - `is_reputer` Set to `true` if the network participant to remove is a reputer
 
-### Insert Bulk Reputer Payload
-- **RPC Method:** `InsertBulkReputerPayload`
-- **Command:** `insert-bulk-reputer-payload [reputer_value_bundles]`
-- **Description:** Insert bulk reputer payload.
+### Insert Reputer Payload
+- **RPC Method:** `InsertReputerPayload`
+- **Command:** `insert-reputer-payload [sender] [reputer_data]`
+- **Description:** Insert reputer payload.
 - **Positional Arguments:**
-  - `reputer_value_bundles` Reputer payload to insert
+  - `sender` This is the address of the transaction sender
+  - `reputer_data` Reputer payload to insert
 
-### Insert Bulk Worker Payload
-- **RPC Method:** `InsertBulkWorkerPayload`
-- **Command:** `insert-bulk-worker-payload [worker_value_bundles]`
-- **Description:** Insert bulk worker payload.
+### Insert Worker Payload
+- **RPC Method:** `InsertWorkerPayload`
+- **Command:** `insert-worker-payload [sender] [worker_data]`
+- **Description:** Insert worker payload.
 - **Positional Arguments:**
-  - `worker_value_bundles` Worker payload to insert
+  - `sender` This is the address of the transaction sender
+  - `worker_data` Worker payload to insert
 
 ### Add Stake
 - **RPC Method:** `AddStake`
@@ -8550,11 +8530,12 @@ Detailed instructions on [how to create a topic](https://docs.allora.network/ope
 
 ### Cancel Removing Delegate Stake
 - **RPC Method:** `CancelRemoveDelegateStake`
-- **Command:** `cancel-remove-delegate-stake [sender] [topic_id] [reputer]`
+- **Command:** `cancel-remove-delegate-stake [sender] [topic_id] [delegator] [reputer]`
 - **Description:** Cancel the removal of delegated stake for a delegator staking on a reputer in a topic
 - **Positional Arguments:**
   - `sender` This is the address of the transaction sender
   - `topic_id` Identifier of the topic
+  - `delegator` Address of the delegator
   - `reputer` Address of the reputer
 
 ### Cancel Removing Stake
@@ -8567,13 +8548,12 @@ Detailed instructions on [how to create a topic](https://docs.allora.network/ope
 
 ### Send Funds to a Topic to Pay for Inferences
 - **RPC Method:** `FundTopic`
-- **Command:** `fund-topic [sender] [topic_id] [amount] [extra_data]`
+- **Command:** `fund-topic [sender] [topic_id] [amount]`
 - **Description:** Send funds to a topic to pay for inferences.
 - **Positional Arguments:**
   - `sender` This is the address of the transaction sender
   - `topic_id` Identifier of the topic
   - `amount` The amount to send
-  - `extra_data`
 
 ### Get Reward for Delegator for a Topic
 - **RPC Method:** `RewardDelegateStake`
@@ -8659,7 +8639,7 @@ Block about to end. Call EndBlock:
 
 Cosmos Validators can use the distribution module and staking module standard cosmos functions to manipulate their validator stake and claim their validator rewards.
 
-For Reputer and Worker rewards, the `epoch_length` [chain parameter](https://docs.allora.network/reference/params/chain#epoch_length) controls how often the reputer and staker rewards are paid out. Every `epoch_length` epochs, the rewards calculation will run in the emissions `EndBlock`, which will cause the Allora Rewards module account to pay the Allora Staking module account directly. The Allora Staking module will then increase the staking balances of all actors who are paid rewards as part of this procedure. In this way Allora is able to autocompound stake positions.
+For Reputer and Worker rewards, the `reward_cadence` [chain parameter](https://docs.allora.network/reference/params/chain#reward_cadence) controls how often the reputer and staker rewards are paid out. Every `reward_cadence` epochs, the rewards calculation will run in the emissions `EndBlock`, which will cause the Allora Rewards module account to pay the Allora Staking module account directly. The Allora Staking module will then increase the staking balances of all actors who are paid rewards as part of this procedure. In this way Allora is able to autocompound stake positions.
 
 Finally when a Reputer or Worker wishes to withdraw their stake, they do so, and the rewards are returned together with the original balance staked by the reputer or worker in one lump sum.
 
@@ -8736,7 +8716,7 @@ It balances historical data retention with storage efficiency. It will be regula
 
 Specifies the denomination of the bonded tokens.
 
-Value: `10000`
+Value: `uallo`
 
 **min_commission_rate**
 
@@ -9000,7 +8980,7 @@ Setting a minimum stake helps ensure that participants have a vested interest in
 
 Sets the duration, in seconds, during which a staker's tokens remain staked after initiating the unstaking process. This protects against flash-type attacks.
 
-Default Value: 172800  (1 day)
+Default Value: 172800 seconds (2 days)
 
 A fair delay in unstaking, which can ensure stability in the network by preventing sudden fluctuations in staked tokens and discourage malicious actors, while keeping it low enough so it is not very inconvenient to users who want to unstake their tokens promptly.
 
@@ -9024,7 +9004,7 @@ Imposing a minimum cadence ensures a reasonable pacing of loss-calculation, prev
 
 Sets the maximum allowable time, in seconds, for an AI inference request to remain valid before expiration.
 
-Default Value: 29030400 seconds (1year)
+Default Value: 29030400 seconds (336 days)
 
 Setting a maximum validity time ensures that AI inference requests are processed within a reasonable timeframe, preventing outdated requests, while at the same time allowing inference requests to be planned and executed at the designed cadence within a generous timeframe, especially where time-dependent effects (e.g. seasonal effects) can happen.
 
@@ -9032,7 +9012,7 @@ Setting a maximum validity time ensures that AI inference requests are processed
 
 Sets the maximum allowable time, in seconds, for an AI inference request to remain valid before expiration.
 
-Default Value: 29030400 seconds (1 year)
+Default Value: 29030400 seconds (336 days)
 
 A shorter validity period ensures that AI inference requests are designed to be processed more quickly and with up-to-date information. However, because lowering this value may lead to the rejection of legitimate requests if they take longer to process, the maximum allowed equals the max inference request, which is a conservative and flexible decision to allow inference requests creators for maximal planning ahead.
 

@@ -2,8 +2,8 @@
 title: Allora Module Accounts
 description: The Allora Chain uses Cosmos SDK module accounts to hold tokens belonging to various different actors on the network.
 persona: Builder or operator
-verified_against: docs content as of 2026-07-30
-last_reviewed: 2026-07-30
+verified_against: docs content as of 2026-07-30; parameter names cross-checked against pages/reference/params/chain.mdx on 2026-08-02
+last_reviewed: 2026-08-02
 ---
 
 # Allora Module Accounts
@@ -67,6 +67,6 @@ Block about to end. Call EndBlock:
 
 Cosmos Validators can use the distribution module and staking module standard cosmos functions to manipulate their validator stake and claim their validator rewards.
 
-For Reputer and Worker rewards, the `epoch_length` [chain parameter](https://docs.allora.network/reference/params/chain#epoch_length) controls how often the reputer and staker rewards are paid out. Every `epoch_length` epochs, the rewards calculation will run in the emissions `EndBlock`, which will cause the Allora Rewards module account to pay the Allora Staking module account directly. The Allora Staking module will then increase the staking balances of all actors who are paid rewards as part of this procedure. In this way Allora is able to autocompound stake positions.
+For Reputer and Worker rewards, the `reward_cadence` [chain parameter](https://docs.allora.network/reference/params/chain#reward_cadence) controls how often the reputer and staker rewards are paid out. Every `reward_cadence` epochs, the rewards calculation will run in the emissions `EndBlock`, which will cause the Allora Rewards module account to pay the Allora Staking module account directly. The Allora Staking module will then increase the staking balances of all actors who are paid rewards as part of this procedure. In this way Allora is able to autocompound stake positions.
 
 Finally when a Reputer or Worker wishes to withdraw their stake, they do so, and the rewards are returned together with the original balance staked by the reputer or worker in one lump sum.

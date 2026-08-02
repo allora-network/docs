@@ -2,8 +2,8 @@
 title: Deploy Allora Appchain
 description: We discuss the settlement layer for the Allora Network and how to deploy it.
 persona: Validator operator
-verified_against: docs content as of 2026-07-16
-last_reviewed: 2026-07-16
+verified_against: docs content as of 2026-07-16; helm values file re-checked against upshot-tech/helm-charts (charts/universal-helm) on 2026-08-02
+last_reviewed: 2026-08-02
 ---
 
 # Deploy Allora Appchain
@@ -47,7 +47,7 @@ Once this is set up, run `docker compose up`.
 ## Deploy in k8s with helm chart
 
 Upshot team uses a [universal-helm](https://upshot-tech.github.io/helm-charts/) chart to deploy applications into kubernetes clusters.
-There is an `index-provider/values.yaml` provided as an example that sets up the node components.
+The chart ships an [`example--allora-validator.yaml`](https://github.com/upshot-tech/helm-charts/blob/main/charts/universal-helm/example--allora-validator.yaml) values file that sets up the node components. Download it and edit it for your environment before installing.
 
 ### Dependencies
 
@@ -66,9 +66,9 @@ helm repo add upshot https://upshot-tech.github.io/helm-charts
 
 ```bash
 helm install \
-  index-provider \
+  allora-validator \
   upshot/universal-helm \
-  -f appchain/values.yaml
+  -f example--allora-validator.yaml
 ```
 
 ### Edit Chain Parameters

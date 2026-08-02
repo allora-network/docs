@@ -2,8 +2,8 @@
 title: Chain Parameters
 description: A glossary and description of chain-level parameters.
 persona: Builder or operator
-verified_against: docs content as of 2026-07-16
-last_reviewed: 2026-07-16
+verified_against: docs content as of 2026-07-16; unit conversions and on-chain-present values re-checked against the live testnet LCD /emissions/v10/params on 2026-08-02
+last_reviewed: 2026-08-02
 ---
 
 # Chain Parameters
@@ -114,7 +114,7 @@ Setting a minimum stake helps ensure that participants have a vested interest in
 
 Sets the duration, in seconds, during which a staker's tokens remain staked after initiating the unstaking process. This protects against flash-type attacks.
 
-Default Value: 172800  (1 day)
+Default Value: 172800 seconds (2 days)
 
 A fair delay in unstaking, which can ensure stability in the network by preventing sudden fluctuations in staked tokens and discourage malicious actors, while keeping it low enough so it is not very inconvenient to users who want to unstake their tokens promptly.
 
@@ -138,7 +138,7 @@ Imposing a minimum cadence ensures a reasonable pacing of loss-calculation, prev
 
 Sets the maximum allowable time, in seconds, for an AI inference request to remain valid before expiration.
 
-Default Value: 29030400 seconds (1year)
+Default Value: 29030400 seconds (336 days)
 
 Setting a maximum validity time ensures that AI inference requests are processed within a reasonable timeframe, preventing outdated requests, while at the same time allowing inference requests to be planned and executed at the designed cadence within a generous timeframe, especially where time-dependent effects (e.g. seasonal effects) can happen.
 
@@ -146,7 +146,7 @@ Setting a maximum validity time ensures that AI inference requests are processed
 
 Sets the maximum allowable time, in seconds, for an AI inference request to remain valid before expiration.
 
-Default Value: 29030400 seconds (1 year)
+Default Value: 29030400 seconds (336 days)
 
 A shorter validity period ensures that AI inference requests are designed to be processed more quickly and with up-to-date information. However, because lowering this value may lead to the rejection of legitimate requests if they take longer to process, the maximum allowed equals the max inference request, which is a conservative and flexible decision to allow inference requests creators for maximal planning ahead.
 
