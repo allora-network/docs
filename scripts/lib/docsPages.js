@@ -263,12 +263,28 @@ function versions() {
   if (!fs.existsSync(VERSIONS_FILE)) {
     throw new Error(`${path.relative(ROOT, VERSIONS_FILE)} is missing; version strings cannot be resolved`);
   }
+  let parsed;
   try {
-    versionsCache = JSON.parse(fs.readFileSync(VERSIONS_FILE, 'utf8'));
+    parsed = JSON.parse(fs.readFileSync(VERSIONS_FILE, 'utf8'));
   } catch (error) {
     throw new Error(`${path.relative(ROOT, VERSIONS_FILE)} is not valid JSON: ${error.message}`);
   }
+  versionsCache = requireJsonObject(parsed, VERSIONS_FILE);
   return versionsCache;
+}
+
+// Valid JSON is not the same thing as a manifest: `null`, `[…]`, `"text"` and
+// `5` all parse. Without this, `null` reached a property read and generation
+// died with "Cannot read properties of null" — no file named, from a build step
+// whose whole job is to say which page or manifest is wrong.
+function requireJsonObject(parsed, file) {
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(
+      `${path.relative(ROOT, file)} is valid JSON but not an object ` +
+        `(got ${Array.isArray(parsed) ? 'an array' : JSON.stringify(parsed)})`
+    );
+  }
+  return parsed;
 }
 
 // Mirrors versionOf() in components/Version.tsx: hyphens and underscores are
@@ -512,6 +528,7 @@ function manifest(file) {
   } catch (error) {
     throw new Error(`${relative} is not valid JSON: ${error.message}`);
   }
+  requireJsonObject(parsed, file);
   manifestCache.set(file, parsed);
   return parsed;
 }
