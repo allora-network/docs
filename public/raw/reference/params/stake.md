@@ -2,8 +2,8 @@
 title: Stake Parameters
 description: Parameters that affect both kinds of staking featured by Allora.
 persona: Builder or operator
-verified_against: docs content as of 2024-07-17
-last_reviewed: 2024-07-17
+verified_against: docs content as of 2024-07-17; bond_denom re-checked against the live testnet and mainnet LCD /cosmos/staking/v1beta1/params on 2026-08-02
+last_reviewed: 2026-08-02
 ---
 
 # Stake Parameters
@@ -73,7 +73,7 @@ It balances historical data retention with storage efficiency. It will be regula
 
 Specifies the denomination of the bonded tokens.
 
-Value: `10000`
+Value: `uallo`
 
 **min_commission_rate**
 
