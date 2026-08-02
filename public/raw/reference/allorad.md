@@ -2,7 +2,7 @@
 title: allorad Reference
 description: Reference for allorad query and transaction commands to read from and write to the Allora chain.
 persona: Builder or operator
-verified_against: allora-chain v0.17.0 (x/emissions/module/autocli.go, emissions/v10 query.proto and tx.proto)
+verified_against: allora-chain v0.17.0 (x/emissions/module/autocli.go, emissions/v10 query.proto and tx.proto); pre-rename query names checked against v0.16.0 (autocli.go, emissions/v9 query.proto)
 last_reviewed: 2026-08-02
 ---
 
@@ -579,7 +579,7 @@ allorad q emissions [Command] --node <RPC_URL>
   - `topic_id` Identifier of the topic whose information will be returned
   - `worker_address` Given worker to query on
 
-In v0.17.0 this query was renamed from `GetWorkerLatestInference` (`worker-latest-inference`) to `GetWorkerLatestInputInferenceByTopicId` (`latest-input-inference`), and now returns an `InputInference` instead of a dense `Inference`. The REST path is `/emissions/v10/topics/{topic_id}/workers/{worker_address}/latest_input_inference`.
+In v0.17.0 this query was renamed from `GetWorkerLatestInferenceByTopicId` (`worker-latest-inference`) to `GetWorkerLatestInputInferenceByTopicId` (`latest-input-inference`), and now returns an `InputInference` instead of a dense `Inference`. The REST path is `/emissions/v10/topics/{topic_id}/workers/{worker_address}/latest_input_inference`.
 
 ## Tx Functions
 
