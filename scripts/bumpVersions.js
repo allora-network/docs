@@ -166,10 +166,18 @@ function compareSemver(a, b) {
   return 0;
 }
 
-/** Picks the newest stable (non-prerelease, parsable) version from a list. */
+/**
+ * Picks the newest stable (non-prerelease, parsable) version from a list.
+ *
+ * "Stable" means carrying no prerelease identifier. Build metadata is not one:
+ * SemVer ignores it when ordering, and `1.2.3+build.5` is a release of 1.2.3.
+ * This filter used to reject `-` and `+` alike, so a repo that tags its
+ * releases with build metadata looked to the bump job like a repo with no
+ * releases at all — and versions.json accepts that form, so the two disagreed.
+ */
 function newestStable(candidates) {
   return candidates
-    .filter(candidate => parseSemver(candidate) && !/[-+]/.test(candidate.replace(/^v/, '')))
+    .filter(candidate => parseSemver(candidate) && !candidate.replace(/^v/, '').includes('-'))
     .sort((a, b) => compareSemver(b, a))[0];
 }
 
@@ -187,18 +195,36 @@ function latestGitHubVersion(repo, options = {}) {
 async function resolveGitHubVersion(repo, { pyprojectFallback = false } = {}) {
   const headers = githubHeaders();
 
+  // Both feeds, every run, and the newest wins.
+  //
+  // The releases feed used to short-circuit: if it yielded anything at all, the
+  // tags feed was never read. But a repo can cut a tag without drafting a
+  // release — that is how plenty of Go and Cosmos projects ship — so a newer
+  // installable version sat there unseen for as long as the older release
+  // remained the newest *release*, which is indefinitely. The job would report
+  // "up to date" against a version you could already install.
+  const candidates = [];
+
   const releases = await getJson(`https://api.github.com/repos/${repo}/releases?per_page=100`, headers);
   if (Array.isArray(releases) && releases.length > 0) {
     const version = newestStable(
       releases.filter(release => !release.draft && !release.prerelease).map(release => release.tag_name)
     );
-    if (version) return { version, via: 'GitHub releases', published: true };
+    if (version) candidates.push({ version, via: 'GitHub releases', published: true });
   }
 
   const tags = await getJson(`https://api.github.com/repos/${repo}/tags?per_page=100`, headers);
   if (Array.isArray(tags) && tags.length > 0) {
     const version = newestStable(tags.map(tag => tag.name));
-    if (version) return { version, via: 'git tags', published: true };
+    if (version) candidates.push({ version, via: 'git tags', published: true });
+  }
+
+  if (candidates.length > 0) {
+    // Ties keep the releases entry, which is listed first: the same version
+    // reached by both feeds is better described as a release than as a tag.
+    return candidates.reduce((best, candidate) =>
+      compareSemver(candidate.version, best.version) > 0 ? candidate : best
+    );
   }
 
   if (!pyprojectFallback) {
