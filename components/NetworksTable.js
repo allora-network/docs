@@ -92,7 +92,7 @@ export function NetworkDetails({ network }) {
 
   return (
     <Ul>
-      {FIELDS.filter(({ key }) => entry[key]).map(({ key, label, code }) => (
+      {FIELDS.map(({ key, label, code }) => (
         <Li key={key}>
           <strong>{label}</strong>: {renderValue(entry[key], code, Code)}
         </Li>
