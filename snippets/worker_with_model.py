@@ -8,7 +8,7 @@ from model import predict_price, train
 # Train once at startup (retrain and restart as often as you like)
 model = train()
 
-async def run_model(nonce: int) -> float:
+def run_model(nonce: int) -> float:
     prediction = predict_price(model)
     print(f"Predicted BTC/USD price in 24 hours: {prediction:,.2f}")
     return prediction
