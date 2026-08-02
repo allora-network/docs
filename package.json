@@ -23,6 +23,7 @@
     "raw": "node scripts/generateRawMarkdown.js",
     "checkraw": "node scripts/generateRawMarkdown.js --check",
     "checkversions": "node scripts/checkVersionStrings.js",
+    "testharden": "node scripts/testHardenDriftManifest.js",
     "bumpversions": "node scripts/bumpVersions.js"
   }
 }

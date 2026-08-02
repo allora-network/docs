@@ -39,7 +39,7 @@ const retryBackoffMs = 2000;
 const userAgent = 'allora-docs-network-drift/1.0 (+https://docs.allora.network)';
 
 function parseArgs(argv) {
-  const args = { write: false, bodyFile: null };
+  const args = { write: false, bodyFile: null, allowedHosts: null };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--write') {
       args.write = true;
@@ -48,6 +48,16 @@ function parseArgs(argv) {
       if (!args.bodyFile) {
         throw new Error('--body-file requires a path');
       }
+    } else if (argv[i].startsWith('--allowed-hosts=')) {
+      const list = argv[i]
+        .slice('--allowed-hosts='.length)
+        .split(',')
+        .map(host => host.trim().toLowerCase())
+        .filter(Boolean);
+      if (list.length === 0) {
+        throw new Error('--allowed-hosts needs at least one host');
+      }
+      args.allowedHosts = new Set(list);
     } else {
       throw new Error(`Unknown argument: ${argv[i]}`);
     }
@@ -59,13 +69,101 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// `rpc` values in the manifest carry a trailing slash; new URL() handles both.
-function abciInfoUrl(rpc) {
-  return new URL('abci_info', rpc).href;
+// ---------------------------------------------------------------------------
+// Where this is allowed to send a request
+//
+// The manifest this reads is not always one this repository wrote. When a drift
+// pull request is open, the nightly workflow merges that branch's copy in --
+// scripts/hardenDriftManifest.js keeps the endpoints, but that leaves one
+// script's correctness standing between a machine-owned branch and this fetch,
+// and it has already been walked past once. So the target is checked again
+// here, immediately before the request goes out: a gap upstream then stops at a
+// loud error instead of reaching the network.
+// ---------------------------------------------------------------------------
+
+// Hosts no published chain RPC is ever served from, and precisely the ones an
+// SSRF aims at: the cloud metadata service, the runner's own loopback, whatever
+// else is reachable on the private network the runner sits in.
+function isForbiddenHost(hostname) {
+  const host = hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.internal')) return true;
+  // IPv6 loopback, unspecified, link-local (fe80::/10) and unique-local (fc00::/7).
+  if (host === '::1' || host === '::' || /^fe[89ab]/.test(host) || /^f[cd]/.test(host)) return true;
+  const v4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (!v4) return false;
+  const [a, b] = v4.slice(1).map(Number);
+  if (a === 0 || a === 127 || a === 10) return true; // this-host, loopback, private
+  if (a === 169 && b === 254) return true; // link-local, including 169.254.169.254
+  if (a === 172 && b >= 16 && b <= 31) return true; // private
+  if (a === 192 && b === 168) return true; // private
+  if (a === 100 && b >= 64 && b <= 127) return true; // carrier-grade NAT
+  return false;
 }
 
-async function fetchAbciVersion(rpc) {
-  const url = abciInfoUrl(rpc);
+// The hosts the trusted manifest names. The workflow passes these as
+// --allowed-hosts, derived from the pre-merge copy, so "the endpoints come from
+// the default branch" is enforced at the point of use and not only at the point
+// of merge.
+function hostsOf(manifest) {
+  const hosts = new Set();
+  const networks =
+    manifest && typeof manifest === 'object' && !Array.isArray(manifest.networks)
+      ? manifest.networks
+      : null;
+  if (!networks || typeof networks !== 'object') return hosts;
+  for (const name of Object.keys(networks)) {
+    // hasOwnProperty, not bracket access: a key called `__proto__` resolves to
+    // Object.prototype otherwise, which is how the merge step was bypassed.
+    if (!Object.prototype.hasOwnProperty.call(networks, name)) continue;
+    const entry = networks[name];
+    if (!entry || typeof entry !== 'object') continue;
+    if (!Object.prototype.hasOwnProperty.call(entry, 'rpc')) continue;
+    if (typeof entry.rpc !== 'string') continue;
+    try {
+      hosts.add(new URL(entry.rpc).hostname.toLowerCase());
+    } catch {
+      /* a trusted entry that does not parse contributes no host */
+    }
+  }
+  return hosts;
+}
+
+// `rpc` values in the manifest carry a trailing slash; new URL() handles both.
+// Resolving is also where the target is vetted, so there is no path to a fetch
+// that skips the check.
+function abciInfoUrl(rpc, allowedHosts) {
+  let url;
+  try {
+    url = new URL('abci_info', rpc);
+  } catch {
+    throw new Error(`rpc endpoint ${JSON.stringify(rpc)} is not a usable URL`);
+  }
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+    throw new Error(`rpc endpoint ${JSON.stringify(rpc)} is not http(s) (got "${url.protocol}")`);
+  }
+  if (!url.hostname) {
+    throw new Error(`rpc endpoint ${JSON.stringify(rpc)} names no host`);
+  }
+  if (isForbiddenHost(url.hostname)) {
+    throw new Error(
+      `refusing to probe ${url.href}: ${url.hostname} is a loopback, link-local or private ` +
+        `address, which no published network RPC is served from. A manifest naming one has ` +
+        `been tampered with.`
+    );
+  }
+  if (allowedHosts && !allowedHosts.has(url.hostname.toLowerCase())) {
+    throw new Error(
+      `refusing to probe ${url.href}: ${url.hostname} is not one of the hosts the trusted ` +
+        `manifest names (${[...allowedHosts].join(', ')}).`
+    );
+  }
+  return url.href;
+}
+
+async function fetchAbciVersion(rpc, allowedHosts) {
+  // Throws before any request is made if the target is not somewhere this is
+  // allowed to reach; the caller reports that as a probe error for the network.
+  const url = abciInfoUrl(rpc, allowedHosts);
   let lastError = null;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -152,6 +250,27 @@ function buildPullRequestBody(drifted, probeErrors) {
 }
 
 (async () => {
+  // A tiny standalone mode, so the workflow can capture the trusted manifest's
+  // host set BEFORE it merges an untrusted copy over it, and hand that set back
+  // as --allowed-hosts. Keeping it here means the host logic lives in the one
+  // file that acts on it.
+  const printHosts = process.argv.indexOf('--print-hosts');
+  if (printHosts !== -1) {
+    const file = process.argv[printHosts + 1];
+    if (!file) {
+      console.error('--print-hosts requires a manifest path');
+      process.exitCode = 2;
+      return;
+    }
+    try {
+      console.log([...hostsOf(JSON.parse(fs.readFileSync(file, 'utf8')))].join(','));
+    } catch (error) {
+      console.error(`Could not read ${file}: ${error.message}`);
+      process.exitCode = 2;
+    }
+    return;
+  }
+
   let args;
   try {
     args = parseArgs(process.argv.slice(2));
@@ -207,7 +326,7 @@ function buildPullRequestBody(drifted, probeErrors) {
     }
     let reported;
     try {
-      reported = await fetchAbciVersion(entry.rpc);
+      reported = await fetchAbciVersion(entry.rpc, args.allowedHosts);
     } catch (error) {
       console.error(`ERROR ${network}: ${error.message}`);
       probeErrors.push({ network, message: error.message });

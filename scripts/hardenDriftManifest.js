@@ -16,15 +16,29 @@
 //
 // So the branch's copy decides values, never destinations:
 //
+//   * the set of networks is an ALLOWLIST taken from the trusted manifest. The
+//     output is rebuilt from the trusted key set rather than filtered from the
+//     proposed one, so no key the branch invents can appear in it at all -- not
+//     an extra network, and not a key like `__proto__` that a filter written as
+//     `if (!trusted.networks[name])` would wave through, because that lookup
+//     finds Object.prototype rather than nothing.
 //   * every URL-valued field is taken from the trusted manifest. If the trusted
-//     manifest has no URL at that path, the field is dropped rather than
-//     carried over -- an endpoint that only the branch knows about is exactly
-//     the thing this exists to refuse.
-//   * a network the trusted manifest does not define is dropped whole. It has
-//     no trusted endpoint to probe, so there is nothing legitimate to compare.
+//     manifest has no URL at that path, any value that PARSES as a URL is
+//     dropped rather than carried over. Parsing, not pattern-matching: the
+//     scheme-less `http:169.254.169.254/` does not look like a URL to a regex
+//     that wants `://`, but `new URL('abci_info', that)` resolves it to
+//     `http://169.254.169.254/abci_info`, which is a live fetch target.
 //   * everything else (abci_version, deployed_version, prose) is taken from the
 //     branch, which is the point: a reviewer's edits on the open pull request
 //     survive, and an unchanged chain stays a no-op.
+//
+// Every key that comes from the proposed document is treated as hostile,
+// including `__proto__`, `constructor` and `prototype`: reads from the trusted
+// side always go through hasOwnProperty, and the objects this builds have a
+// null prototype so there is nothing to inherit in the first place.
+//
+// scripts/testHardenDriftManifest.js holds the adversarial cases. Run it (or
+// `yarn testharden`) after touching anything here.
 //
 // Usage:
 //   node scripts/hardenDriftManifest.js --trusted <path> --proposed <path> --out <path>
@@ -77,43 +91,99 @@ function isPlainObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
-// A destination, not a value: a scheme followed by `//`. Matching the shape
-// rather than a scheme allowlist means a protocol nobody thought of is caught
-// too. The `//` matters: without it, ordinary prose beginning "Note: ..." or
-// "Warning: ..." reads as a URL, and a field note the trusted manifest happens
-// not to have would then be deleted from the file committed back to the branch.
-function looksLikeUrl(value) {
-  return typeof value === 'string' && /^[a-z][a-z0-9+.-]*:\/\//i.test(value.trim());
+// Reads from the trusted side always go through this. `trusted[key]` alone is
+// how the first version of this file was bypassed: for key `__proto__` it
+// returns Object.prototype instead of undefined, and every "is there a trusted
+// counterpart?" test then answers yes.
+const hasOwn = (object, key) =>
+  Boolean(object) && typeof object === 'object' && Object.prototype.hasOwnProperty.call(object, key);
+
+const own = (object, key) => (hasOwn(object, key) ? object[key] : undefined);
+
+// Does this value resolve to somewhere a request could be sent? Answered by
+// parsing, not by matching a shape. `new URL()` is the same resolver the drift
+// checker uses, so anything it accepts is a destination by definition --
+// including `http:169.254.169.254/`, which has no `//` and fooled the regex
+// this replaces. Prose ("Note: ...", "Warning: ...") does not parse, so it is
+// still just a value.
+function asUrl(value) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (trimmed === '') return null;
+  try {
+    return new URL(trimmed);
+  } catch {
+    return null;
+  }
+}
+
+// A scheme-relative reference (`//host/path`) is not an absolute URL, so it
+// does not parse on its own -- but it names a host, and resolving it against
+// any base would reach that host. Treated as a destination for the same reason.
+function isSchemeRelative(value) {
+  return typeof value === 'string' && value.trim().startsWith('//');
+}
+
+// A destination this job could actually be made to request. `new URL()` accepts
+// far more than that -- `note:` and `warning:` parse perfectly well, which is
+// why an earlier version of this test dropped ordinary prose out of the
+// manifest -- so the question is narrowed to what `fetch` will act on: http and
+// https. A value with any other scheme cannot become a request, because
+// resolving a relative path against an opaque-path base throws before fetch is
+// even reached.
+function isDestination(value) {
+  const url = asUrl(value);
+  if (url) return url.protocol === 'http:' || url.protocol === 'https:';
+  return isSchemeRelative(value);
+}
+
+// Whether a proposed value may stand where the trusted manifest holds a URL.
+//
+// Only the trusted string itself, character for character. Comparing scheme and
+// host was not enough: `https://user:pw@allora-rpc.testnet.allora.network/` has
+// the same scheme and the same `host` -- userinfo is not part of it -- and so
+// did any change to the path, the port or the query, each of which redirects
+// where `new URL('abci_info', rpc)` actually lands. There is no version of "a
+// different endpoint that is still the same endpoint", and the documented
+// contract is already that endpoints move on the default branch, not on the
+// machine branch.
+function matchesTrustedEndpoint(proposedValue, trustedValue) {
+  return typeof proposedValue === 'string' && proposedValue.trim() === String(trustedValue).trim();
 }
 
 // Walk the proposed document. Two rules, in this order:
 //
-//   1. wherever the TRUSTED document holds a string, the trusted string wins if
-//      it is a URL. This is the invariant that matters: an endpoint main knows
-//      about can never be redirected, whatever the branch put there -- prose,
-//      a URL, or something that only resembles one.
-//   2. otherwise, a value that looks like a URL and has no trusted counterpart
-//      is dropped: an endpoint only the branch knows about is exactly the thing
-//      this exists to refuse.
+//   1. wherever the TRUSTED document holds a URL, the proposed value must parse
+//      to the same scheme and host or it is replaced by the trusted one. This
+//      is the invariant that matters: an endpoint main knows about can never be
+//      redirected, whatever the branch put there.
+//   2. otherwise, a value that resolves to a destination and has no trusted
+//      counterpart is dropped: an endpoint only the branch knows about is
+//      exactly the thing this exists to refuse.
 //
 // Arrays are walked as well as objects. Nothing in an array is fetched today,
 // but "endpoints come from the trusted side" is meant to be a property of the
 // whole document, not of the fields that happen to exist right now.
 function forceEndpoints(proposed, trusted, path, changes) {
-  const keys = Array.isArray(proposed) ? proposed.map((_, i) => i) : Object.keys(proposed);
+  const keys = Array.isArray(proposed) ? proposed.map((_, index) => index) : Object.keys(proposed);
   for (const key of keys) {
     const here = path ? `${path}.${key}` : String(key);
-    const mine = proposed[key];
-    const theirs = trusted && typeof trusted === 'object' ? trusted[key] : undefined;
+    const mine = Array.isArray(proposed) ? proposed[key] : own(proposed, key);
+    const theirs = Array.isArray(trusted) ? trusted[key] : own(trusted, key);
+    // Rule 1 keys on the TRUSTED side parsing as a URL of any scheme: if main
+    // says this field is a destination, the branch does not get to move it.
+    // (Unlike rule 2 below, this only ever pins a value to the trusted one, so
+    // a scheme like `note:` matching here costs nothing.)
+    const trustedUrl = asUrl(theirs);
 
-    if (looksLikeUrl(theirs)) {
-      if (mine !== theirs) {
+    if (trustedUrl) {
+      if (!matchesTrustedEndpoint(mine, theirs)) {
         changes.push(`${here}: replaced with the trusted endpoint`);
         proposed[key] = theirs;
       }
       continue;
     }
-    if (looksLikeUrl(mine)) {
+    if (isDestination(mine)) {
       changes.push(`${here}: dropped (the trusted manifest has no endpoint here)`);
       if (Array.isArray(proposed)) proposed[key] = null;
       else delete proposed[key];
@@ -129,10 +199,16 @@ function main() {
   const trusted = readJson(opts.trusted, 'trusted');
   const proposed = readJson(opts.proposed, 'proposed');
 
-  if (!isPlainObject(trusted) || !isPlainObject(trusted.networks)) {
+  // own() rather than dot access even here, so this file contains no bare read
+  // of a manifest-supplied structure anywhere -- there is no second place for
+  // the prototype-lookup bug to come back.
+  const trustedNetworks = own(trusted, 'networks');
+  const proposedNetworks = own(proposed, 'networks');
+
+  if (!isPlainObject(trusted) || !isPlainObject(trustedNetworks)) {
     fail(`The trusted manifest (${opts.trusted}) has no "networks" object.`);
   }
-  if (!isPlainObject(proposed) || !isPlainObject(proposed.networks)) {
+  if (!isPlainObject(proposed) || !isPlainObject(proposedNetworks)) {
     fail(
       `The proposed manifest (${opts.proposed}) has no "networks" object, so it ` +
         `is not a networks manifest at all. Refusing to merge it.`
@@ -141,14 +217,34 @@ function main() {
 
   const changes = [];
 
-  // A network the trusted manifest does not define has no trusted endpoint, so
-  // there is nothing to probe and nothing to compare.
-  for (const network of Object.keys(proposed.networks)) {
-    if (!isPlainObject(trusted.networks[network])) {
-      delete proposed.networks[network];
+  // Rebuild the network set from the TRUSTED key list rather than filtering the
+  // proposed one. An allowlist cannot be walked past: a key the branch invents
+  // is not merely rejected, it is never consulted. The previous version filtered
+  // -- `if (!isPlainObject(trusted.networks[name])) delete ...` -- and a network
+  // keyed `__proto__` survived it, because that lookup returns Object.prototype
+  // and Object.prototype is, by every structural test, a plain object.
+  //
+  // Null prototype on the rebuilt map for the same reason: assigning a key
+  // called `__proto__` on an ordinary object mutates the prototype instead of
+  // adding a property, which is not a behaviour worth reasoning about here.
+  const mergedNetworks = Object.create(null);
+  for (const network of Object.keys(trustedNetworks)) {
+    const trustedEntry = own(trustedNetworks, network);
+    if (!isPlainObject(trustedEntry)) continue;
+    const proposedEntry = own(proposedNetworks, network);
+    mergedNetworks[network] = isPlainObject(proposedEntry) ? proposedEntry : trustedEntry;
+    if (!isPlainObject(proposedEntry)) {
+      changes.push(
+        `networks.${network}: taken from the trusted manifest (the proposed one has no usable entry)`
+      );
+    }
+  }
+  for (const network of Object.keys(proposedNetworks)) {
+    if (!hasOwn(mergedNetworks, network)) {
       changes.push(`networks.${network}: dropped (not a network the trusted manifest defines)`);
     }
   }
+  proposed.networks = mergedNetworks;
 
   forceEndpoints(proposed, trusted, '', changes);
 

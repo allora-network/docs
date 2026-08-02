@@ -152,6 +152,15 @@ jobs:
         REPO_OWNER: ${{ github.repository_owner }}
       run: |
         set -euo pipefail
+        # Captured from the TRUSTED manifest before anything is merged over it,
+        # and handed to the checker below as --allowed-hosts. That makes
+        # "endpoints come from the default branch" enforced where the request is
+        # actually made, and not only where the merge happens -- so a gap in the
+        # merge cannot reach the network by itself. (One already did.)
+        node ./scripts/checkNetworkDrift.js --print-hosts "$MANIFEST" \
+          > "${RUNNER_TEMP}/allowed-hosts.txt"
+        echo "Hosts this run may probe: $(cat "${RUNNER_TEMP}/allowed-hosts.txt")"
+
         # A branch name is not an identity: anyone can open a pull request from a
         # fork whose head branch is called networks-version-drift, and a bare
         # --head lookup would count it as ours -- then build on it, edit it, and
@@ -223,7 +232,11 @@ jobs:
     - name: Compare recorded versions against each network's RPC
       id: drift
       continue-on-error: true
-      run: node ./scripts/checkNetworkDrift.js --write --body-file "${RUNNER_TEMP}/networks-drift-body.md"
+      run: |
+        set -euo pipefail
+        node ./scripts/checkNetworkDrift.js --write \
+          --body-file "${RUNNER_TEMP}/networks-drift-body.md" \
+          --allowed-hosts="$(cat "${RUNNER_TEMP}/allowed-hosts.txt")"
 
     # The drift branch is written with plumbing rather than by checking it out:
     # a commit is assembled from its parent's tree with exactly one blob

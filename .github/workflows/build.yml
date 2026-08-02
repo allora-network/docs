@@ -37,3 +37,11 @@ jobs:
 
     - name: Run MDX link check script
       run: node ./scripts/fixRelativeLinks.js
+
+    # scripts/hardenDriftManifest.js is what stops a manifest pushed to the
+    # machine-owned drift branch from choosing the URLs the nightly drift job
+    # fetches while it holds a write-capable token. It shipped once without
+    # these cases and had a complete bypass, so they run on every pull request.
+    # Plain Node, no dependencies, about a second.
+    - name: Run the drift-manifest hardening tests
+      run: node ./scripts/testHardenDriftManifest.js
