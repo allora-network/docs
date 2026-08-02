@@ -691,11 +691,154 @@ const LAYOUT_COMPONENTS = new Set([
   'Tabs', // nextra/components — wrapper; the tab labels are kept
   'Tab',
   'Pre', // rendered above, as a fenced code block
-  'Code',
+  'Code', // as a fence when paired with <Pre>; as a code span inline, below
   'Version', // rendered above, as the version string itself
 ]);
 
+// ── paired components used inline, mid-sentence ─────────────────────────────
+//
+// The third shape a component can take, after "self-closing" and "opens a block
+// on a line of its own": `… (e.g. <Code>allora_sdk==1.0.6</Code>) …`. It is how
+// a page writes markup markdown cannot express inline — a code span whose
+// contents come from <Version/>, say, which a plain backtick span would leave
+// as the literal tag.
+//
+// Nothing recognised this shape before, so it reached the corpus verbatim: such
+// a tag is neither self-closing (so the self-closing check never saw it) nor
+// alone on its line (so the wrapper handling never saw it either). Renderers
+// live here for the components whose markup means something; a paired tag found
+// inline with no entry here and no layout classification stops generation, the
+// same rule the other two shapes follow.
+const INLINE_PAIRED_COMPONENTS = {
+  // <Code>x</Code> is a code span, and a backtick span is markdown's spelling.
+  Code: children => codeSpan(children),
+};
+
+// Wraps text as an inline code span, widening the fence past any backtick run
+// inside it and padding when the content would otherwise glue to the fence —
+// the CommonMark rules, so content containing backticks survives intact.
+function codeSpan(text) {
+  const longest = (text.match(/`+/g) || []).reduce((max, run) => Math.max(max, run.length), 0);
+  const fence = '`'.repeat(longest + 1);
+  const pad = /^`|`$/.test(text) ? ' ' : '';
+  return `${fence}${pad}${text}${pad}${fence}`;
+}
+
 const SELF_CLOSING_TAG = /<([A-Z][A-Za-z0-9]*)\b([^>]*)\/>/g;
+
+// An opening tag, its children and its matching closing tag, all on one line.
+// The children may not contain `<`, so a component wrapping another is left
+// unmatched by one pass and reduced by the next, innermost first.
+const INLINE_PAIRED_TAG = /<([A-Z][A-Za-z0-9]*)\b([^>]*)>([^<]*)<\/\1>/;
+
+// Inside an inline code span, `<Callout>` is literal text the page is quoting,
+// not markup to reduce — the same reasoning that leaves fenced blocks alone.
+const CODE_SPAN = /(`+)[\s\S]*?\1/;
+
+// Splits a line on its code spans and applies `render` to what falls outside.
+function outsideCodeSpans(text, render) {
+  let out = '';
+  let rest = text;
+  let span;
+  while ((span = CODE_SPAN.exec(rest)) !== null) {
+    out += render(rest.slice(0, span.index)) + span[0];
+    rest = rest.slice(span.index + span[0].length);
+  }
+  return out + render(rest);
+}
+
+// The reduction for one paired tag, or null when nothing here knows the
+// component (which assertNothingSurvives goes on to report).
+function reduceInlinePairedTag(name, children, mdxFile) {
+  const render = INLINE_PAIRED_COMPONENTS[name];
+  if (render) return render(children);
+
+  // A data component's output is read from a manifest, not from its children,
+  // so unwrapping would publish a hole where the data belongs.
+  if (DATA_COMPONENTS[name]) {
+    throw new Error(
+      `${path.relative(ROOT, mdxFile)} uses <${name}> as a paired tag. The generated ` +
+        'corpus renders it from its JSON manifest, which only the self-closing form ' +
+        `(<${name} … />) is understood as. Write it self-closing.`
+    );
+  }
+
+  // Layout components are defined as carrying nothing but their tag, so
+  // unwrapping inline is the reduction their block form already gets.
+  if (LAYOUT_COMPONENTS.has(name)) return children;
+
+  return null;
+}
+
+// `<Code>x</Code>` → `` `x` ``; `<Callout>x</Callout>` → `x`.
+//
+// A left-to-right scan in which a code span and a paired tag compete, and
+// whichever opens first wins the text between them. Order matters both ways: a
+// page quoting `` `<Callout>` `` means the literal tag and must not be reduced,
+// while `<Code>echo `date`</Code>` means a code span *inside* the component and
+// must not be split at its backticks.
+//
+// After each reduction the scan restarts, because the innermost tag is the only
+// one that can match (children may not contain `<`) — collapsing it is what
+// lets the component around it pair up on the next pass.
+function renderInlinePairedComponents(text, mdxFile) {
+  let result = text;
+  let from = 0; // everything before this offset is settled
+
+  // Every reduction removes a tag pair and introduces no new `<`, so the loop
+  // is bounded by the tags on the line; the cap is a backstop, and anything it
+  // ever left behind would be caught by assertNothingSurvives.
+  for (let pass = 0; pass < 200; pass++) {
+    const tail = result.slice(from);
+    const tag = INLINE_PAIRED_TAG.exec(tail);
+    if (!tag) break;
+
+    const span = CODE_SPAN.exec(tail);
+    if (span && span.index < tag.index) {
+      from += span.index + span[0].length;
+      continue;
+    }
+
+    const reduced = reduceInlinePairedTag(tag[1], tag[3], mdxFile);
+    if (reduced === null) {
+      // Unclassified: step over it so the scan continues, and leave the tag
+      // exactly as written for assertNothingSurvives to report.
+      from += tag.index + tag[0].length;
+      continue;
+    }
+
+    const start = from + tag.index;
+    result = result.slice(0, start) + reduced + result.slice(start + tag[0].length);
+    from = 0;
+  }
+
+  return result;
+}
+
+// The last word before a line is emitted as prose. Anything still shaped like a
+// component tag here survived every reduction above and would ship to an agent
+// as literal JSX — the one thing the generated corpus promises never to carry.
+// Fenced blocks never reach this point; inline code spans are quoted material
+// and are excluded, as everywhere else.
+const SURVIVING_TAG = /<\/?([A-Z][A-Za-z0-9]*)\b[^>]*>/;
+
+function assertNothingSurvives(line, mdxFile) {
+  let found = null;
+  outsideCodeSpans(line, segment => {
+    if (!found) found = SURVIVING_TAG.exec(segment);
+    return segment;
+  });
+  if (!found) return;
+
+  throw new Error(
+    `${path.relative(ROOT, mdxFile)} leaves <${found[1]}> standing in prose, which ` +
+      'scripts/lib/docsPages.js could not reduce to markdown — it would ship to agents ' +
+      'as a literal tag. If it renders data, add it to DATA_COMPONENTS; if its markup ' +
+      'means something inline (as <Code> does), add a renderer to ' +
+      'INLINE_PAIRED_COMPONENTS; if it is layout only, add it to LAYOUT_COMPONENTS. ' +
+      'Generation stops rather than publish the tag.'
+  );
+}
 
 // Inline uses — `<TopicsCount network="testnet" /> active topics` — where the
 // component stands for a value in the middle of a sentence.
@@ -950,6 +1093,12 @@ function mdxToMarkdown(mdxFile, bodyLines, { stripLeadingH1 = true } = {}) {
       continue;
     }
 
+    // ── paired components used inline in a sentence ──
+    // After the <Pre>/<Code> block form above, which owns its whole line: what
+    // is left is markup inside prose, `(e.g. <Code>allora_sdk==1.0.6</Code>)`,
+    // which reduces to a code span rather than being dropped or passed through.
+    line = renderInlinePairedComponents(line, mdxFile);
+
     // ── a self-closing component occupying a line of its own ──
     // A data component renders its manifest here; a layout component has
     // nothing but its tag, so the tag goes. assertKnownComponents above has
@@ -1033,6 +1182,9 @@ function mdxToMarkdown(mdxFile, bodyLines, { stripLeadingH1 = true } = {}) {
       continue;
     }
 
+    // Every line-level shape has had its turn; this one is prose, so no
+    // component tag may still be standing in it.
+    assertNothingSurvives(line, mdxFile);
     emitContent(line);
   }
 

@@ -154,7 +154,8 @@ stands on its own:
   page to resolve `./sibling` against.
 - **Layout components are unwrapped.** Callouts, tabs, and card grids become
   their text content, and a layout component that occupies a line of its own is
-  dropped — it has nothing but its tag.
+  dropped — it has nothing but its tag. One used mid-sentence becomes markdown
+  of the same meaning: a component wrapping code becomes a backtick code span.
 - **Data components are rendered.** The tables the site builds from the JSON
   manifests — the endpoint tables on [Networks](/reference/networks), the topic
   tables on [Existing Allora Network Topics](/build/forge/topics) — are written
