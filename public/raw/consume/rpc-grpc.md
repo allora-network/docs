@@ -12,8 +12,8 @@ In addition to the [Allora API](https://docs.allora.network/consume/api), you ca
 
 ## Prerequisites
 
-- [`allorad` CLI](https://docs.allora.network/get-started/cli) installed
-- Access to an Allora RPC node
+- [`allorad` CLI](https://docs.allora.network/get-started/cli) installed, for the command-line examples
+- Access to an Allora node: the CometBFT RPC endpoint for `allorad`, or the LCD (REST) endpoint for the programmatic examples — see [Networks](https://docs.allora.network/reference/networks)
 
 For a complete list of available RPC endpoints and commands, see the [allorad reference section](https://docs.allora.network/reference/allorad).
 

@@ -34,7 +34,7 @@ Different actors interact with the Allora Appchain for different reasons. They d
 ## Dependencies
 
 - Create a set of keys and initialize genesis. See example in `scripts/init.sh`.
-- The script `scripts/l1_node.sh` is provided too, to facilitate configuration and maintenance of the node when connecting it to a network, downloading genesis,
+- The script `scripts/l1_node.sh` is provided too, to facilitate configuration and maintenance of the node when connecting it to a network: it runs `allorad init`, downloads that network's genesis file, seeds and peers, and then starts the node against them.
 
 ## Deploy with docker-compose
 
