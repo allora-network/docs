@@ -2,8 +2,8 @@
 title: Running a full node
 description: How to become a Validator on Allora.
 persona: Validator operator
-verified_against: docs content as of 2025-05-22
-last_reviewed: 2025-05-22
+verified_against: docs content as of 2025-05-22; CometBFT subcommand name re-checked against cosmos-sdk v0.50.14, the version allora-chain v0.17.0 builds on, on 2026-08-02
+last_reviewed: 2026-08-02
 ---
 
 # Running a full node
@@ -171,7 +171,7 @@ chmod +x state_sync.sh
 Reset existing data while keeping the address book:
 
 ```shell
-allorad tendermint unsafe-reset-all --home $HOME/.allorad --keep-addr-book
+allorad comet unsafe-reset-all --home $HOME/.allorad --keep-addr-book
 ```
 
 **Warning**: This command deletes blockchain data. Only run this on a fresh node or when you intend to resync from scratch.
