@@ -215,7 +215,7 @@ function discover(opts, config) {
       // very failure this exists to prevent.
       warmupTimeoutSeconds: override.warmupTimeoutSeconds || DEFAULTS.warmupTimeoutSeconds,
       skip: Boolean(override.skip),
-      reason: override.reason || '',
+      reason: typeof override.reason === 'string' ? override.reason.trim() : '',
       requires: override.requires || [],
       pip: override.pip || [],
       npm: override.npm || [],
@@ -249,6 +249,21 @@ function discover(opts, config) {
         `snippet prints when it actually did its job, and it is the only thing that\n` +
         `can distinguish a working snippet from one that exited 0 (or stayed alive)\n` +
         `having done nothing. Add "expect", or "skip" the file with a reason.`
+    );
+  }
+
+  // A skip is the one way to remove a file from nightly coverage, so it is the
+  // one place a silent regression can hide: the snippet stops being tested and
+  // nothing on the record says why, or for how long. The config documents a
+  // written reason as mandatory -- enforce it, rather than printing "no reason
+  // given" and carrying on as if that were a reason.
+  const unexplained = plan.filter(snippet => snippet.skip && !snippet.reason);
+  if (unexplained.length > 0) {
+    throw new Error(
+      `Skipped without a reason: ${unexplained.map(s => s.name).join(', ')}.\n` +
+        `Every "skip" in ${opts.configPath} needs a non-empty "reason": it is the\n` +
+        `only record of why a snippet stopped being tested, and what would have to\n` +
+        `be true to test it again. Write one, or remove the skip.`
     );
   }
 
@@ -673,7 +688,7 @@ async function main() {
   console.log(`Snippets directory: ${opts.snippetsDir}`);
   for (const snippet of plan) {
     const detail = snippet.skip
-      ? `skipped -- ${snippet.reason || 'no reason given'}`
+      ? `skipped -- ${snippet.reason}`
       : `${snippet.language}, ${snippet.mode}, ${snippet.timeoutSeconds}s` +
         (snippet.requires.length ? `, needs ${snippet.requires.join('+')}` : '') +
         (snippet.expect ? `, must print /${snippet.expectDescription}/` : '');
@@ -725,7 +740,9 @@ async function main() {
   const results = [];
   for (const snippet of plan) {
     if (snippet.skip) {
-      console.log(`SKIP  ${snippet.name} -- ${snippet.reason || 'no reason given'}`);
+      // discover() guarantees the reason is there, so there is no "no reason
+      // given" fallback to print any more.
+      console.log(`SKIP  ${snippet.name} -- ${snippet.reason}`);
       results.push({ name: snippet.name, status: 'SKIP', note: snippet.reason, output: '' });
       continue;
     }
