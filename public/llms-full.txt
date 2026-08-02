@@ -3336,10 +3336,16 @@ on **2026-07-31**. Topics activate and deactivate over time, so
 
 ## Start here: the sandbox topic
 
-Testnet topic **69** (`PLAYGROUND: 1 day BTC/USD Price Prediction`) is the no-penalty sandbox
-onboarding topic: a playground for making your first worker submissions, with no whitelist
-required. Testnet topic **77** (`PLAYGROUND FAST - 5 minute BTC/USD Price Prediction`) is its
-fast-epoch counterpart for quicker feedback loops. Both are marked `sandbox` in the table below.
+Testnet's sandbox topics are the no-penalty onboarding playground: somewhere to make your first
+worker submissions, with no whitelist required and nothing at stake if you get one wrong.
+
+- **69** — `PLAYGROUND: 1 day BTC/USD Price Prediction`
+- **77** — `PLAYGROUND FAST - 5 minute BTC/USD Price Prediction`
+
+The `PLAYGROUND FAST` topic is the short-epoch counterpart of the daily one, for quicker feedback
+while you iterate. Both are marked `sandbox` in the table below and carry a `sandbox` flag in
+`/api/topics.json`, which is where the list above is read from — so it cannot fall out of step
+with the tables.
 
 ## Testnet topics (`allora-testnet-1`)
 
@@ -9300,10 +9306,13 @@ The network endpoints manifest, with one entry per network under `networks`
 (today `testnet` and `mainnet`). Each entry carries the chain ID, the deployed
 `allora-chain` release, the versioned `emissions` namespace to use in LCD and
 gRPC query paths, and the RPC, gRPC, LCD, explorer, and faucet URLs — `faucet`
-is omitted on networks that have none, so treat it as optional. The file
-documents its own fields in a `field_notes` object and records when it was last
-updated in `updated`. [Networks](https://docs.allora.network/reference/networks) is the prose reference,
-and its tables render from this same file.
+is omitted on networks that have none, so treat it as optional. It also carries
+`sandbox_topic_ids`, the topics on that network that need no whitelist and carry
+no penalty, which is the only place that list is declared: the topics job reads
+it from here to set the `sandbox` flag in `/api/topics.json`. The file documents
+its own fields in a `field_notes` object and records when it was last updated in
+`updated`. [Networks](https://docs.allora.network/reference/networks) is the prose reference, and its
+tables render from this same file.
 
 ```bash
 curl -s https://docs.allora.network/api/networks.json

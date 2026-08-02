@@ -523,7 +523,12 @@ function markdownTable(header, rows) {
 // before it is used. A column added to the component but not mirrored here
 // would otherwise leave the generated corpus quietly showing less than the
 // page, which is the whole failure this section exists to prevent.
-function assertMirrors(componentFile, arrayName, itemPattern, expected) {
+//
+// The comparison is over the *whole* entry, not just its key. Labels and the
+// `code` flag are presentation too: rename a row to "Faucet URL", or stop
+// rendering the explorer as inline code, and a key-only check stays green while
+// the corpus goes on showing the previous wording indefinitely.
+function componentArray(componentFile, arrayName) {
   const source = fs.readFileSync(path.join(ROOT, componentFile), 'utf8');
   const block = source.match(new RegExp(`const ${arrayName} = \\[([\\s\\S]*?)\\n\\]`));
   if (!block) {
@@ -533,15 +538,44 @@ function assertMirrors(componentFile, arrayName, itemPattern, expected) {
         'matches the rendered page. Update the mirror check together with the component.'
     );
   }
-  const found = [...block[1].matchAll(itemPattern)].map(match => match[1]);
-  const same = found.length === expected.length && found.every((item, i) => item === expected[i]);
-  if (!same) {
+  return block[1];
+}
+
+function assertMirrors(componentFile, arrayName, found, expected) {
+  const show = items => items.map(item => JSON.stringify(item)).join(', ');
+  if (JSON.stringify(found) === JSON.stringify(expected)) return;
+  throw new Error(
+    `${componentFile} ${arrayName} is [${show(found)}], but scripts/lib/docsPages.js ` +
+      `mirrors [${show(expected)}]. The generated markdown would show something other ` +
+      'than the page does — update the mirror in scripts/lib/docsPages.js.'
+  );
+}
+
+// One `{ key: '…', label: '…', code: <bool> }` entry, in the component's own
+// spelling. Deliberately exact: a field written in some other shape does not
+// match, the entry count then disagrees with the number of `key:`s in the
+// block, and generation stops rather than mirror a list it only half read.
+const FIELD_ENTRY = /\{\s*key:\s*'([^']*)',\s*label:\s*'([^']*)',\s*code:\s*(true|false)\s*,?\s*\}/g;
+
+function componentFields(componentFile, arrayName) {
+  const block = componentArray(componentFile, arrayName);
+  const fields = [...block.matchAll(FIELD_ENTRY)].map(match => ({
+    key: match[1],
+    label: match[2],
+    code: match[3] === 'true',
+  }));
+
+  const declared = (block.match(/\bkey:/g) || []).length;
+  if (fields.length !== declared) {
     throw new Error(
-      `${componentFile} ${arrayName} is [${found.join(', ')}], but scripts/lib/docsPages.js ` +
-        `mirrors [${expected.join(', ')}]. The generated markdown would show something other ` +
-        'than the page does — update the mirror in scripts/lib/docsPages.js.'
+      `${componentFile} ${arrayName} declares ${declared} field(s) but only ${fields.length} ` +
+        "are written as `{ key: '…', label: '…', code: <true|false> }`, which is the shape " +
+        'scripts/lib/docsPages.js reads them in. Keep the component to that shape, or teach ' +
+        'the mirror check the new one — it cannot verify what it cannot parse.'
     );
   }
+
+  return fields;
 }
 
 // components/NetworksTable.js FIELDS: row order and labels are presentation and
@@ -561,8 +595,8 @@ function networks() {
   assertMirrors(
     'components/NetworksTable.js',
     'FIELDS',
-    /\bkey:\s*'([^']+)'/g,
-    NETWORK_FIELDS.map(field => field.key)
+    componentFields('components/NetworksTable.js', 'FIELDS'),
+    NETWORK_FIELDS
   );
   const entries = manifest(NETWORKS_MANIFEST).networks;
   if (!entries || typeof entries !== 'object' || Array.isArray(entries)) {
@@ -617,7 +651,14 @@ const TOPIC_COLUMNS = [
 ];
 
 function topics() {
-  assertMirrors('components/TopicsTable.js', 'COLUMNS', /'([^']*)'/g, TOPIC_COLUMNS);
+  assertMirrors(
+    'components/TopicsTable.js',
+    'COLUMNS',
+    [...componentArray('components/TopicsTable.js', 'COLUMNS').matchAll(/'([^']*)'/g)].map(
+      match => match[1]
+    ),
+    TOPIC_COLUMNS
+  );
   const data = manifest(TOPICS_MANIFEST);
   if (!Array.isArray(data.topics)) {
     throw new Error(`${path.relative(ROOT, TOPICS_MANIFEST)} has no "topics" array`);
@@ -660,12 +701,44 @@ function renderTopicsCount(attributes) {
   return String(topicsFor(requireNetworkAttribute('<TopicsCount/>', attributes)).length);
 }
 
+/** Mirrors sandboxTopicsFor() in components/TopicsTable.js. */
+function sandboxTopicsFor(network) {
+  return topicsFor(network).filter(topic => topic.sandbox);
+}
+
+/** Mirrors sandboxTopicIdList() — "69 and 77", "69, 77 and 80", "none". */
+function renderSandboxTopicIds(attributes) {
+  const network = requireNetworkAttribute('<SandboxTopicIds/>', attributes);
+  const ids = sandboxTopicsFor(network).map(topic => topic.id);
+  if (ids.length === 0) return 'none';
+  if (ids.length === 1) return String(ids[0]);
+  return `${ids.slice(0, -1).join(', ')} and ${ids[ids.length - 1]}`;
+}
+
+/** Mirrors the <SandboxTopics/> list, empty-state sentence included. */
+function renderSandboxTopics(attributes) {
+  const network = requireNetworkAttribute('<SandboxTopics/>', attributes);
+  const rows = sandboxTopicsFor(network);
+  if (rows.length === 0) return [`No sandbox topics are marked for ${network}.`];
+  return rows.map(topic => `- **${topic.id}** — \`${topic.metadata}\``);
+}
+
 /** Mirrors topicsGeneratedOn in components/TopicsTable.js. */
 function renderTopicsGeneratedOn() {
   const generatedAt = topics().generated_at;
-  if (typeof generatedAt !== 'string' || !/^\d{4}-\d{2}-\d{2}T/.test(generatedAt)) {
+  // Shape, parseability and calendar validity — the same bar
+  // scripts/generateTopics.js holds the value it writes to, so a date the
+  // generator would refuse to publish cannot reach the corpus through here.
+  const parsed = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(generatedAt)
+    ? new Date(generatedAt)
+    : null;
+  const usable =
+    parsed &&
+    !Number.isNaN(parsed.getTime()) &&
+    parsed.toISOString().replace(/\.\d{3}Z$/, 'Z') === generatedAt;
+  if (!usable) {
     throw new Error(
-      `${path.relative(ROOT, TOPICS_MANIFEST)} has no ISO-8601 "generated_at" ` +
+      `${path.relative(ROOT, TOPICS_MANIFEST)} has no usable ISO-8601 "generated_at" ` +
         `(got ${JSON.stringify(generatedAt)}); regenerate it with \`yarn topics\``
     );
   }
@@ -678,8 +751,10 @@ const DATA_COMPONENTS = {
   NetworksTable: { block: renderNetworksTable },
   NetworkDetails: { block: renderNetworkDetails },
   TopicsTable: { block: renderTopicsTable },
+  SandboxTopics: { block: renderSandboxTopics },
   TopicsCount: { inline: renderTopicsCount },
   TopicsGeneratedOn: { inline: renderTopicsGeneratedOn },
+  SandboxTopicIds: { inline: renderSandboxTopicIds },
 };
 
 // Components that carry no data of their own, so nothing is lost by dropping
@@ -855,20 +930,26 @@ function renderInlineDataComponents(text, mdxFile) {
   });
 }
 
+// Code spans are excluded here as everywhere else: a page quoting
+// `` `<SomeComponent />` `` to show a reader how to write it is documentation,
+// not a component this reduction has to know.
 function assertKnownComponents(line, mdxFile) {
-  SELF_CLOSING_TAG.lastIndex = 0;
-  let match;
-  while ((match = SELF_CLOSING_TAG.exec(line)) !== null) {
-    const name = match[1];
-    if (DATA_COMPONENTS[name] || LAYOUT_COMPONENTS.has(name)) continue;
-    throw new Error(
-      `${path.relative(ROOT, mdxFile)} uses <${name}/>, which scripts/lib/docsPages.js ` +
-        'does not know how to reduce to markdown. Add it to DATA_COMPONENTS there if it ' +
-        'renders data (so the generated corpus carries that data), or to ' +
-        'LAYOUT_COMPONENTS if it is layout only and dropping the tag loses nothing. ' +
-        'Generation stops rather than silently publishing a page without it.'
-    );
-  }
+  outsideCodeSpans(line, segment => {
+    SELF_CLOSING_TAG.lastIndex = 0;
+    let match;
+    while ((match = SELF_CLOSING_TAG.exec(segment)) !== null) {
+      const name = match[1];
+      if (DATA_COMPONENTS[name] || LAYOUT_COMPONENTS.has(name)) continue;
+      throw new Error(
+        `${path.relative(ROOT, mdxFile)} uses <${name}/>, which scripts/lib/docsPages.js ` +
+          'does not know how to reduce to markdown. Add it to DATA_COMPONENTS there if it ' +
+          'renders data (so the generated corpus carries that data), or to ' +
+          'LAYOUT_COMPONENTS if it is layout only and dropping the tag loses nothing. ' +
+          'Generation stops rather than silently publishing a page without it.'
+      );
+    }
+    return segment;
+  });
 }
 
 // The canonical site URL of a page file, derived the same way the navigation
@@ -888,6 +969,15 @@ function urlForPageFile(file) {
 // against the page it appears on. Returns null unless it lands on a real page
 // under pages/, so a link this script does not understand is left exactly as
 // written rather than rewritten into a guess.
+// True only for a path that is genuinely inside pages/. Compared after
+// resolution so `..` segments cannot walk out, and via path.relative rather
+// than a string prefix so a sibling directory named `pages-archive` does not
+// look like a match.
+function withinPages(file) {
+  const relative = path.relative(PAGES_DIR, file);
+  return relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative);
+}
+
 function resolveRelativeLink(mdxFile, target) {
   const hash = target.indexOf('#');
   const pathPart = hash === -1 ? target : target.slice(0, hash);
@@ -902,7 +992,14 @@ function resolveRelativeLink(mdxFile, target) {
   ];
   const file = candidates.find(
     candidate =>
-      /\.mdx?$/.test(candidate) && fs.existsSync(candidate) && fs.statSync(candidate).isFile()
+      /\.mdx?$/.test(candidate) &&
+      // Existing and markdown was not enough: `../../README.md` is both, and
+      // urlForPageFile would then describe it relative to pages/ anyway,
+      // yielding https://docs.allora.network/../README — a confidently wrong
+      // URL where the honest answer is "this is not a page on this site".
+      withinPages(candidate) &&
+      fs.existsSync(candidate) &&
+      fs.statSync(candidate).isFile()
   );
   if (!file) return null;
 
@@ -915,14 +1012,34 @@ function resolveRelativeLink(mdxFile, target) {
 // appear on first — note that scripts/fixRelativeLinks.js actively rewrites
 // internal links into the `./` form, so these are not a legacy handful but the
 // repo's normal state.
+// A CommonMark inline link tail: `](dest)`, and the forms the old pattern could
+// not see — `](<dest with spaces>)`, `](dest "title")`, `](dest 'title')`,
+// `](dest (title))`. Demanding `)` immediately after the destination meant a
+// titled link was not a link at all as far as this pass was concerned, so it
+// kept its relative destination in a file that has nothing to resolve it
+// against, quietly breaking the corpus' one promise about links.
+//
+//   1 leading whitespace   2 destination   3 title and trailing whitespace
+const INLINE_LINK =
+  /\]\((\s*)(<[^<>\n]*>|(?:[^\s()]|\([^\s()]*\))+)((?:[ \t]+(?:"[^"]*"|'[^']*'|\([^()]*\)))?\s*)\)/g;
+
 function absolutizeLinks(text, mdxFile) {
-  return text.replace(/\]\(([^)\s]+)\)/g, (whole, target) => {
+  return text.replace(INLINE_LINK, (whole, lead, destination, trailer) => {
+    const angled = destination.startsWith('<') && destination.endsWith('>');
+    const target = angled ? destination.slice(1, -1) : destination;
+
     // Absolute URLs, protocol-relative URLs, other schemes (mailto:, ipfs:) and
     // same-page fragments are already meaningful on their own.
     if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(target)) return whole;
-    if (target.startsWith('/')) return `](${SITE_URL}${target})`;
-    const resolved = resolveRelativeLink(mdxFile, target);
-    return resolved ? `](${resolved})` : whole;
+
+    const absolute = target.startsWith('/')
+      ? `${SITE_URL}${target}`
+      : resolveRelativeLink(mdxFile, target);
+    if (!absolute) return whole;
+
+    // The title is the author's and is carried through untouched; only the
+    // destination is rewritten, and it keeps whichever form it was written in.
+    return `](${lead}${angled ? `<${absolute}>` : absolute}${trailer})`;
   });
 }
 
@@ -1042,15 +1159,23 @@ function mdxToMarkdown(mdxFile, bodyLines, { stripLeadingH1 = true } = {}) {
     // Done before the JSX handling below, and only outside fences: the tag
     // stands where the version belongs in a sentence, so unwrapping it as a
     // component (dropping it) or leaving it literal both lose the fact.
-    line = renderVersionTags(line, mdxFile);
+    //
+    // Outside inline code spans too, and for the same reason a fence is
+    // skipped: a page writing `` `<Version of="chain-testnet"/>` `` is showing
+    // the reader how to write the tag, and resolving that to a version turns
+    // documentation of the component into a claim about the network. The
+    // <Code> wrapper is untouched by this — it is still JSX at this point, not
+    // a backtick span, so a version inside it resolves as it should.
+    line = outsideCodeSpans(line, segment => renderVersionTags(segment, mdxFile));
 
     // ── ESM lines that only exist for the rendered site ──
     if (ESM_IMPORT.test(line) || ESM_EXPORT.test(line)) continue;
 
     // ── data components used inline in a sentence ──
-    // Same reasoning as <Version/>: the component stands where the value
-    // belongs, so dropping it loses the fact and leaving it literal ships JSX.
-    line = renderInlineDataComponents(line, mdxFile);
+    // Same reasoning as <Version/>, code spans included: the component stands
+    // where the value belongs, so dropping it loses the fact and leaving it
+    // literal ships JSX — unless the page is quoting the tag itself.
+    line = outsideCodeSpans(line, segment => renderInlineDataComponents(segment, mdxFile));
 
     // Every remaining self-closing component must be one this reduction knows.
     assertKnownComponents(line, mdxFile);

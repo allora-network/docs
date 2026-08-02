@@ -110,18 +110,41 @@ function readNetworks() {
       // The manifest writes the LCD with a trailing slash; the query paths
       // below add their own separator.
       lcd: manifestField(name, entry, 'lcd').replace(/\/+$/, ''),
+      sandbox: sandboxIds(name, entry),
     };
   });
 }
 
 // Sandbox ("playground") topics: no whitelist, no penalties, intended for a
-// first worker submission. The chain exposes no sandbox flag, so this is the
-// documented list of sandbox topic IDs — keep it in sync with the
-// "Start here: the sandbox topic" section of pages/build/forge/topics.mdx.
-const SANDBOX_TOPIC_IDS = {
-  testnet: [69, 77],
-  mainnet: [],
-};
+// first worker submission. The chain exposes no sandbox flag, so the fact has
+// to be declared by hand — but it was declared in three places at once (a
+// constant here, and the topic IDs spelled out in the prose of two pages), so
+// activating a new sandbox topic meant remembering all three. Miss this one and
+// topics.json simply omits the flag: the badge disappears from the table and no
+// gate says a word.
+//
+// Now it is declared once, in public/api/networks.json beside the network's
+// other hand-maintained facts. This job marks the rows; every page renders the
+// list from the marked rows. One declaration, one answer.
+function sandboxIds(network, entry) {
+  const ids = entry.sandbox_topic_ids;
+  if (!Array.isArray(ids)) {
+    throw new Error(
+      `${MANIFEST_RELATIVE} networks.${network} has no "sandbox_topic_ids" array ` +
+        `(got ${JSON.stringify(ids)}). Use [] for a network with no sandbox topics; ` +
+        'this file is the only place the list is declared.'
+    );
+  }
+  ids.forEach(id => {
+    if (!Number.isInteger(id) || id < 1) {
+      throw new Error(
+        `${MANIFEST_RELATIVE} networks.${network}.sandbox_topic_ids contains ` +
+          `${JSON.stringify(id)}, which is not a topic ID.`
+      );
+    }
+  });
+  return new Set(ids);
+}
 
 const OUTPUT_PATH = path.join(__dirname, '..', 'public', 'api', 'topics.json');
 
@@ -211,7 +234,6 @@ function requireString(net, value, where) {
 
 async function fetchNetworkTopics(net) {
   const base = `${net.lcd}/${net.namespace}`;
-  const sandboxIds = new Set(SANDBOX_TOPIC_IDS[net.network] || []);
 
   const nextTopicIdResponse = await getJson(`${base}/next_topic_id`);
   if (!nextTopicIdResponse || !('next_topic_id' in nextTopicIdResponse)) {
@@ -244,6 +266,20 @@ async function fetchNetworkTopics(net) {
       `${highestId} topics scanned, ${activeIds.length} active\n`
   );
 
+  // A declared sandbox topic that is no longer active is worth saying out loud
+  // now that the manifest is the only copy of that list — but not worth failing
+  // over: a topic can be deactivated at any time, and wedging the nightly
+  // refresh would stop every other topic from updating too.
+  const active = new Set(activeIds);
+  const missing = [...net.sandbox].filter(id => !active.has(id));
+  if (missing.length > 0) {
+    process.stdout.write(
+      `${net.network}: ${MANIFEST_RELATIVE} lists sandbox_topic_ids ${missing.join(', ')}, ` +
+        `which ${missing.length === 1 ? 'is' : 'are'} not active — the sandbox flag will be ` +
+        'absent for them until they are reactivated or the manifest is updated\n'
+    );
+  }
+
   const topics = await mapWithConcurrency(activeIds, async id => {
     const response = await getJson(`${base}/topics/${id}`);
     const topic = response && response.topic;
@@ -263,7 +299,7 @@ async function fetchNetworkTopics(net) {
       epoch_length: requireUint(net, topic.epoch_length, `topics/${id}.epoch_length`),
       loss_method: requireString(net, topic.loss_method, `topics/${id}.loss_method`),
       category: categoryFor(metadata),
-      sandbox: sandboxIds.has(topicId),
+      sandbox: net.sandbox.has(topicId),
     };
   });
 
@@ -294,12 +330,25 @@ function readExisting() {
  */
 const GENERATED_AT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
 
+/** The instant, in the one spelling this script writes. */
+function isoSecond(date) {
+  return date.toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
+
 function hasUsableTimestamp(data) {
-  return (
-    typeof data.generated_at === 'string' &&
-    GENERATED_AT.test(data.generated_at) &&
-    !Number.isNaN(Date.parse(data.generated_at))
-  );
+  const value = data.generated_at;
+  if (typeof value !== 'string' || !GENERATED_AT.test(value)) return false;
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return false;
+
+  // Date.parse is not a calendar check: it rolls a day past the end of its
+  // month forward instead of rejecting it, so "2026-02-31T00:00:00Z" parses
+  // happily as March 3rd. Shape and parseability together still admit a date
+  // that never existed. Round-tripping the parsed instant back to a string is
+  // the check that actually holds — a normalised date no longer matches what
+  // was written.
+  return isoSecond(parsed) === value;
 }
 
 /** Why the committed file needs rewriting, or null when it does not. */
@@ -332,7 +381,7 @@ async function main() {
   }
 
   const data = {
-    generated_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+    generated_at: isoSecond(new Date()),
     source: 'Cosmos LCD (REST) emissions API: next_topic_id, is_topic_active, topics',
     networks: networks.map((net, i) => ({
       network: net.network,
