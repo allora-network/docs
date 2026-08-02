@@ -147,38 +147,36 @@ async function getText(url) {
   return readBody(url, () => response.text());
 }
 
-const SEMVER = /^v?(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/;
+// The grammar, the ordering and "is this a prerelease" all come from
+// scripts/lib/semver.js, which scripts/checkVersionStrings.js reads too. This
+// file used to keep its own looser idea of a version — `/^v?(\d+)\.(\d+)\.(\d+)/`
+// with everything after the patch ignored — so it would accept `v1.2.3.4` from
+// a release feed and write it into the very file the checker rejects: a green
+// nightly PR that fails the build it opens.
+const semver = require('./lib/semver');
 
-function parseSemver(value) {
-  const match = SEMVER.exec(String(value).trim());
-  if (!match) return null;
-  return [Number(match[1]), Number(match[2]), Number(match[3])];
-}
-
-/** > 0 when a is newer than b, 0 when equal, < 0 when older. null if either is unparsable. */
-function compareSemver(a, b) {
-  const left = parseSemver(a);
-  const right = parseSemver(b);
-  if (!left || !right) return null;
-  for (let i = 0; i < 3; i++) {
-    if (left[i] !== right[i]) return left[i] - right[i];
-  }
-  return 0;
-}
+const compareSemver = semver.compare;
 
 /**
- * Picks the newest stable (non-prerelease, parsable) version from a list.
+ * Picks the newest stable version from a list.
  *
- * "Stable" means carrying no prerelease identifier. Build metadata is not one:
- * SemVer ignores it when ordering, and `1.2.3+build.5` is a release of 1.2.3.
- * This filter used to reject `-` and `+` alike, so a repo that tags its
- * releases with build metadata looked to the bump job like a repo with no
- * releases at all — and versions.json accepts that form, so the two disagreed.
+ * Both halves of that sentence were wrong before, in ways that only surface on
+ * version forms this repo happens not to use yet:
+ *
+ *   "stable"  was "contains no `-`", searched over the whole string. Build
+ *             metadata may contain hyphens, so `v1.2.3+build-5` — a release —
+ *             read as a prerelease and was skipped. isPrerelease() reads the
+ *             parsed prerelease field, which is the only thing that actually
+ *             separates the two.
+ *   "newest"  compared the numeric core only, so `1.2.3-rc.1` and `1.2.3`
+ *             compared *equal*: once the final shipped, the job would never
+ *             advance off the release candidate. compare() implements SemVer
+ *             precedence, in which a prerelease ranks below its release.
  */
 function newestStable(candidates) {
   return candidates
-    .filter(candidate => parseSemver(candidate) && !candidate.replace(/^v/, '').includes('-'))
-    .sort((a, b) => compareSemver(b, a))[0];
+    .filter(candidate => semver.isValid(candidate) && !semver.isPrerelease(candidate))
+    .sort((a, b) => semver.compare(b, a))[0];
 }
 
 // Both chain keys read the same repo; memoize so one run makes one set of calls.
@@ -239,7 +237,7 @@ async function resolveGitHubVersion(repo, { pyprojectFallback = false } = {}) {
   const branch = (repoMeta && repoMeta.default_branch) || 'main';
   const pyproject = await getText(`https://raw.githubusercontent.com/${repo}/${branch}/pyproject.toml`);
   const match = pyproject && pyproject.match(/^\s*version\s*=\s*["']([^"']+)["']/m);
-  if (!match || !parseSemver(match[1])) {
+  if (!match || !semver.isValid(match[1])) {
     throw new Error(`${repo} exposes no releases, no tags, and no readable pyproject.toml version.`);
   }
   return { version: match[1], via: `pyproject.toml on ${branch}`, published: false };
@@ -248,7 +246,7 @@ async function resolveGitHubVersion(repo, { pyprojectFallback = false } = {}) {
 async function latestPyPiVersion() {
   const data = await getJson('https://pypi.org/pypi/allora_sdk/json');
   const version = data && data.info && data.info.version;
-  if (!version || !parseSemver(version)) {
+  if (!version || !semver.isValid(version)) {
     throw new Error(`PyPI returned no usable version for allora_sdk (got ${JSON.stringify(version)}).`);
   }
   return { version, via: 'PyPI', published: true };
@@ -361,6 +359,7 @@ function renderIssueBody(candidates, marker) {
     lines.push('');
   }
 
+
   lines.push('This issue is updated in place while these findings hold, and closed');
   lines.push('automatically once none of them are left. Closing it by hand is respected');
   lines.push('too: it is not reopened until the proposed versions themselves change.');
@@ -451,6 +450,20 @@ async function main() {
 
   const body = applied.length > 0 ? renderPrBody(applied, candidates, marker) : '';
   const reviewBody = candidates.length > 0 ? renderIssueBody(candidates, reviewMarker) : '';
+
+  // The last thing between an upstream feed and the file `yarn checkversions`
+  // guards. Every resolver above already runs its candidates through the shared
+  // grammar, so this cannot fire today — which is the point: if a future
+  // resolver is added that forgets to, the job stops here with the offending
+  // value named, instead of opening a pull request that fails its own build.
+  applied.forEach(finding => {
+    if (semver.isValid(finding.next)) return;
+    throw new Error(
+      `Refusing to write "${finding.next}" to public/api/versions.json for key ` +
+        `"${finding.key}" (from ${finding.via}): it is not a semantic version, and every ` +
+        'value in that file must be one. Report it rather than applying it.'
+    );
+  });
 
   if (applied.length > 0 && write) {
     applied.forEach(finding => {

@@ -68,13 +68,30 @@ const HISTORICAL_FILES = new Set([
   'pages/reference/release-notes.mdx',
 ]);
 
-// Words that mark a version reference as historical rather than current. Matched
-// immediately before the version, allowing markdown emphasis/backticks and a
-// heading marker in between (e.g. "Starting in **v0.17.0**", "## v0.17.0").
+// Phrases that mark a version reference as historical rather than current.
+// Matched immediately before the version, allowing markdown emphasis/backticks
+// in between (e.g. "Starting in **v0.17.0**").
+//
+// Every entry is a complete time-anchoring construction. Bare "in" and "from"
+// used to be on this list and are not any more: they exempted any sentence that
+// happened to have one of them before the number, so "install the package in
+// v1.0.6" — a current claim, and exactly the kind that goes stale on the next
+// bump — was skipped silently. The whole gate turned off on a preposition.
 const HISTORICAL_PREFIX =
-  /(?:^|[\s(])(?:since|starting\s+in|starting\s+with|introduced\s+in|added\s+in|new\s+in|as\s+of|before|prior\s+to|until|up\s+to|in|from|such\s+as\s+the)[\s]*[*`_]{0,2}$/i;
+  /(?:^|[\s(])(?:since|starting\s+in|starting\s+with|introduced\s+in|added\s+in|new\s+in|as\s+of|before|prior\s+to|until|up\s+to|such\s+as\s+the)[\s]*[*`_]{0,2}$/i;
+
+// "In v0.17.0 this query was renamed" — a fronted time adverbial, which is
+// historical, unlike the same preposition mid-sentence. Recognised only at the
+// start of a line or a sentence (blockquote and list markers allowed), which is
+// what separates it from "install the package in v1.0.6".
+const HISTORICAL_SENTENCE_START =
+  /(?:^|[.!?]\s+)\s*(?:>\s*)?(?:[-*+]\s+|\d+\.\s+)?(?:in|from)\s+[*`_]{0,2}$/i;
 
 const HEADING_PREFIX = /^\s{0,3}#{1,6}\s+[*`_]{0,2}$/;
+
+function isHistorical(before) {
+  return HISTORICAL_PREFIX.test(before) || HISTORICAL_SENTENCE_START.test(before);
+}
 
 // The escape hatch is documented as `version-literal-ok: <reason>` and the
 // reason is the whole point of it — a bare marker suppresses the gate while
@@ -86,23 +103,31 @@ const HEADING_PREFIX = /^\s{0,3}#{1,6}\s+[*`_]{0,2}$/;
 // whose terminator would otherwise pass for a reason.
 const ESCAPE_HATCH = /version-literal-ok:\s*\w/;
 
-// The official SemVer 2.0.0 grammar, anchored, with the leading "v" this repo's
-// chain keys carry made optional. Accepts "v0.17.0", "1.0.6-rc.1",
-// "v0.17.0+build.5", "1.0.6-rc.1+build.5"; rejects "v0.17.0oops", a dangling
-// "1.0.6-" or "1.0.6+", leading zeros ("01.0.0", "1.0.0-01") and empty
-// dot-separated identifiers ("1.0.0-alpha..1").
-//
-// A looser "digits, dots and punctuation" shape was the first fix here, and it
-// let malformed values through in exactly the way the original bug did — this
-// file is the source every generated surface reads, so what it accepts is what
-// the docs can publish.
-const VERSION_VALUE =
-  /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
+// The SemVer 2.0.0 grammar, from the definition scripts/bumpVersions.js reads
+// too — the bump job writes this file, so the two must agree on what a version
+// is or the nightly opens a pull request that fails this very check.
+const { isValid: isVersion } = require('./lib/semver');
 
 // The one key in versions.json that is not a version id.
 const SUPERSEDED_KEY = 'superseded';
 
 const bareVersion = value => String(value).replace(/^v/, '');
+
+// Valid JSON is not the same thing as a manifest. `null`, `[…]`, `"text"` and
+// `5` all parse, and each then fails somewhere further in with a message about
+// the wrong thing — `null` by crashing on a property read, an array by
+// spreading its indices into what look like version keys. Checked once, here,
+// so a malformed file is reported as a malformed file.
+function requireObject(parsed, file) {
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    console.error(
+      `Version check failed: ${path.relative(ROOT, file)} is valid JSON but not an object ` +
+        `(got ${Array.isArray(parsed) ? 'an array' : JSON.stringify(parsed)}).`
+    );
+    process.exit(1);
+  }
+  return parsed;
+}
 
 function readVersions() {
   if (!fs.existsSync(VERSIONS_FILE)) {
@@ -119,7 +144,7 @@ function readVersions() {
     process.exit(1);
   }
 
-  const { [SUPERSEDED_KEY]: superseded, ...current } = parsed;
+  const { [SUPERSEDED_KEY]: superseded, ...current } = requireObject(parsed, VERSIONS_FILE);
   const entries = Object.entries(current);
   if (entries.length === 0) {
     console.error(`Version check failed: ${path.relative(ROOT, VERSIONS_FILE)} defines no versions.`);
@@ -127,7 +152,7 @@ function readVersions() {
   }
 
   entries.forEach(([key, value]) => {
-    if (typeof value !== 'string' || !VERSION_VALUE.test(value)) {
+    if (typeof value !== 'string' || !isVersion(value)) {
       console.error(
         `Version check failed: ${path.relative(ROOT, VERSIONS_FILE)} key "${key}" ` +
           `is not a version string (got ${JSON.stringify(value)}).`
@@ -174,7 +199,7 @@ function readSuperseded(raw, entries) {
     if (!Array.isArray(raw[key])) fail(`["${key}"] must be an array (got ${JSON.stringify(raw[key])})`);
     const seen = new Set();
     raw[key].forEach(value => {
-      if (typeof value !== 'string' || !VERSION_VALUE.test(value)) {
+      if (typeof value !== 'string' || !isVersion(value)) {
         fail(`["${key}"] contains ${JSON.stringify(value)}, which is not a version string`);
       }
       if (seen.has(value)) fail(`["${key}"] lists ${JSON.stringify(value)} twice`);
@@ -224,12 +249,13 @@ function readNetworks() {
     process.exit(1);
   }
 
-  if (!parsed.networks || typeof parsed.networks !== 'object' || Array.isArray(parsed.networks)) {
+  const root = requireObject(parsed, NETWORKS_FILE);
+  if (!root.networks || typeof root.networks !== 'object' || Array.isArray(root.networks)) {
     console.error(`Version check failed: ${relative} has no "networks" object.`);
     process.exit(1);
   }
 
-  return parsed.networks;
+  return root.networks;
 }
 
 // versions.json's `chain_<network>` keys and networks.json's per-network
@@ -319,7 +345,7 @@ function matcherFor(key, value, kind, current) {
     bare,
     kind,
     current,
-    pattern: new RegExp(`(?<![\\w.])v?${escaped}(?!\\w|\\.\\d)`, 'g'),
+    pattern: new RegExp(`(?<![\\w.])v?${escaped}(?!\\w|\\.\\d|[-+])`, 'g'),
   };
 }
 
@@ -403,7 +429,7 @@ function checkFile(relativePath, matchers) {
       let match;
       while ((match = matcher.pattern.exec(line)) !== null) {
         const before = line.slice(0, match.index);
-        if (HISTORICAL_PREFIX.test(before) || HEADING_PREFIX.test(before)) continue;
+        if (isHistorical(before) || HEADING_PREFIX.test(before)) continue;
         violations.push({
           file: relativePath,
           line: index + 1,
