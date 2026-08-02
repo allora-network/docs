@@ -14,6 +14,9 @@
  *   3. for every active id:
  *        GET {lcd}/emissions/{v}/topics/{id}           -> GetTopic
  *
+ * `{lcd}` and `emissions/{v}` come from public/api/networks.json, one entry per
+ * network — never from a copy kept here (see readNetworks below).
+ *
  * No dependencies (Node 20 global `fetch`), no credentials: every endpoint is
  * a public read.
  *
@@ -29,23 +32,87 @@
 const fs = require('fs');
 const path = require('path');
 
-// Base URLs, chain IDs, and the per-network `emissions` API version segment.
-// Source of truth: pages/reference/networks.mdx (the emissions version differs
-// per network because the networks run different allora-chain releases).
-const NETWORKS = [
-  {
-    network: 'testnet',
-    chain_id: 'allora-testnet-1',
-    emissions_api: 'v10',
-    lcd: 'https://allora-api.testnet.allora.network',
-  },
-  {
-    network: 'mainnet',
-    chain_id: 'allora-mainnet-1',
-    emissions_api: 'v9',
-    lcd: 'https://allora-api.mainnet.allora.network',
-  },
-];
+// Where to query, read from public/api/networks.json — the endpoints manifest
+// /reference/networks renders and the network-drift job maintains.
+//
+// These used to be hardcoded here, which made this file a second, silent copy
+// of facts the manifest already owns. The emissions namespace differs per
+// network because the networks run different allora-chain releases, so it moves
+// with every upgrade: once the manifest said `emissions/v11` and this constant
+// still said v10, the nightly job went on querying a retired API — every
+// request failing against a namespace nobody serves any more, and the published
+// topic tables quietly frozen at whatever they last were. One manifest, one
+// answer.
+const NETWORKS_MANIFEST = path.join(__dirname, '..', 'public', 'api', 'networks.json');
+const MANIFEST_RELATIVE = path.relative(path.join(__dirname, '..'), NETWORKS_MANIFEST);
+
+// The documented shape of `emissions_namespace` — the manifest's own
+// field_notes give `<lcd>/emissions/v10/params` as the example. The version
+// segment is pulled back out of it for the `emissions_api` field this script
+// publishes, so anything else has to stop the run rather than be guessed at.
+const EMISSIONS_NAMESPACE = /^emissions\/(v\d+)$/;
+
+function manifestField(network, entry, field) {
+  const value = entry[field];
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw new Error(
+      `${MANIFEST_RELATIVE} networks.${network} has no "${field}" string ` +
+        `(got ${JSON.stringify(value)}). That file decides where this job queries; ` +
+        'fix it there rather than hardcoding a value here.'
+    );
+  }
+  return value.trim();
+}
+
+function readNetworks() {
+  if (!fs.existsSync(NETWORKS_MANIFEST)) {
+    throw new Error(`${MANIFEST_RELATIVE} is missing, so there is nowhere to query.`);
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(fs.readFileSync(NETWORKS_MANIFEST, 'utf8'));
+  } catch (error) {
+    throw new Error(`${MANIFEST_RELATIVE} is not valid JSON: ${error.message}`);
+  }
+
+  const networks = parsed && parsed.networks;
+  if (!networks || typeof networks !== 'object' || Array.isArray(networks)) {
+    throw new Error(`${MANIFEST_RELATIVE} has no "networks" object.`);
+  }
+
+  const names = Object.keys(networks);
+  if (names.length === 0) {
+    throw new Error(`${MANIFEST_RELATIVE} defines no networks.`);
+  }
+
+  return names.map(name => {
+    const entry = networks[name];
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      throw new Error(`${MANIFEST_RELATIVE} networks.${name} is not an object.`);
+    }
+
+    const namespace = manifestField(name, entry, 'emissions_namespace');
+    const version = EMISSIONS_NAMESPACE.exec(namespace);
+    if (!version) {
+      throw new Error(
+        `${MANIFEST_RELATIVE} networks.${name}.emissions_namespace is ` +
+          `${JSON.stringify(namespace)}, which is not of the form "emissions/v<N>". ` +
+          'Refusing to guess which API version to query.'
+      );
+    }
+
+    return {
+      network: name,
+      chain_id: manifestField(name, entry, 'chain_id'),
+      emissions_api: version[1],
+      namespace,
+      // The manifest writes the LCD with a trailing slash; the query paths
+      // below add their own separator.
+      lcd: manifestField(name, entry, 'lcd').replace(/\/+$/, ''),
+    };
+  });
+}
 
 // Sandbox ("playground") topics: no whitelist, no penalties, intended for a
 // first worker submission. The chain exposes no sandbox flag, so this is the
@@ -122,7 +189,7 @@ async function mapWithConcurrency(items, worker) {
 function fail(net, message) {
   throw new Error(
     `${net.network}: ${message}. Refusing to publish a topics table from this ` +
-      `response — re-check ${net.lcd}/emissions/${net.emissions_api} by hand.`
+      `response — re-check ${net.lcd}/${net.namespace} by hand.`
   );
 }
 
@@ -143,7 +210,7 @@ function requireString(net, value, where) {
 }
 
 async function fetchNetworkTopics(net) {
-  const base = `${net.lcd}/emissions/${net.emissions_api}`;
+  const base = `${net.lcd}/${net.namespace}`;
   const sandboxIds = new Set(SANDBOX_TOPIC_IDS[net.network] || []);
 
   const nextTopicIdResponse = await getJson(`${base}/next_topic_id`);
@@ -173,7 +240,7 @@ async function fetchNetworkTopics(net) {
   }
 
   process.stdout.write(
-    `${net.network} (${net.chain_id}, emissions/${net.emissions_api}): ` +
+    `${net.network} (${net.chain_id}, ${net.namespace}): ` +
       `${highestId} topics scanned, ${activeIds.length} active\n`
   );
 
@@ -212,45 +279,83 @@ function payloadOf(data) {
 
 function readExisting() {
   try {
-    return JSON.parse(fs.readFileSync(OUTPUT_PATH, 'utf8'));
+    const parsed = JSON.parse(fs.readFileSync(OUTPUT_PATH, 'utf8'));
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
   } catch {
     return null;
   }
 }
 
+/**
+ * The exact shape this script writes, which is also the shape everything
+ * downstream assumes: components/TopicsTable.js calls `.slice(0, 10)` on it to
+ * render the date, and scripts/lib/docsPages.js reads it to put that date into
+ * the generated corpus.
+ */
+const GENERATED_AT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
+
+function hasUsableTimestamp(data) {
+  return (
+    typeof data.generated_at === 'string' &&
+    GENERATED_AT.test(data.generated_at) &&
+    !Number.isNaN(Date.parse(data.generated_at))
+  );
+}
+
+/** Why the committed file needs rewriting, or null when it does not. */
+function stalenessOf(existing, data) {
+  if (existing === null) return 'is missing or unreadable';
+  // `generated_at` is excluded from the payload comparison so an unchanged
+  // chain produces an empty diff. That exclusion also meant a missing or
+  // malformed timestamp read as "unchanged" forever: the file was never
+  // rewritten, and the page that renders it crashed on `.slice` instead. A
+  // timestamp this script cannot vouch for is a reason to rewrite, not a
+  // detail to skip over.
+  if (!hasUsableTimestamp(existing)) {
+    return `has no usable generated_at (got ${JSON.stringify(existing.generated_at)})`;
+  }
+  if (payloadOf(existing) !== payloadOf(data)) return 'no longer matches chain state';
+  return null;
+}
+
 async function main() {
   const checkOnly = process.argv.includes('--check');
 
+  // Read inside main() so a malformed manifest surfaces through the same
+  // one-line error path as every other failure, rather than as a stack trace at
+  // require time.
+  const networks = readNetworks();
+
   const perNetwork = [];
-  for (const net of NETWORKS) {
+  for (const net of networks) {
     perNetwork.push(await fetchNetworkTopics(net));
   }
 
   const data = {
     generated_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
     source: 'Cosmos LCD (REST) emissions API: next_topic_id, is_topic_active, topics',
-    networks: NETWORKS.map((net, i) => ({
+    networks: networks.map((net, i) => ({
       network: net.network,
       chain_id: net.chain_id,
       emissions_api: net.emissions_api,
       lcd: net.lcd,
       active_topic_count: perNetwork[i].length,
     })),
-    // Deterministic ordering: network (testnet, then mainnet), then numeric id.
+    // Deterministic ordering: manifest order (testnet, then mainnet), then
+    // numeric id within each network.
     topics: perNetwork.flat(),
   };
 
-  const existing = readExisting();
-  const unchanged = existing !== null && payloadOf(existing) === payloadOf(data);
+  const stale = stalenessOf(readExisting(), data);
   const relativePath = path.relative(path.join(__dirname, '..'), OUTPUT_PATH);
 
-  if (unchanged) {
+  if (stale === null) {
     process.stdout.write(`${relativePath} is up to date (${data.topics.length} active topics)\n`);
     return;
   }
 
   if (checkOnly) {
-    process.stderr.write(`${relativePath} is stale — run: node scripts/generateTopics.js\n`);
+    process.stderr.write(`${relativePath} ${stale} — run: node scripts/generateTopics.js\n`);
     process.exitCode = 1;
     return;
   }

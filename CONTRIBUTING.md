@@ -179,7 +179,21 @@ anywhere in `pages/`, `components/` or `snippets/`; it also runs as part of
 `yarn build` and in CI. Mentions of *when* something changed ("since v0.17.0",
 "introduced in v0.17.0") are historical facts, not current versions — leave
 those literal. If the checker flags a historical mention it cannot recognise,
-add a `version-literal-ok: <reason>` comment on that line.
+add a `version-literal-ok: <reason>` comment on that line. The reason is not
+decoration: a bare `version-literal-ok:` suppresses nothing, because a marker
+with no reason is indistinguishable from a mistake six months later.
+
+The check covers a page's frontmatter too, apart from `verified_against` —
+that key is a point-in-time attestation and is meant to go stale. Frontmatter
+cannot render the component, so a `title` or `description` that needs a current
+version should be reworded rather than pinned to one.
+
+It also fails on a version the docs have already *left behind*. `versions.json`
+keeps a `superseded` array per key, appended to whenever a version is bumped,
+so a hand-typed `1.0.6` in an install command keeps failing the build after
+`1.0.6` stops being current — the moment it would otherwise start passing
+unnoticed. The same exemptions apply: a changelog, "since 1.0.6", or a
+`version-literal-ok: <reason>` comment.
 
 A scheduled workflow watches upstream for you. When a version that is genuinely
 *published* moves ahead of `versions.json` — a GitHub release or tag, or a PyPI

@@ -90,22 +90,61 @@ function githubHeaders() {
   return headers;
 }
 
+// "Fail loudly rather than quietly report up to date" only holds if the job
+// actually reaches a conclusion. A stalled endpoint has no timeout of its own,
+// so without this the run hangs until the workflow's own budget kills it —
+// which is a cancelled job, not a failed one, and the schedule loses the night.
+// Bounded per request, and the error names the URL so the failure says which
+// feed went quiet.
+const REQUEST_TIMEOUT_MS = 30000;
+
+function isTimeout(error) {
+  return Boolean(error) && (error.name === 'TimeoutError' || error.name === 'AbortError');
+}
+
+async function request(url, headers) {
+  try {
+    return await fetch(url, { headers, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+  } catch (error) {
+    if (isTimeout(error)) {
+      throw new Error(`GET ${url} timed out after ${REQUEST_TIMEOUT_MS / 1000}s.`);
+    }
+    throw new Error(`GET ${url} failed: ${error.message}`);
+  }
+}
+
+// The same deadline covers the body: a server that sends headers and then
+// stalls mid-response hangs the run just as effectively as one that never
+// answers, and the abort signal is still attached to the stream.
+async function readBody(url, read) {
+  try {
+    return await read();
+  } catch (error) {
+    if (isTimeout(error)) {
+      throw new Error(
+        `GET ${url} timed out after ${REQUEST_TIMEOUT_MS / 1000}s while reading the response.`
+      );
+    }
+    throw new Error(`GET ${url} → unreadable response: ${error.message}`);
+  }
+}
+
 async function getJson(url, headers) {
-  const response = await fetch(url, { headers });
+  const response = await request(url, headers);
   if (response.status === 404) return null;
   if (!response.ok) {
     throw new Error(`GET ${url} → HTTP ${response.status} ${response.statusText}`);
   }
-  return response.json();
+  return readBody(url, () => response.json());
 }
 
 async function getText(url) {
-  const response = await fetch(url, { headers: { 'User-Agent': 'allora-docs-version-bump' } });
+  const response = await request(url, { 'User-Agent': 'allora-docs-version-bump' });
   if (response.status === 404) return null;
   if (!response.ok) {
     throw new Error(`GET ${url} → HTTP ${response.status} ${response.statusText}`);
   }
-  return response.text();
+  return readBody(url, () => response.text());
 }
 
 const SEMVER = /^v?(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/;
@@ -303,6 +342,33 @@ function renderIssueBody(candidates, marker) {
   return lines.join('\n');
 }
 
+// Files the value a key is leaving behind under versions.json's `superseded`
+// key, so scripts/checkVersionStrings.js keeps failing on it after the bump.
+// Without this the bump silently widens what the docs may say: the moment
+// 1.0.6 stops being current, every hand-typed 1.0.6 in an install command
+// stops being checked, which is exactly when it becomes wrong.
+const SUPERSEDED_KEY = 'superseded';
+
+function recordSuperseded(versions, key, previous) {
+  if (typeof previous !== 'string' || previous === '') return;
+
+  const inventory = versions[SUPERSEDED_KEY];
+  if (inventory === undefined || inventory === null || typeof inventory !== 'object' || Array.isArray(inventory)) {
+    // Bail loudly rather than reshape a file a human maintains: a bump that
+    // quietly dropped the inventory would take the check down with it.
+    throw new Error(
+      `public/api/versions.json has no "${SUPERSEDED_KEY}" object. Add one with an ` +
+        'array per version key before the bump job can record what it replaces.'
+    );
+  }
+  if (!Array.isArray(inventory[key])) {
+    throw new Error(
+      `public/api/versions.json "${SUPERSEDED_KEY}" has no array for key "${key}".`
+    );
+  }
+  if (!inventory[key].includes(previous)) inventory[key].push(previous);
+}
+
 function appendOutputs(fields) {
   const outputFile = process.env.GITHUB_OUTPUT;
   if (!outputFile) return;
@@ -362,6 +428,7 @@ async function main() {
 
   if (applied.length > 0 && write) {
     applied.forEach(finding => {
+      recordSuperseded(versions, finding.key, finding.current);
       versions[finding.key] = finding.next;
     });
     fs.writeFileSync(VERSIONS_FILE, `${JSON.stringify(versions, null, 2)}\n`);

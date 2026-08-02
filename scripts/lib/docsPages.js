@@ -8,7 +8,8 @@
 // It owns three things, so that the two generators can never disagree about
 // them: the navigation walk (which pages exist, in what order, at what URL),
 // the frontmatter parse, and the MDX → markdown reduction that inlines `file=`
-// snippets, unwraps JSX, and absolutizes links.
+// snippets, unwraps layout JSX, renders the data-bearing components from the
+// same JSON manifests the site reads, and absolutizes links.
 //
 // Plain Node, no dependencies — the same constraint the other scripts in this
 // directory follow so CI can run them without an install step.
@@ -278,9 +279,12 @@ function resolveVersion(of, { bare = false } = {}) {
   const key = String(of).replace(/-/g, '_');
   const value = table[key];
   if (typeof value !== 'string' || value === '') {
+    // `superseded` is bookkeeping for scripts/checkVersionStrings.js, not a
+    // version id, so it is not offered as one here either.
+    const ids = Object.keys(table).filter(id => typeof table[id] === 'string');
     throw new Error(
       `unknown version id "${of}" — ${path.relative(ROOT, VERSIONS_FILE)} defines: ` +
-        `${Object.keys(table).join(', ')} (hyphens and underscores are interchangeable)`
+        `${ids.join(', ')} (hyphens and underscores are interchangeable)`
     );
   }
   return bare ? value.replace(/^v/, '') : value;
@@ -462,6 +466,267 @@ function parseAttributes(raw) {
   return attributes;
 }
 
+// ── Data-bearing components ─────────────────────────────────────────────────
+//
+// A few components on the site are not layout: their whole output is data read
+// from a JSON manifest under public/api/. Dropping them the way a generic
+// wrapper is dropped publishes an agent-facing corpus in which
+// /reference/networks has no endpoints table and /build/forge/topics has no
+// topics — the point of both pages, missing without a word. So they are
+// rendered here from the same files the React components import, into the
+// markdown equivalent of what a reader sees.
+//
+// Nothing below invents a value: every cell is a field of the manifest, and a
+// field the manifest omits renders as the same em dash the site shows.
+//
+// The registry is closed. A self-closing component that is neither listed here
+// nor in LAYOUT_COMPONENTS stops generation (see assertKnownComponents), so a
+// new data component added without an entry fails loudly instead of vanishing.
+
+const NETWORKS_MANIFEST = path.join(PUBLIC_DIR, 'api', 'networks.json');
+const TOPICS_MANIFEST = path.join(PUBLIC_DIR, 'api', 'topics.json');
+
+const manifestCache = new Map();
+
+function manifest(file) {
+  if (manifestCache.has(file)) return manifestCache.get(file);
+  const relative = path.relative(ROOT, file);
+  if (!fs.existsSync(file)) {
+    throw new Error(`${relative} is missing, so the components that render it cannot be reduced to markdown`);
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch (error) {
+    throw new Error(`${relative} is not valid JSON: ${error.message}`);
+  }
+  manifestCache.set(file, parsed);
+  return parsed;
+}
+
+// A markdown table. Only `|` is escaped: cells carry markdown of their own
+// (bold labels, inline code) on purpose.
+function markdownTable(header, rows) {
+  const cell = value => String(value).replace(/\|/g, '\\|');
+  return [
+    `| ${header.map(cell).join(' | ')} |`,
+    `| ${header.map(() => '---').join(' | ')} |`,
+    ...rows.map(row => `| ${row.map(cell).join(' | ')} |`),
+  ];
+}
+
+// The row/column lists below mirror the presentation lists in
+// components/NetworksTable.js and components/TopicsTable.js. They cannot be
+// imported — those files are ESM with JSX, and these scripts stay
+// dependency-free — so each is cross-checked against the component source
+// before it is used. A column added to the component but not mirrored here
+// would otherwise leave the generated corpus quietly showing less than the
+// page, which is the whole failure this section exists to prevent.
+function assertMirrors(componentFile, arrayName, itemPattern, expected) {
+  const source = fs.readFileSync(path.join(ROOT, componentFile), 'utf8');
+  const block = source.match(new RegExp(`const ${arrayName} = \\[([\\s\\S]*?)\\n\\]`));
+  if (!block) {
+    throw new Error(
+      `${componentFile} no longer declares a top-level \`const ${arrayName} = [ … ]\`, so ` +
+        'scripts/lib/docsPages.js cannot confirm that the markdown it generates still ' +
+        'matches the rendered page. Update the mirror check together with the component.'
+    );
+  }
+  const found = [...block[1].matchAll(itemPattern)].map(match => match[1]);
+  const same = found.length === expected.length && found.every((item, i) => item === expected[i]);
+  if (!same) {
+    throw new Error(
+      `${componentFile} ${arrayName} is [${found.join(', ')}], but scripts/lib/docsPages.js ` +
+        `mirrors [${expected.join(', ')}]. The generated markdown would show something other ` +
+        'than the page does — update the mirror in scripts/lib/docsPages.js.'
+    );
+  }
+}
+
+// components/NetworksTable.js FIELDS: row order and labels are presentation and
+// live with the component, so they are mirrored rather than derived.
+const NETWORK_FIELDS = [
+  { key: 'chain_id', label: 'Chain ID', code: true },
+  { key: 'deployed_version', label: 'Deployed version', code: false },
+  { key: 'emissions_namespace', label: 'Emissions API namespace', code: true },
+  { key: 'rpc', label: 'RPC JSON', code: true },
+  { key: 'grpc', label: 'gRPC', code: true },
+  { key: 'lcd', label: 'API (Cosmos LCD - REST)', code: true },
+  { key: 'explorer', label: 'Explorer', code: true },
+  { key: 'faucet', label: 'Faucet', code: true },
+];
+
+function networks() {
+  assertMirrors(
+    'components/NetworksTable.js',
+    'FIELDS',
+    /\bkey:\s*'([^']+)'/g,
+    NETWORK_FIELDS.map(field => field.key)
+  );
+  const entries = manifest(NETWORKS_MANIFEST).networks;
+  if (!entries || typeof entries !== 'object' || Array.isArray(entries)) {
+    throw new Error(`${path.relative(ROOT, NETWORKS_MANIFEST)} has no "networks" object`);
+  }
+  return entries;
+}
+
+// Mirrors renderValue() in components/NetworksTable.js: an absent field is an
+// em dash, and the fields marked `code` render as inline code.
+function networkValue(entry, field) {
+  const value = entry[field.key];
+  if (typeof value !== 'string' || value === '') return '—';
+  return field.code ? `\`${value}\`` : value;
+}
+
+function renderNetworksTable() {
+  const entries = networks();
+  const keys = Object.keys(entries);
+  return markdownTable(
+    ['', ...keys.map(key => entries[key].name || key)],
+    NETWORK_FIELDS.map(field => [
+      `**${field.label}**`,
+      ...keys.map(key => networkValue(entries[key], field)),
+    ])
+  );
+}
+
+function renderNetworkDetails(attributes) {
+  const entries = networks();
+  const name = attributes.network;
+  // Same failure the component raises, for the same reason: a details list for
+  // a network the manifest does not define has nothing truthful to show.
+  if (!name || !entries[name]) {
+    throw new Error(
+      `<NetworkDetails network="${name || ''}"/> — ${path.relative(ROOT, NETWORKS_MANIFEST)} ` +
+        `defines: ${Object.keys(entries).join(', ')}`
+    );
+  }
+  return NETWORK_FIELDS.map(
+    field => `- **${field.label}**: ${networkValue(entries[name], field)}`
+  );
+}
+
+// components/TopicsTable.js COLUMNS.
+const TOPIC_COLUMNS = [
+  'Topic ID',
+  'Metadata',
+  'Epoch Length (blocks)',
+  'Category',
+  'Loss Method',
+];
+
+function topics() {
+  assertMirrors('components/TopicsTable.js', 'COLUMNS', /'([^']*)'/g, TOPIC_COLUMNS);
+  const data = manifest(TOPICS_MANIFEST);
+  if (!Array.isArray(data.topics)) {
+    throw new Error(`${path.relative(ROOT, TOPICS_MANIFEST)} has no "topics" array`);
+  }
+  return data;
+}
+
+/** Mirrors topicsFor() in components/TopicsTable.js. */
+function topicsFor(network) {
+  return topics().topics.filter(topic => topic.network === network);
+}
+
+function requireNetworkAttribute(tag, attributes) {
+  if (!attributes.network) {
+    throw new Error(`${tag} needs a literal network="…" attribute`);
+  }
+  return attributes.network;
+}
+
+function renderTopicsTable(attributes) {
+  const network = requireNetworkAttribute('<TopicsTable/>', attributes);
+  const rows = topicsFor(network);
+  // The component's own empty state, word for word.
+  if (rows.length === 0) return [`No active topics recorded for ${network}.`];
+  return markdownTable(
+    TOPIC_COLUMNS,
+    rows.map(topic => [
+      // The site marks a sandbox topic with a bold id and a "sandbox" badge;
+      // markdown has no badge, so the same two facts render as text.
+      topic.sandbox ? `**${topic.id}** (sandbox)` : String(topic.id),
+      topic.metadata,
+      String(topic.epoch_length),
+      topic.category,
+      topic.loss_method,
+    ])
+  );
+}
+
+function renderTopicsCount(attributes) {
+  return String(topicsFor(requireNetworkAttribute('<TopicsCount/>', attributes)).length);
+}
+
+/** Mirrors topicsGeneratedOn in components/TopicsTable.js. */
+function renderTopicsGeneratedOn() {
+  const generatedAt = topics().generated_at;
+  if (typeof generatedAt !== 'string' || !/^\d{4}-\d{2}-\d{2}T/.test(generatedAt)) {
+    throw new Error(
+      `${path.relative(ROOT, TOPICS_MANIFEST)} has no ISO-8601 "generated_at" ` +
+        `(got ${JSON.stringify(generatedAt)}); regenerate it with \`yarn topics\``
+    );
+  }
+  return generatedAt.slice(0, 10);
+}
+
+// `block` components own their line and render to a block of markdown;
+// `inline` components stand for a value inside a sentence.
+const DATA_COMPONENTS = {
+  NetworksTable: { block: renderNetworksTable },
+  NetworkDetails: { block: renderNetworkDetails },
+  TopicsTable: { block: renderTopicsTable },
+  TopicsCount: { inline: renderTopicsCount },
+  TopicsGeneratedOn: { inline: renderTopicsGeneratedOn },
+};
+
+// Components that carry no data of their own, so nothing is lost by dropping
+// the tag (self-closing) or unwrapping it (paired). Every component used in
+// pages/ is classified either here or in DATA_COMPONENTS, deliberately.
+const LAYOUT_COMPONENTS = new Set([
+  'Callout', // nextra/components — a styled box around its children
+  'Cards', // nextra/components — grid around <Card/>s
+  'Card', // rendered above, as a markdown link
+  'Tabs', // nextra/components — wrapper; the tab labels are kept
+  'Tab',
+  'Pre', // rendered above, as a fenced code block
+  'Code',
+  'Version', // rendered above, as the version string itself
+]);
+
+const SELF_CLOSING_TAG = /<([A-Z][A-Za-z0-9]*)\b([^>]*)\/>/g;
+
+// Inline uses — `<TopicsCount network="testnet" /> active topics` — where the
+// component stands for a value in the middle of a sentence.
+function renderInlineDataComponents(text, mdxFile) {
+  return text.replace(SELF_CLOSING_TAG, (whole, name, attributes) => {
+    const component = DATA_COMPONENTS[name];
+    if (!component || !component.inline) return whole;
+    try {
+      return component.inline(parseAttributes(attributes));
+    } catch (error) {
+      throw new Error(`${path.relative(ROOT, mdxFile)}: ${error.message}`);
+    }
+  });
+}
+
+function assertKnownComponents(line, mdxFile) {
+  SELF_CLOSING_TAG.lastIndex = 0;
+  let match;
+  while ((match = SELF_CLOSING_TAG.exec(line)) !== null) {
+    const name = match[1];
+    if (DATA_COMPONENTS[name] || LAYOUT_COMPONENTS.has(name)) continue;
+    throw new Error(
+      `${path.relative(ROOT, mdxFile)} uses <${name}/>, which scripts/lib/docsPages.js ` +
+        'does not know how to reduce to markdown. Add it to DATA_COMPONENTS there if it ' +
+        'renders data (so the generated corpus carries that data), or to ' +
+        'LAYOUT_COMPONENTS if it is layout only and dropping the tag loses nothing. ' +
+        'Generation stops rather than silently publishing a page without it.'
+    );
+  }
+}
+
 // The canonical site URL of a page file, derived the same way the navigation
 // walk derives it: the path under pages/ without its extension, with `index`
 // standing for its directory.
@@ -638,6 +903,14 @@ function mdxToMarkdown(mdxFile, bodyLines, { stripLeadingH1 = true } = {}) {
     // ── ESM lines that only exist for the rendered site ──
     if (ESM_IMPORT.test(line) || ESM_EXPORT.test(line)) continue;
 
+    // ── data components used inline in a sentence ──
+    // Same reasoning as <Version/>: the component stands where the value
+    // belongs, so dropping it loses the fact and leaving it literal ships JSX.
+    line = renderInlineDataComponents(line, mdxFile);
+
+    // Every remaining self-closing component must be one this reduction knows.
+    assertKnownComponents(line, mdxFile);
+
     // ── components rendered rather than unwrapped ──
     const card = line.match(/^\s*<Card\b([^>]*)\/>\s*$/);
     if (card) {
@@ -677,14 +950,42 @@ function mdxToMarkdown(mdxFile, bodyLines, { stripLeadingH1 = true } = {}) {
       continue;
     }
 
-    // ── generic JSX wrappers: drop the tag, keep the children ──
-    const selfClosing = line.match(/^(\s*)<([A-Z][A-Za-z0-9]*)\b[^>]*\/>\s*$/);
-    if (selfClosing) continue;
+    // ── a self-closing component occupying a line of its own ──
+    // A data component renders its manifest here; a layout component has
+    // nothing but its tag, so the tag goes. assertKnownComponents above has
+    // already refused anything that is neither.
+    const selfClosing = line.match(/^(\s*)<([A-Z][A-Za-z0-9]*)\b([^>]*)\/>\s*$/);
+    if (selfClosing) {
+      const component = DATA_COMPONENTS[selfClosing[2]];
+      if (component && component.block) {
+        let rendered;
+        try {
+          rendered = component.block(parseAttributes(selfClosing[3]), mdxFile);
+        } catch (error) {
+          throw new Error(`${path.relative(ROOT, mdxFile)}: ${error.message}`);
+        }
+        // A table needs a blank line on each side to be a table.
+        if (out.length > 0 && out[out.length - 1].text.trim() !== '') emit('');
+        rendered.forEach(emit);
+        emit('');
+      }
+      continue;
+    }
 
     const openTag = line.match(/^(\s*)<([A-Z][A-Za-z0-9]*)\b([^>]*)>\s*$/);
     if (openTag) {
       const indent = openTag[1].length;
       const name = openTag[2];
+
+      // A data component's output *is* its children, so unwrapping a paired
+      // form would drop the data exactly the way the self-closing form used to.
+      if (DATA_COMPONENTS[name]) {
+        throw new Error(
+          `${path.relative(ROOT, mdxFile)} uses <${name}> as a paired tag. The generated ` +
+            'corpus renders it from its JSON manifest, which only the self-closing form ' +
+            `(<${name} … />) is understood as. Write it self-closing.`
+        );
+      }
 
       if (name === 'Tabs') {
         const items = openTag[3].match(/items=\{\[([^\]]*)\]\}/);

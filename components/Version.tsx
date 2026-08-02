@@ -21,7 +21,12 @@ import versionsJson from '../public/api/versions.json'
  * release-asset filenames and PyPI pins.
  */
 
-const versions: Record<string, string> = versionsJson
+// `superseded` is the reserved key holding the values each version key has
+// already moved past; it is bookkeeping for scripts/checkVersionStrings.js, not
+// a version id, so it never appears in VERSION_IDS.
+const { superseded: _superseded, ...currentVersions } = versionsJson
+
+const versions: Record<string, string> = currentVersions
 
 /** Every id `<Version of="..."/>` accepts, in the JSON's own (underscore) spelling. */
 export const VERSION_IDS: string[] = Object.keys(versions)
