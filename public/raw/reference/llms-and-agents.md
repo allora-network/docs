@@ -2,8 +2,8 @@
 title: llms.txt and agent endpoints
 description: The machine-readable surfaces of these docs — llms.txt, llms-full.txt, per-page raw markdown under /raw/, and the JSON manifests under /api/.
 persona: AI agent developer
-verified_against: scripts/generateLlmsTxt.js and scripts/generateRawMarkdown.js in github.com/allora-network/docs (63 pages); public/api/topics.json, networks.json and versions.json; .github/workflows/topics-nightly.yml, networks-drift.yml and version-bump.yml
-last_reviewed: 2026-07-31
+verified_against: scripts/generateLlmsTxt.js, scripts/generateRawMarkdown.js and scripts/lib/docsPages.js in github.com/allora-network/docs (63 pages); public/api/topics.json, networks.json and versions.json; .github/workflows/topics-nightly.yml, networks-drift.yml and version-bump.yml
+last_reviewed: 2026-08-02
 ---
 
 # llms.txt and agent endpoints
@@ -21,7 +21,7 @@ start at the [agent quickstart](https://docs.allora.network/get-started/quicksta
 | URL | What it is | Fetch it when |
 | --- | --- | --- |
 | [`/llms.txt`](https://docs.allora.network/llms.txt) | Index of every page: title, URL, one-line description | You need to route a question to the right page |
-| [`/llms-full.txt`](https://docs.allora.network/llms-full.txt) | Full text of every page in one file (~440 KB) | You want the whole corpus in one request |
+| [`/llms-full.txt`](https://docs.allora.network/llms-full.txt) | Full text of every page in one file (~445 KB) | You want the whole corpus in one request |
 | `/raw/<page-path>.md` | One page as plain markdown | You already know which page you need |
 | [`/api/topics.json`](https://docs.allora.network/api/topics.json) | Active topics on each network | You need live topic IDs, epochs, or loss methods |
 | `/api/networks.json` | Network endpoints and chain IDs | You need an RPC, LCD, or chain ID |
@@ -142,7 +142,7 @@ The frontmatter keys are the same five every page carries: `title`,
 `description`, `persona`, `verified_against` (what the content was checked
 against), and `last_reviewed` (`YYYY-MM-DD`).
 
-Four things differ from the page's MDX source, all of them so that the file
+Five things differ from the page's MDX source, all of them so that the file
 stands on its own:
 
 - **Code snippets are inlined.** Many code blocks on the site pull their body
@@ -153,12 +153,16 @@ stands on its own:
   `https://docs.allora.network/...` URLs, because a detached `.md` file has no
   page to resolve `./sibling` against.
 - **Layout components are unwrapped.** Callouts, tabs, and card grids become
-  their text content; a component that occupies a line of its own is dropped.
-  One left-over: a component used *inline in a sentence* survives as its
-  literal tag, the version component below excepted. Components that render
-  live data are never expanded either — the topic tables on
-  [Existing Allora Network Topics](https://docs.allora.network/build/forge/topics), for instance, are
-  absent; fetch `/api/topics.json` for that data instead.
+  their text content, and a layout component that occupies a line of its own is
+  dropped — it has nothing but its tag.
+- **Data components are rendered.** The tables the site builds from the JSON
+  manifests — the endpoint tables on [Networks](https://docs.allora.network/reference/networks), the topic
+  tables on [Existing Allora Network Topics](https://docs.allora.network/build/forge/topics) — are written
+  out as markdown tables carrying the same values, read from the same manifests
+  at generation time. A field a manifest omits is an em dash, exactly as on the
+  page. Fetch [`/api/networks.json`](https://docs.allora.network/api/networks.json)
+  or [`/api/topics.json`](https://docs.allora.network/api/topics.json) if you
+  would rather have the JSON.
 - **Versions are resolved, never placeheld.** Every current version in these
   docs comes from `/api/versions.json`, written in the source as a component or
   as a constant interpolated into a command. Both are replaced by the version
@@ -168,7 +172,9 @@ stands on its own:
   unresolved placeholder.
 
 Headings, prose, tables, and code are otherwise the page's own text, in the
-page's own order.
+page's own order. No component survives as a literal tag: a component the
+generator does not know how to reduce stops the build, so a page cannot ship
+here with a piece of itself missing.
 
 ## JSON manifests
 

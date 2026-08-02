@@ -19,7 +19,7 @@ These tables are generated from live chain state, not maintained by hand. A sche
 `emissions/v10`, mainnet `allora-mainnet-1` via `emissions/v9`), keeps only topics whose
 `is_topic_active` query returns `true`, and publishes the result at `/api/topics.json` — the same
 data this page renders. The data below last changed
-on **<TopicsGeneratedOn />**. Topics activate and deactivate over time, so
+on **2026-07-31**. Topics activate and deactivate over time, so
 [verify a topic's status](#verify-a-topics-status) before building against it.
 
 ## Start here: the sandbox topic
@@ -31,11 +31,71 @@ fast-epoch counterpart for quicker feedback loops. Both are marked `sandbox` in 
 
 ## Testnet topics (`allora-testnet-1`)
 
-<TopicsCount network="testnet" /> active topics.
+39 active topics.
+
+| Topic ID | Metadata | Epoch Length (blocks) | Category | Loss Method |
+| --- | --- | --- | --- | --- |
+| 1 | ETH 10min Prediction | 120 | price | mse |
+| 2 | ETH 24h Prediction | 17280 | price | mse |
+| 3 | BTC 10min Prediction | 120 | price | mse |
+| 8 | BNB 20min Prediction | 240 | price | mse |
+| 9 | ARB 20min Prediction | 240 | price | mse |
+| 13 | ETH 5min Prediction | 60 | price | mse |
+| 14 | BTC 5min Prediction | 60 | price | mse |
+| 18 | BTC 8h Prediction | 5760 | price | mse |
+| 37 | SOL/USD - 5min Price Prediction | 35 | price | mse |
+| 38 | SOL/USD - 8h Price Prediction | 35 | price | mse |
+| 41 | ETH/USD - 8h Price Prediction | 35 | price | mse |
+| 42 | BTC/USD - 8h Price Prediction | 35 | price | mse |
+| 56 | 1 hour BERA/USD Log-Return Prediction | 655 | log-return | ztae |
+| 58 | 8 hour SOL/USD Log-Return Prediction | 52 | log-return | czar |
+| 60 | 24 hour XAU/USD Log-Return Prediction | 60 | log-return | czar |
+| 61 | 1 day BTC/USD Log-Return Prediction | 60 | log-return | czar |
+| 62 | 1 day SOL/USD Log-Return Prediction | 60 | log-return | czar |
+| 63 | 1 day ETH/USD Log-Return Prediction | 60 | log-return | czar |
+| 64 | 8h BTC/USD Log-Return Prediction (5min Updates) | 54 | log-return | czar |
+| 65 | 8h BTC/USD Log-Return Prediction (2h Updates) | 1286 | log-return | czar |
+| 66 | 7 day SOL/USD Log-Return Prediction | 720 | log-return | czar |
+| 67 | 7 day BTC/USD Log-Return Prediction | 720 | log-return | czar |
+| 68 | 7 day ETH/USD Log-Return Prediction | 720 | log-return | czar |
+| **69** (sandbox) | PLAYGROUND: 1 day BTC/USD Price Prediction | 54 | price | mse |
+| 70 | 7 day NEAR/USD Log-Return Prediction | 720 | log-return | czar |
+| 71 | 8 hour NEAR/USD Log-Return Prediction | 60 | log-return | czar |
+| 72 | 1 hour BTC/USD Log-Return Prediction | 60 | log-return | czar |
+| 73 | 1 hour ETH/USD Log-Return Prediction | 60 | log-return | czar |
+| 74 | 15 minute BTC/USD Log-Return Prediction | 60 | log-return | czar |
+| 75 | 15 minute ETH/USD Log-Return Prediction | 60 | log-return | czar |
+| 76 | 15 minute SOL/USD Log-Return Prediction | 60 | log-return | czar |
+| **77** (sandbox) | PLAYGROUND FAST - 5 minute BTC/USD Price Prediction | 60 | price | czar |
+| 79 | 15 minute BTC/USD - Volatility Prediction | 60 | volatility | mse |
+| 80 | 15 minute ETH/USD - Volatility Prediction | 60 | volatility | mse |
+| 81 | 15 minute XRP/USD - Volatility Prediction | 60 | volatility | mse |
+| 82 | 15 minute SOL/USD - Volatility Prediction | 60 | volatility | mse |
+| 83 | BTC/USD - Log Returns - 8h | 60 | log-return | czar |
+| 84 | ETH/USD - Log Returns - 8h | 60 | log-return | czar |
+| 85 | 4 hour ETH/USD - Volatility Prediction | 60 | volatility | mse |
 
 ## Mainnet topics (`allora-mainnet-1`)
 
-<TopicsCount network="mainnet" /> active topics.
+15 active topics.
+
+| Topic ID | Metadata | Epoch Length (blocks) | Category | Loss Method |
+| --- | --- | --- | --- | --- |
+| 1 | BTC/USD - Log Returns - 8h | 75 | log-return | czar |
+| 2 | ETH/USD - Log Returns - 8h | 75 | log-return | czar |
+| 3 | SOL/USD - Log Returns - 8h | 75 | log-return | czar |
+| 9 | ETH/USD - Price Prediction - 8h | 60 | price | mse |
+| 10 | SOL/USD - Price Prediction - 8h | 60 | price | mse |
+| 14 | BTC/USD - Price Prediction - 8h | 60 | price | mse |
+| 15 | BTC/USD - Log Returns - 24h | 60 | log-return | czar |
+| 16 | ETH/USD - Log Returns - 24h | 60 | log-return | czar |
+| 17 | SOL/USD - Log Returns - 24h | 60 | log-return | czar |
+| 18 | BTC/USD - Log Returns - 20m | 60 | log-return | czar |
+| 19 | NEAR/USD - Log Returns - 8h | 60 | log-return | czar |
+| 20 | BTC/USD - Volatility - 15m | 60 | volatility | mse |
+| 21 | ETH/USD - Volatility - 15m | 60 | volatility | mse |
+| 22 | XRP/USD - Volatility - 15m | 60 | volatility | mse |
+| 23 | SOL/USD - Volatility - 15m | 60 | volatility | mse |
 
 **Warning**: Topic IDs are never guaranteed to be consistent between separate chains/deployments.
 The same prediction task can have different topic IDs on testnet and mainnet (for example,
