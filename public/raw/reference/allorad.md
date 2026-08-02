@@ -716,7 +716,7 @@ Detailed instructions on [how to create a topic](https://docs.allora.network/ope
 - **Description:** Delegate stake [amount] to a reputer for a topic.
 - **Positional Arguments:**
   - `sender` This is the address of the transaction sender
-  - `topic_id` Identifier of the topic to remove stake from
+  - `topic_id` Identifier of the topic to add stake to
   - `reputer` Address of the reputer
   - `amount` The amount to add to stake
 
