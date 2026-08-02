@@ -77,9 +77,14 @@ jobs:
           echo "::error::This workflow trusts '$TRUSTED_BRANCH', but the repository's default branch is '$DEFAULT_BRANCH'. Update TRUSTED_BRANCH and the pull request base in the automation workflows."
           exit 1
         fi
-        if [ "$GITHUB_REF_NAME" != "$TRUSTED_BRANCH" ]; then
+        # The FULL ref, never github.ref_name. ref_name strips the refs/heads/
+        # or refs/tags/ prefix, so a TAG named "main" presents the same string
+        # as the branch and would walk straight through a ref_name comparison.
+        # A tag is not the reviewed branch: it can be created by anyone who can
+        # push one, and it can be moved. Only refs/heads/<trusted> is trusted.
+        if [ "$GITHUB_REF" != "refs/heads/$TRUSTED_BRANCH" ]; then
           echo "trusted=false" >> "$GITHUB_OUTPUT"
-          echo "Dispatched from '$GITHUB_REF_NAME', not the trusted branch ('$TRUSTED_BRANCH'): doing nothing. This workflow runs repository scripts with write-capable credentials in scope and mutates a shared pull request and tracking issue, which is only safe from a ref that cannot change without review."
+          echo "Dispatched from '$GITHUB_REF', not the trusted branch ('refs/heads/$TRUSTED_BRANCH'): doing nothing. This workflow runs repository scripts with write-capable credentials in scope and mutates a shared pull request and tracking issue, which is only safe from a ref that cannot change without review."
           exit 0
         fi
         echo "trusted=true" >> "$GITHUB_OUTPUT"
@@ -125,11 +130,16 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         MARKER: ${{ steps.bump.outputs.marker }}
+        REPO_OWNER: ${{ github.repository_owner }}
       run: |
         set -euo pipefail
+        # Restricted to pull requests whose head branch is in this repository: a
+        # branch name is not an identity, and a closed pull request from a fork
+        # that happened to use this branch name and quote the marker would
+        # otherwise suppress a real bump indefinitely.
         count=$(gh pr list --state closed --head automated/version-bump --limit 20 \
-          --json state,body \
-          --jq '[.[] | select(.state == "CLOSED") | select(.body // "" | contains(env.MARKER))] | length')
+          --json state,body,isCrossRepository,headRepositoryOwner \
+          --jq '[.[] | select(.isCrossRepository == false and .headRepositoryOwner.login == env.REPO_OWNER) | select(.state == "CLOSED") | select(.body // "" | contains(env.MARKER))] | length')
         echo "count=$count" >> "$GITHUB_OUTPUT"
         if [ "$count" != "0" ]; then
           echo "This exact bump was already declined in a closed pull request; not reopening."
@@ -144,6 +154,7 @@ jobs:
       env:
         DOCS_AUTOMATION_TOKEN: ${{ secrets.DOCS_AUTOMATION_TOKEN }}
       run: |
+        set -euo pipefail
         if [ -z "$DOCS_AUTOMATION_TOKEN" ]; then
           echo "::error::The DOCS_AUTOMATION_TOKEN secret is not set. A version-bump pull request opened with the default GITHUB_TOKEN does not trigger this repository's checks, so it would arrive with nothing verifying it. Add the secret (a fine-grained PAT scoped to this repository) or disable this workflow."
           exit 1
