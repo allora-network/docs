@@ -16,6 +16,9 @@
 // `expect` pattern). Merely exiting 0, or merely staying alive, is not enough:
 // the worker loop catches its own exceptions and prints them, so a worker whose
 // registration or submission failed would otherwise look perfectly healthy.
+// Every snippet that runs must declare that pattern -- a runnable snippet with
+// no `expect` is a configuration error the runner refuses to start on, never a
+// silent pass.
 //
 // A snippet's timeout measures the snippet, never the toolchain. Installing
 // packages and compiling happen in a separate warm-up phase with its own budget,
@@ -33,6 +36,14 @@
 //   ALLORA_API_KEY          free key from developer.allora.network
 //   ALLORA_WALLET_MNEMONIC  mnemonic of a funded testnet wallet
 //
+// Nothing but a snippet that asked for them ever sees them. Package
+// installation and compilation run with both variables deleted from the child
+// environment, and each snippet process gets back only the credentials its
+// `requires` list declares. An install hook, or a dependency pulled in by a
+// read-only snippet, therefore has no credential in its environment to
+// exfiltrate -- and unlike a leaked log line, a network call cannot be redacted
+// after the fact.
+//
 // Snippets that submit transactions all sign with that one wallet, so they are
 // run strictly one at a time: two processes signing with the same account would
 // race on the account sequence number.
@@ -42,7 +53,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const { redact } = require('./redactSecrets');
+const { redact, SECRET_ENV_VARS } = require('./redactSecrets');
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 
@@ -116,6 +127,14 @@ const DEFAULTS = {
   // Charged separately from timeoutSeconds -- see the warm-up section.
   warmupTimeoutSeconds: 900,
 };
+
+// Ceiling for each step of the once-per-run language setup (venv creation, pip
+// install, npm install). Same purpose as warmupTimeoutSeconds, but not
+// per-snippet: these steps are shared, so they are not configurable per snippet
+// either. A stalled package registry hits this ceiling and is reported as a
+// warm-up failure instead of hanging until the CI job's own timeout kills the
+// run with nothing to show for it.
+const SETUP_TIMEOUT_SECONDS = 600;
 
 // Base packages installed into the clean toolchain for every language. Declared
 // in the config so the runner itself stays project-agnostic and testable.
@@ -216,19 +235,21 @@ function discover(opts, config) {
     };
   });
 
-  // A long-running snippet never exits, so its exit code proves nothing: without
-  // a success marker the only possible verdict would be "it stayed alive", which
-  // is not evidence that it worked. Refuse to run in that configuration rather
-  // than quietly reporting green.
-  for (const snippet of plan) {
-    if (!snippet.skip && snippet.mode === 'long-running' && !snippet.expect) {
-      throw new Error(
-        `${snippet.name} is configured mode "long-running" without an "expect" ` +
-          `pattern. A snippet that never exits can only be judged by what it ` +
-          `prints, so "expect" is required -- otherwise staying alive would count ` +
-          `as a pass even if every submission failed.`
-      );
-    }
+  // Every snippet that runs must say what proves it worked. Without an
+  // "expect" pattern the only available verdict is "the process exited 0" --
+  // and for a long-running one, not even that, only "it stayed alive". Both are
+  // equally true of a snippet that silently did nothing, so a newly added file
+  // with no config entry would otherwise be reported green from its very first
+  // night. A missing pattern is a configuration error, never a pass.
+  const withoutExpect = plan.filter(snippet => !snippet.skip && !snippet.expect);
+  if (withoutExpect.length > 0) {
+    throw new Error(
+      `No "expect" pattern configured for: ${withoutExpect.map(s => s.name).join(', ')}.\n` +
+        `Every runnable snippet needs one in ${opts.configPath}: it is the line the\n` +
+        `snippet prints when it actually did its job, and it is the only thing that\n` +
+        `can distinguish a working snippet from one that exited 0 (or stayed alive)\n` +
+        `having done nothing. Add "expect", or "skip" the file with a reason.`
+    );
   }
 
   return plan;
@@ -248,6 +269,38 @@ const CREDENTIALS = {
     hint: 'the BIP-39 mnemonic of a funded allora-testnet-1 wallet',
   },
 };
+
+// Every variable that must not reach a child process by accident. Unioned with
+// redactSecrets' list so the two can never drift apart: a value worth redacting
+// out of the logs is a value worth withholding from a process that has no
+// business reading it.
+const CREDENTIAL_ENV_VARS = [
+  ...new Set([...Object.values(CREDENTIALS).map(credential => credential.env), ...SECRET_ENV_VARS]),
+];
+
+// The base environment for every child the runner spawns: this process's own,
+// minus every credential. Package managers, compilers and their install hooks
+// get exactly this and nothing more.
+function credentialFreeEnv() {
+  const env = { ...process.env };
+  for (const name of CREDENTIAL_ENV_VARS) delete env[name];
+  return env;
+}
+
+// The environment a snippet runs in: credential-free, plus back exactly the
+// credentials it declared in `requires`. A read-only snippet that only needs
+// the API key never has the funded wallet's mnemonic in its environment, so
+// neither does anything it imports.
+function envForSnippet(snippet) {
+  const env = credentialFreeEnv();
+  for (const key of snippet.requires) {
+    const credential = CREDENTIALS[key];
+    if (!credential) throw new Error(`${snippet.name}: unknown requirement "${key}"`);
+    const value = process.env[credential.env];
+    if (value !== undefined) env[credential.env] = value;
+  }
+  return env;
+}
 
 function preflightCredentials(plan) {
   const missing = new Map();
@@ -272,22 +325,27 @@ function preflightCredentials(plan) {
 
 // ---------------------------------------------------------------------------
 // Toolchain setup
+//
+// Installing packages is running third-party code, so it happens in the
+// credential-free environment and under a bounded budget: an install hook has
+// nothing to steal, and a stalled registry ends the step at
+// SETUP_TIMEOUT_SECONDS with a "warm-up" verdict instead of hanging the job.
+// Each step goes through warmUpStep for exactly that reason -- the snippets of
+// that language are then reported FAIL(warm-up), which says "the toolchain
+// could not be prepared", not "the snippet is broken".
 // ---------------------------------------------------------------------------
-
-function run(command, args, cwd) {
-  return execFileSync(command, args, { cwd, stdio: 'pipe', encoding: 'utf8' });
-}
 
 function setupPython(workDir, plan, toolchain) {
   const venv = path.join(workDir, 'venv');
+  const env = credentialFreeEnv();
   console.log(`  creating a clean virtualenv at ${venv} (${PYTHON})`);
-  run(PYTHON, ['-m', 'venv', venv], workDir);
+  warmUpStep(`${PYTHON} -m venv`, PYTHON, ['-m', 'venv', venv], workDir, env, SETUP_TIMEOUT_SECONDS);
   const pip = path.join(venv, 'bin', 'pip');
   const packages = [...new Set([...toolchain.pip, ...plan.flatMap(s => s.pip)])];
   if (packages.length > 0) {
     console.log(`  pip install ${packages.join(' ')}`);
-    run(pip, ['install', '--quiet', '--upgrade', 'pip'], workDir);
-    run(pip, ['install', '--quiet', ...packages], workDir);
+    warmUpStep('pip install --upgrade pip', pip, ['install', '--quiet', '--upgrade', 'pip'], workDir, env, SETUP_TIMEOUT_SECONDS);
+    warmUpStep(`pip install ${packages.join(' ')}`, pip, ['install', '--quiet', ...packages], workDir, env, SETUP_TIMEOUT_SECONDS);
   }
   return { python: path.join(venv, 'bin', 'python') };
 }
@@ -299,6 +357,7 @@ function setupNode(workDir, plan, toolchain) {
   // work here: Node honours it for CommonJS only, and these snippets are ESM,
   // so pointing at node_modules that way fails with ERR_MODULE_NOT_FOUND.
   const projectDir = workDir;
+  const env = credentialFreeEnv();
   const packages = [...new Set([...toolchain.npm, ...plan.flatMap(s => s.npm)])];
   fs.writeFileSync(
     path.join(projectDir, 'package.json'),
@@ -306,7 +365,18 @@ function setupNode(workDir, plan, toolchain) {
   );
   if (packages.length > 0) {
     console.log(`  npm install ${packages.join(' ')}`);
-    run('npm', ['install', '--silent', '--no-audit', '--no-fund', ...packages], projectDir);
+    // --ignore-scripts: no lifecycle script of any package in the tree runs.
+    // The snippets need the published JavaScript, nothing a postinstall hook
+    // would build, and the packages the pages tell readers to install are
+    // verified to work installed this way.
+    warmUpStep(
+      `npm install ${packages.join(' ')}`,
+      'npm',
+      ['install', '--silent', '--no-audit', '--no-fund', '--ignore-scripts', ...packages],
+      projectDir,
+      env,
+      SETUP_TIMEOUT_SECONDS
+    );
   }
   return { projectDir };
 }
@@ -319,7 +389,10 @@ function setupGo(workDir) {
   // dependency tree from scratch. GOMODCACHE is deliberately left at its
   // default: Go marks that tree read-only, which makes it awkward to delete on
   // cleanup, and on CI it is ephemeral anyway.
-  const env = { ...process.env, GOCACHE: goCacheDir, GOFLAGS: '-mod=mod' };
+  //
+  // `go get`/`go build` fetch and compile third-party code, so like pip and npm
+  // they run without the credentials.
+  const env = { ...credentialFreeEnv(), GOCACHE: goCacheDir, GOFLAGS: '-mod=mod' };
   console.log(`  build cache at ${goCacheDir} (shared by every Go snippet)`);
   return { goCacheDir, env };
 }
@@ -456,21 +529,29 @@ function classify(snippet, { code, timedOut, output }) {
   if (snippet.failOn && snippet.failOn.test(output)) {
     return { ok: false, note: `printed an error it swallowed (/${snippet.failOnDescription}/)` };
   }
-  const satisfied = !snippet.expect || snippet.expect.test(output);
+  // discover() refuses to start without a pattern for every runnable snippet,
+  // so this is unreachable in a normal run. It is restated here so that no
+  // future caller of this function can turn "nothing to check against" into a
+  // pass: with no pattern there is no evidence, and no evidence is a failure.
+  if (!snippet.expect) {
+    return {
+      ok: false,
+      note: 'has no "expect" pattern configured, so nothing it printed could count as success',
+    };
+  }
+  const satisfied = snippet.expect.test(output);
 
   if (timedOut) {
     return {
       ok: false,
-      note: snippet.expect
-        ? `timed out after ${snippet.timeoutSeconds}s without printing /${snippet.expectDescription}/`
-        : `timed out after ${snippet.timeoutSeconds}s`,
+      note: `timed out after ${snippet.timeoutSeconds}s without printing /${snippet.expectDescription}/`,
     };
   }
   if (code !== 0) return { ok: false, note: `exited with code ${code}` };
   if (!satisfied) {
     return { ok: false, note: `exited 0 but never printed /${snippet.expectDescription}/` };
   }
-  return { ok: true, note: `exited 0` + (snippet.expect ? ` after printing /${snippet.expectDescription}/` : '') };
+  return { ok: true, note: `exited 0 after printing /${snippet.expectDescription}/` };
 }
 
 function execute(snippet, runDir, toolchains) {
@@ -478,7 +559,9 @@ function execute(snippet, runDir, toolchains) {
   return new Promise(resolve => {
     const child = spawn(command, args, {
       cwd,
-      env: { ...process.env, ...env, PYTHONUNBUFFERED: '1' },
+      // The only place a credential is handed to a child process, and only the
+      // ones this snippet declared in `requires`.
+      env: { ...envForSnippet(snippet), ...env, PYTHONUNBUFFERED: '1' },
       // No TTY and no stdin: a snippet that tries to prompt must fail rather
       // than hang until the job's own timeout kills the whole run.
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -606,19 +689,37 @@ async function main() {
   console.log(`\nWork directory: ${workDir}${opts.keepWorkDir ? ' (kept; wallet key still removed)' : ''}`);
 
   const toolchains = {};
+  // language -> why its toolchain could not be prepared. Every snippet of that
+  // language is then reported FAIL(warm-up) rather than the whole run dying
+  // with no report: a stalled registry must still produce the failure report
+  // the nightly job turns into an issue.
+  const setupFailures = new Map();
   const languages = new Set(runnable.map(s => s.language));
-  if (languages.has('python')) {
-    console.log('\nPython toolchain');
-    toolchains.python = setupPython(workDir, runnable.filter(s => s.language === 'python'), config.toolchain);
-  }
-  if (languages.has('node')) {
-    console.log('\nNode toolchain');
-    toolchains.node = setupNode(workDir, runnable.filter(s => s.language === 'node'), config.toolchain);
-  }
-  if (languages.has('go')) {
-    console.log('\nGo toolchain');
-    toolchains.go = setupGo(workDir);
-  }
+
+  const prepare = (language, label, build) => {
+    if (!languages.has(language)) return;
+    console.log(`\n${label} toolchain`);
+    try {
+      toolchains[language] = build();
+    } catch (err) {
+      const note = err.isWarmUpFailure
+        ? err.message
+        : `${label} toolchain setup failed: ${err.message}`;
+      console.log(`FAIL(warm-up)  ${label} toolchain -- ${note}`);
+      setupFailures.set(language, {
+        note,
+        output: String(err.detail || err.stderr || err.message || ''),
+      });
+    }
+  };
+
+  prepare('python', 'Python', () =>
+    setupPython(workDir, runnable.filter(s => s.language === 'python'), config.toolchain)
+  );
+  prepare('node', 'Node', () =>
+    setupNode(workDir, runnable.filter(s => s.language === 'node'), config.toolchain)
+  );
+  prepare('go', 'Go', () => setupGo(workDir));
 
   console.log('\nRunning snippets\n');
   const results = [];
@@ -628,23 +729,32 @@ async function main() {
       results.push({ name: snippet.name, status: 'SKIP', note: snippet.reason, output: '' });
       continue;
     }
-    const runDir = prepareRunDir(workDir, snippet, opts);
     let result;
-    try {
-      const warmUpSeconds = warmUp(snippet, runDir, toolchains, config.toolchain);
-      if (warmUpSeconds > 0) {
-        console.log(
-          `WARM  ${snippet.name} -- toolchain ready in ${warmUpSeconds.toFixed(1)}s ` +
-            `(not charged to the ${snippet.timeoutSeconds}s run budget)`
-        );
+    const setupFailure = setupFailures.get(snippet.language);
+    if (setupFailure) {
+      // Its language's shared toolchain never came up, so this snippet was
+      // never given a chance to run. Same verdict shape as a per-snippet
+      // warm-up failure, for the same reason: it says nothing about the
+      // snippet itself.
+      result = { ok: false, phase: 'warm-up', note: setupFailure.note, output: setupFailure.output };
+    } else {
+      const runDir = prepareRunDir(workDir, snippet, opts);
+      try {
+        const warmUpSeconds = warmUp(snippet, runDir, toolchains, config.toolchain);
+        if (warmUpSeconds > 0) {
+          console.log(
+            `WARM  ${snippet.name} -- toolchain ready in ${warmUpSeconds.toFixed(1)}s ` +
+              `(not charged to the ${snippet.timeoutSeconds}s run budget)`
+          );
+        }
+        result = await execute(snippet, runDir, toolchains);
+      } catch (err) {
+        // Keep the two apart: a warm-up failure means the toolchain could not be
+        // prepared, which says nothing about whether the snippet works.
+        result = err.isWarmUpFailure
+          ? { ok: false, phase: 'warm-up', output: String(err.detail || ''), note: err.message }
+          : { ok: false, phase: 'setup', output: String(err.stderr || err.message), note: 'setup failed' };
       }
-      result = await execute(snippet, runDir, toolchains);
-    } catch (err) {
-      // Keep the two apart: a warm-up failure means the toolchain could not be
-      // prepared, which says nothing about whether the snippet works.
-      result = err.isWarmUpFailure
-        ? { ok: false, phase: 'warm-up', output: String(err.detail || ''), note: err.message }
-        : { ok: false, phase: 'setup', output: String(err.stderr || err.message), note: 'setup failed' };
     }
     // Snippet output is arbitrary third-party output and can quote the
     // credentials it was handed. Redact before it reaches the console (which is

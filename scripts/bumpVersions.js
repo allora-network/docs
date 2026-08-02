@@ -31,10 +31,12 @@ const path = require('path');
 //
 // Under GitHub Actions (.github/workflows/version-bump.yml) `--write` also
 // appends outputs to $GITHUB_OUTPUT: `changed` + `marker` + `body` drive the
-// pull request, and `review_changed` + `review_marker` + `review_body` drive the
-// tracking issue that carries the reported-only findings. Each marker is a
-// fingerprint of its finding set, so a proposal a human has already declined is
-// not resurrected until its content actually changes.
+// pull request, and `review_changed` + `review_count` + `review_marker` +
+// `review_body` drive the tracking issue that carries the reported-only
+// findings. Each marker is a fingerprint of its finding set, so a proposal a
+// human has already declined is not resurrected until its content actually
+// changes; `review_count` reaching 0 is what lets the workflow close a tracking
+// issue whose findings someone resolved without closing it.
 //
 // Exit codes: 0 = ran successfully (with or without findings), 1 = a source
 // could not be reached or returned something unusable. A bump job that cannot
@@ -294,8 +296,9 @@ function renderIssueBody(candidates, marker) {
     lines.push('');
   }
 
-  lines.push('This issue is updated in place while these findings hold. Closing it is');
-  lines.push('respected: it is not reopened until the proposed versions themselves change.');
+  lines.push('This issue is updated in place while these findings hold, and closed');
+  lines.push('automatically once none of them are left. Closing it by hand is respected');
+  lines.push('too: it is not reopened until the proposed versions themselves change.');
 
   return lines.join('\n');
 }
@@ -381,6 +384,10 @@ async function main() {
     marker,
     body,
     review_changed: candidates.length > 0 ? 'true' : 'false',
+    // Stated as a count, not only as the boolean above, so the workflow can act
+    // on "there is nothing left to confirm" -- a long-lived tracking issue that
+    // nobody closed by hand is stale the moment this reaches 0.
+    review_count: String(candidates.length),
     review_marker: reviewMarker,
     review_body: reviewBody,
   });

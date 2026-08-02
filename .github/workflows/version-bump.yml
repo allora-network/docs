@@ -14,12 +14,17 @@ name: Check Upstream Versions
 #
 # Both surfaces carry a fingerprint of their findings, and both are skipped when
 # a human has already declined that exact proposal. Closing means closed until
-# the proposed versions themselves change.
+# the proposed versions themselves change. The tracking issue also closes itself
+# once the bot has no candidates left to report, so resolving its findings in
+# public/api/versions.json is enough — nobody has to remember the issue.
 #
 # The pull request is opened with the DOCS_AUTOMATION_TOKEN secret (a
 # fine-grained PAT scoped to this repository) so it can be created without the
 # "create and approve pull requests" Actions setting, and so CI runs on it.
-# Falls back to the default GITHUB_TOKEN if the secret is absent.
+# The secret is required, with no fallback: a pull request created with the
+# default GITHUB_TOKEN does not trigger this repository's own workflows, so the
+# fallback used to produce version bumps that nothing had checked. When the
+# secret is absent or expired, the run fails on the step below and names it.
 
 on:
   schedule:
@@ -43,11 +48,13 @@ jobs:
     timeout-minutes: 10
 
     steps:
+    # Third-party actions are pinned to full commit SHAs: this job can write to
+    # the repository, and a tag is a mutable pointer.
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
     - name: Set up Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
       with:
         node-version: '20'
 
@@ -79,11 +86,38 @@ jobs:
           echo "This exact bump was already declined in a closed pull request; not reopening."
         fi
 
-    - name: Open or update the bump pull request
+    # Two conditions the pull request step cannot express itself: `secrets` is
+    # not available in an `if:`, and `github.ref_name` needs to be reported when
+    # it blocks rather than silently skipping.
+    - name: Check the preconditions for opening a pull request
+      id: gate
       if: steps.bump.outputs.changed == 'true' && steps.declined.outputs.count == '0'
+      env:
+        DOCS_AUTOMATION_TOKEN: ${{ secrets.DOCS_AUTOMATION_TOKEN }}
+        BASE: main
+      run: |
+        set -euo pipefail
+        if [ -z "$DOCS_AUTOMATION_TOKEN" ]; then
+          echo "::error::The DOCS_AUTOMATION_TOKEN secret is not set. A version-bump pull request opened with the default GITHUB_TOKEN does not trigger this repository's checks, so it would arrive with nothing verifying it. Add the secret (a fine-grained PAT scoped to this repository) or disable this workflow."
+          exit 1
+        fi
+        # Automation pull requests are opened from the default branch and
+        # against it. A dispatch from a release or feature branch is a
+        # legitimate way to exercise the version check, and must not propose a
+        # merge into that branch.
+        if [ "$GITHUB_REF_NAME" != "$BASE" ]; then
+          echo "open=false" >> "$GITHUB_OUTPUT"
+          echo "Running from '$GITHUB_REF_NAME', not the default branch ('$BASE'): the bump was computed and logged, skipping the pull request."
+          exit 0
+        fi
+        echo "open=true" >> "$GITHUB_OUTPUT"
+
+    - name: Open or update the bump pull request
+      if: steps.gate.outputs.open == 'true'
       uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
       with:
-        token: ${{ secrets.DOCS_AUTOMATION_TOKEN || secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.DOCS_AUTOMATION_TOKEN }}
+        base: main
         branch: automated/version-bump
         commit-message: 'Update published versions in public/api/versions.json'
         title: 'Update published versions in versions.json'
@@ -120,3 +154,36 @@ jobs:
           gh issue reopen "$number"
         fi
         echo "Updated issue #$number with new findings."
+
+    # The mirror image of the step above. A human who resolves the findings by
+    # editing public/api/versions.json has no reason to remember the tracking
+    # issue, so an issue full of findings the bot no longer reports would sit
+    # open indefinitely, contradicting the file it is about. Nothing left to
+    # confirm means the issue has done its job.
+    - name: Close the version-candidates issue when nothing needs confirming
+      if: steps.bump.outputs.review_count == '0'
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        ISSUE_TITLE: 'Version candidates needing human confirmation'
+      run: |
+        set -euo pipefail
+        number=$(gh issue list --state open --limit 50 --json number,title \
+          --jq '[.[] | select(.title == env.ISSUE_TITLE)] | first // empty | .number')
+
+        if [ -z "$number" ]; then
+          echo "No open version-candidates issue; nothing to close."
+          exit 0
+        fi
+
+        RESOLVED="Closing automatically: this run found no version candidates needing human confirmation, so every finding this issue carried is resolved. It reopens with fresh contents if new candidates appear."
+
+        # Replace the body as well as closing it. The step above deliberately
+        # leaves a closed issue alone while its body still carries the same
+        # fingerprint -- that is what makes closing by hand mean "declined, do
+        # not resurrect". Resolved is not declined: if the fingerprint stayed
+        # behind, the same finding coming back would match a closed issue and
+        # never be reported again. Clearing it makes the return of a finding a
+        # genuine change, which reopens the issue.
+        gh issue edit "$number" --body "$RESOLVED"
+        gh issue close "$number" --comment "$RESOLVED"
+        echo "Closed issue #$number."
