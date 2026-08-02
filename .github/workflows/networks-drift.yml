@@ -153,9 +153,17 @@ jobs:
             ;;
         esac
 
-        if [ "$open_prs" -gt 0 ] \
-           && git rev-parse --verify --quiet "origin/$BRANCH" > /dev/null \
-           && git cat-file -e "origin/$BRANCH:$MANIFEST" 2> /dev/null; then
+        if [ "$open_prs" -gt 0 ]; then
+          # A pull request is open, so the branch is not abandoned and must not
+          # be force-pushed over. If its manifest cannot be read -- the ref was
+          # not fetched, or the branch does not carry the file -- that is a
+          # situation to stop on and look at, not to resolve by falling through
+          # to the "abandoned branch" path and overwriting a reviewer's work.
+          if ! git rev-parse --verify --quiet "origin/$BRANCH" > /dev/null \
+             || ! git cat-file -e "origin/$BRANCH:$MANIFEST" 2> /dev/null; then
+            echo "::error::A drift pull request is open on $BRANCH, but $MANIFEST could not be read from that branch. Refusing to continue: the only other course is to treat the branch as abandoned and force-push over an open pull request."
+            exit 1
+          fi
           git show "origin/$BRANCH:$MANIFEST" > "$MANIFEST"
           echo "existing=true" >> "$GITHUB_OUTPUT"
           echo "Continuing from the open drift pull request on $BRANCH (its $MANIFEST only; the branch is not checked out)."
