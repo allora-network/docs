@@ -9099,7 +9099,7 @@ start at the [agent quickstart](https://docs.allora.network/get-started/quicksta
 | URL | What it is | Fetch it when |
 | --- | --- | --- |
 | [`/llms.txt`](https://docs.allora.network/llms.txt) | Index of every page: title, URL, one-line description | You need to route a question to the right page |
-| [`/llms-full.txt`](https://docs.allora.network/llms-full.txt) | Full text of every page in one file (~445 KB) | You want the whole corpus in one request |
+| [`/llms-full.txt`](https://docs.allora.network/llms-full.txt) | Full text of every page in one file (~450 KB) | You want the whole corpus in one request |
 | `/raw/<page-path>.md` | One page as plain markdown | You already know which page you need |
 | [`/api/topics.json`](https://docs.allora.network/api/topics.json) | Active topics on each network | You need live topic IDs, epochs, or loss methods |
 | `/api/networks.json` | Network endpoints and chain IDs | You need an RPC, LCD, or chain ID |
