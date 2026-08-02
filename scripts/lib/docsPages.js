@@ -1088,23 +1088,43 @@ function resolveRelativeLink(mdxFile, target) {
 const INLINE_LINK =
   /\]\((\s*)(<[^<>\n]*>|(?:[^\s()]|\([^\s()]*\))+)((?:[ \t]+(?:"[^"]*"|'[^']*'|\([^()]*\)))?\s*)\)/g;
 
+// The destination of a link, made absolute, or null to leave it alone.
+function absoluteDestination(destination, mdxFile) {
+  const angled = destination.startsWith('<') && destination.endsWith('>');
+  const target = angled ? destination.slice(1, -1) : destination;
+
+  // Absolute URLs, protocol-relative URLs, other schemes (mailto:, ipfs:) and
+  // same-page fragments are already meaningful on their own.
+  if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(target)) return null;
+
+  const absolute = target.startsWith('/')
+    ? `${SITE_URL}${target}`
+    : resolveRelativeLink(mdxFile, target);
+  if (!absolute) return null;
+
+  // Keeps whichever form the destination was written in.
+  return angled ? `<${absolute}>` : absolute;
+}
+
+// A reference-style definition — `[label]: /path "title"` on a line of its own
+// — is the one link shape that is not spelled `](…)`, so the inline pass above
+// never sees it and it would keep a relative destination in a file with nothing
+// to resolve it against. No page uses one today; handled anyway, because the
+// corpus' promise that links are absolute should not rest on that staying true.
+const LINK_DEFINITION = /^(\s{0,3}\[[^\]]+\]:\s*)(<[^<>\n]*>|\S+)(.*)$/;
+
 function absolutizeLinks(text, mdxFile) {
+  const definition = text.match(LINK_DEFINITION);
+  if (definition) {
+    const absolute = absoluteDestination(definition[2], mdxFile);
+    return absolute ? `${definition[1]}${absolute}${definition[3]}` : text;
+  }
+
   return text.replace(INLINE_LINK, (whole, lead, destination, trailer) => {
-    const angled = destination.startsWith('<') && destination.endsWith('>');
-    const target = angled ? destination.slice(1, -1) : destination;
-
-    // Absolute URLs, protocol-relative URLs, other schemes (mailto:, ipfs:) and
-    // same-page fragments are already meaningful on their own.
-    if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(target)) return whole;
-
-    const absolute = target.startsWith('/')
-      ? `${SITE_URL}${target}`
-      : resolveRelativeLink(mdxFile, target);
-    if (!absolute) return whole;
-
+    const absolute = absoluteDestination(destination, mdxFile);
     // The title is the author's and is carried through untouched; only the
-    // destination is rewritten, and it keeps whichever form it was written in.
-    return `](${lead}${angled ? `<${absolute}>` : absolute}${trailer})`;
+    // destination is rewritten.
+    return absolute === null ? whole : `](${lead}${absolute}${trailer})`;
   });
 }
 
