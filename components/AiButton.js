@@ -22,14 +22,14 @@ function AiButton() {
             fontSize: "16px",
             cursor: "pointer",
             marginBottom: "20px",
-            backgroundColor: "#007bff", // Blue background
-            color: "#fff", // White text
+            backgroundColor: "var(--allora-accent)",
+            color: "var(--allora-accent-contrast)",
             border: "none", // Remove default border
-            borderRadius: "5px", // Rounded corners
+            borderRadius: "var(--allora-radius-sm)",
             transition: "background-color 0.3s ease", // Smooth hover effect
           }}
-          onMouseOver={(e) => (e.target.style.backgroundColor = "#0056b3")} // Darker blue on hover
-          onMouseOut={(e) => (e.target.style.backgroundColor = "#007bff")} // Revert on mouse out
+          onMouseOver={(e) => (e.target.style.backgroundColor = "var(--allora-accent-5)")}
+          onMouseOut={(e) => (e.target.style.backgroundColor = "var(--allora-accent)")}
         >
           Ask AI
         </button>
