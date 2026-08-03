@@ -2,7 +2,6 @@
 import React from 'react'
 import { useRouter } from 'next/router'
 import { DocsThemeConfig, useConfig } from 'nextra-theme-docs'
-import AiButton from './components/AiButton.js'
 import AlloraLogo from './components/AlloraLogo.jsx'
 
 const config: DocsThemeConfig = {
@@ -64,48 +63,36 @@ const config: DocsThemeConfig = {
   chat: {
     link: 'https://discord.com/invite/allora'
   },
-  // Visible footer links plus the fixed-position AI button container.
+  // Visible footer links.
   footer: {
     component: () => (
-      <>
-        <footer
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            justifyContent: "center",
-            gap: "var(--allora-space-lg)",
-            padding: "var(--allora-space-lg) var(--allora-space-base)",
-            fontSize: "var(--allora-text-xs)",
-            color: "var(--allora-text-muted)",
-          }}
-        >
-          <a href="https://github.com/allora-network/docs/blob/main/CONTRIBUTING.md" target="_blank" rel="noreferrer">
-            Contribute
-          </a>
-          <a href="https://discord.gg/allora" target="_blank" rel="noreferrer">
-            Discord
-          </a>
-          <a href="https://twitter.com/AlloraNetwork" target="_blank" rel="noreferrer">
-            Twitter
-          </a>
-          <a href="https://research.allora.network" target="_blank" rel="noreferrer">
-            Research Forum
-          </a>
-          <a href="https://research.assets.allora.network/allora.0x10001.pdf" target="_blank" rel="noreferrer">
-            Whitepaper
-          </a>
-        </footer>
-        <div
-          style={{
-            position: "fixed",
-            right: "var(--allora-space-md)",
-            bottom: "var(--allora-space-md)",
-            zIndex: 1000,
-          }}
-        >
-          <AiButton />
-        </div>
-      </>
+      <footer
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "center",
+          gap: "var(--allora-space-lg)",
+          padding: "var(--allora-space-lg) var(--allora-space-base)",
+          fontSize: "var(--allora-text-xs)",
+          color: "var(--allora-text-muted)",
+        }}
+      >
+        <a href="https://github.com/allora-network/docs/blob/main/CONTRIBUTING.md" target="_blank" rel="noreferrer">
+          Contribute
+        </a>
+        <a href="https://discord.gg/allora" target="_blank" rel="noreferrer">
+          Discord
+        </a>
+        <a href="https://twitter.com/AlloraNetwork" target="_blank" rel="noreferrer">
+          Twitter
+        </a>
+        <a href="https://research.allora.network" target="_blank" rel="noreferrer">
+          Research Forum
+        </a>
+        <a href="https://research.assets.allora.network/allora.0x10001.pdf" target="_blank" rel="noreferrer">
+          Whitepaper
+        </a>
+      </footer>
     ),
   },
   sidebar: {
