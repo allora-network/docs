@@ -2,8 +2,8 @@
 title: Agent quickstart
 description: An operating guide for AI coding agents — load the machine-readable docs, apply the guardrails, and submit and consume a live testnet inference without human input.
 persona: AI coding agent
-verified_against: allora-sdk-py (github.com/allora-network/allora-sdk-py) on allora-testnet-1 (emissions/v10); live api.allora.network v2 responses; allora-forge-builder-kit main (2026-07-22)
-last_reviewed: 2026-07-30
+verified_against: allora_sdk 1.3.0 (PyPI) on allora-testnet-1 (emissions/v10); live api.allora.network v2 responses; allora-forge-builder-kit main (2026-07-22)
+last_reviewed: 2026-08-03
 ---
 
 # Agent quickstart
@@ -121,10 +121,10 @@ placeholder `123.45` stands in for a real model's prediction.
 import asyncio
 import os
 
-from allora_sdk import AlloraNetworkConfig, AlloraWorker
+from allora_sdk import AlloraNetworkConfig, AlloraWorker, RunContext
 
 
-async def run_model(nonce: int) -> float:
+async def run_model(ctx: RunContext) -> float:
     # Replace this with your model's prediction logic.
     return 123.45
 

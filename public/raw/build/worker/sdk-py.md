@@ -2,8 +2,8 @@
 title: Build a Worker with the Python SDK
 description: Build and configure an Allora inference worker with the Python SDK — plug in a real price model, then set up wallets, networks, fee tiers, and error handling.
 persona: ML builder
-verified_against: allora_sdk 1.0.6 (latest release on PyPI); github.com/allora-network/allora-sdk-py dev branch (upcoming-release section); allora-forge-builder-kit notebooks
-last_reviewed: 2026-07-30
+verified_against: allora_sdk 1.3.0 (PyPI); allora-forge-builder-kit notebooks
+last_reviewed: 2026-08-03
 ---
 
 # Build a Worker with the Python SDK
@@ -39,9 +39,9 @@ Save this as `worker.py`. It submits a placeholder value — the real model repl
 import asyncio
 import os
 
-from allora_sdk import AlloraNetworkConfig, AlloraWorker
+from allora_sdk import AlloraNetworkConfig, AlloraWorker, RunContext
 
-async def run_model(nonce: int) -> float:
+async def run_model(ctx: RunContext) -> float:
     return 123.45  # placeholder -- the real model replaces this in step 5
 
 async def main():
@@ -216,14 +216,14 @@ Replace `worker.py` with this version, which trains the model at startup and sub
 import asyncio
 import os
 
-from allora_sdk import AlloraNetworkConfig, AlloraWorker
+from allora_sdk import AlloraNetworkConfig, AlloraWorker, RunContext
 
 from model import predict_price, train
 
 # Train once at startup (retrain and restart as often as you like)
 model = train()
 
-def run_model(nonce: int) -> float:
+def run_model(ctx: RunContext) -> float:
     prediction = predict_price(model)
     print(f"Predicted BTC/USD price in 24 hours: {prediction:,.2f}")
     return prediction
@@ -250,7 +250,7 @@ Run it again — it reuses the `.allora_key` identity from step 2:
 python worker.py
 ```
 
-The `run` function is the whole contract between your model and the network: it can be sync or async, it receives the submission window's nonce (a block height), and it returns the prediction as a `float` or `str`. Sync functions are run in an executor so a slow model does not block the worker's event loop.
+The `run` function is the whole contract between your model and the network: it can be sync or async, it receives a `RunContext` (with the submission window's `nonce` — a block height — plus the `topic_id` and an RPC `client` for chain queries), and it returns the prediction as a `float` or `str` — or a `dict[str, float]` on multi-value topics.
 
 ### 6. Configure the wallet
 
@@ -333,16 +333,16 @@ Registration transactions are always sent at `PRIORITY` so your worker can start
 
 ### 9. Handle errors
 
-`worker.run()` is an async generator that yields a result per submission attempt — either a `PredictionResult` (with `.prediction` and `.tx_result`, including the transaction hash) or an `Exception`. Handle both, and use `TxError` to distinguish on-chain rejections from model failures:
+`worker.run()` is an async generator that yields a result per submission attempt — either a `WorkerResult` (with `.submission` and `.tx_result`, including the transaction hash) or an `Exception`. Handle both, and use `TxError` to distinguish on-chain rejections from model failures:
 
 ```python
 import asyncio
 import os
 
-from allora_sdk import AlloraNetworkConfig, AlloraWorker
+from allora_sdk import AlloraNetworkConfig, AlloraWorker, RunContext
 from allora_sdk.rpc_client.tx_manager import TxError
 
-async def run_model(nonce: int) -> float:
+async def run_model(ctx: RunContext) -> float:
     return 123.45  # your model here
 
 async def main():
@@ -368,11 +368,30 @@ asyncio.run(main())
 What the worker already does for you:
 
 - **Exceptions from your `run` function** are caught and yielded — one bad prediction never crashes the worker loop.
+- **Sanity checks**: before submitting, the prediction is compared against the network consensus with a z-score check and a warning is logged if it looks like the wrong unit or target variable. The check is on by default and throttled; tune or disable it with `sanity_check=SanityCheckConfig(...)` (from `allora_sdk.worker.inferer`).
 - **"Already submitted for this epoch"** rejections are recognized and logged as warnings; the nonce is marked done and not retried.
 - **Not whitelisted**: if the topic restricts who may submit and your wallet is not on the list, the worker logs `The wallet ... is not whitelisted on topic ...` and stops — contact the topic creator.
 - **Faucet rate limiting**: after a `429` from the testnet faucet the worker exits with an error; fund the wallet from another source or wait, then restart.
 - **Shutdown**: Ctrl-C (or SIGTERM, e.g. from a process manager) triggers a graceful shutdown; a second Ctrl-C force-exits. In notebooks, call `worker.stop()` or pass a `timeout` (seconds) to `worker.run(timeout=...)` to stop after a fixed run.
 - **Transient RPC errors** in the polling loop are logged and retried on the next cycle rather than raised.
+
+### 10. Auto-stake rewards (optional)
+
+Pass `autostake=AutoStakeConfig(...)` to `AlloraWorker.inferer()` to automatically delegate the worker's settled rewards to a reputer (`AutoStakeTargetType.REPUTER`, an `allo1...` reputer registered on your topic) or to a validator (`AutoStakeTargetType.VALIDATOR`, an `allovaloper1...` operator address). The target is validated at startup, an optional `fee_reserve_uallo` keeps gas money unstaked, and each rewards-settlement event triggers one delegation:
+
+```python
+from allora_sdk.worker.autostake import AutoStakeConfig, AutoStakeTargetType
+
+worker = AlloraWorker.inferer(
+    run=run_model,
+    topic_id=69,
+    autostake=AutoStakeConfig(
+        target_type=AutoStakeTargetType.REPUTER,
+        target_address="allo1...",       # or AutoStakeTargetType.VALIDATOR with allovaloper1...
+        fee_reserve_uallo=1_000_000,     # keep this much of each reward for gas
+    ),
+)
+```
 
 ## Verify
 
@@ -381,30 +400,6 @@ What the worker already does for you:
 - Open [testnet.explorer.allora.network/topics/69](https://testnet.explorer.allora.network/topics/69) and look for your worker's `allo...` address among the topic's workers.
 - Export your worker's submission history to CSV with the bundled CLI tool: `allora-export-txs --address <your allo... address>`.
 - For dashboards, on-chain scores, and EMA queries, see [Monitor a Worker](https://docs.allora.network/build/worker/monitoring).
-
-## Coming in the next SDK release
-
-The SDK's public [`dev` branch](https://github.com/allora-network/allora-sdk-py/tree/dev) extends `AlloraWorker` beyond the current release (`allora_sdk` 1.0.6). These features are **not yet published to PyPI**, and their APIs may still change:
-
-- **Auto-staking rewards**: pass `autostake=AutoStakeConfig(...)` to `AlloraWorker.inferer()` to automatically delegate the worker's settled rewards to a reputer (`AutoStakeTargetType.REPUTER`, an `allo1...` reputer registered on your topic) or to a validator (`AutoStakeTargetType.VALIDATOR`, an `allovaloper1...` operator address). The target is validated at startup, an optional `fee_reserve_uallo` keeps gas money unstaked, and each rewards-settlement event triggers one delegation:
-
-  ```python
-  from allora_sdk.worker.autostake import AutoStakeConfig, AutoStakeTargetType
-
-  worker = AlloraWorker.inferer(
-      run=run_model,
-      topic_id=69,
-      autostake=AutoStakeConfig(
-          target_type=AutoStakeTargetType.REPUTER,
-          target_address="allo1...",       # or AutoStakeTargetType.VALIDATOR with allovaloper1...
-          fee_reserve_uallo=1_000_000,     # keep this much of each reward for gas
-      ),
-  )
-  ```
-
-- **`RunContext` callbacks**: `run` functions receive a `RunContext` (with `.nonce`, `.topic_id`, and an RPC `.client` for chain queries) instead of a bare nonce, and can return a `dict[str, float]` for multi-value topics.
-- **Sanity checks**: submissions are compared against the network consensus with a z-score check (configurable via `SanityCheckConfig`), warning you if your prediction looks like the wrong unit or target variable.
-- **More roles**: `AlloraWorker.forecaster(...)` and `AlloraWorker.reputer(...)` counterparts to the inferer — see [Build and Deploy a Forecaster](https://docs.allora.network/build/forecaster) and [Build a Reputer](https://docs.allora.network/build/reputer/build-a-reputer) for the current state of each.
 
 ## Troubleshoot
 
@@ -420,6 +415,7 @@ The SDK's public [`dev` branch](https://github.com/allora-network/allora-sdk-py/
 
 - Productionize your worker: [deploy it with Docker](https://docs.allora.network/build/worker/containerize)
 - Watch it work: [monitor a worker](https://docs.allora.network/build/worker/monitoring) — dashboards, logs, and on-chain EMA scores
+- Run the other worker roles — `AlloraWorker.forecaster(...)` and `AlloraWorker.reputer(...)`: [Build and Deploy a Forecaster](https://docs.allora.network/build/forecaster) and [Build a Reputer](https://docs.allora.network/build/reputer/build-a-reputer)
 - Graduate from the sandbox: pick a real topic from [existing topics](https://docs.allora.network/build/forge/topics)
 - Explore the SDK's full surface — RPC queries, transactions, and the REST API client: [Allora Python SDK](https://docs.allora.network/consume/sdk-py)
 - Train and deploy a model end to end with the [Forge Builder Kit](https://github.com/allora-network/allora-forge-builder-kit)
