@@ -1,0 +1,163 @@
+---
+title: Accessing Allora Data Through RPC
+description: In addition to the Allora API, you can also access Allora network data directly through RPC (Remote Procedure Call) endpoints.
+persona: App developer
+verified_against: docs content as of 2026-07-16; examples live in snippets/ and are executed against the live testnet LCD (emissions/v10) by the nightly snippet run, last locally on 2026-08-02
+last_reviewed: 2026-08-02
+---
+
+# Accessing Allora Data Through RPC
+
+In addition to the [Allora API](https://docs.allora.network/consume/api), you can also access Allora network data directly through RPC (Remote Procedure Call) endpoints. This provides an alternative method for consuming outputs from the network, especially useful for applications that need to interact directly with the blockchain.
+
+## Prerequisites
+
+- [`allorad` CLI](https://docs.allora.network/get-started/cli) installed, for the command-line examples
+- Access to an Allora node: the CometBFT RPC endpoint for `allorad`, or the LCD (REST) endpoint for the programmatic examples — see [Networks](https://docs.allora.network/reference/networks)
+
+For a complete list of available RPC endpoints and commands, see the [allorad reference section](https://docs.allora.network/reference/allorad).
+
+## RPC URL and Chain ID
+
+Each network uses a different RPC URL and Chain ID which are needed to specify which network to run commands on when using specific commands on allorad.
+
+### Testnet
+- **RPC URL** (CometBFT): `https://allora-rpc.testnet.allora.network/`
+- **LCD URL** (Cosmos SDK REST): `https://allora-api.testnet.allora.network/`
+- **Chain ID**: `allora-testnet-1`
+
+See [Networks](https://docs.allora.network/reference/networks) for the current endpoints of every network, including the versioned `emissions` namespace each one serves.
+
+## RPC Endpoints for Consumers
+
+The following RPC methods are particularly useful for consumers looking to access inference data from the Allora network:
+
+### Get Latest Network Inferences
+
+This is the primary method for consumers to retrieve the latest network inference for a specific topic.
+
+```bash
+allorad q emissions latest-network-inferences [topic_id] --node <RPC_URL>
+```
+
+**Parameters:**
+- `topic_id`: The identifier of the topic for which you want to retrieve the latest network inference.
+- `RPC_URL`: The URL of the RPC node you're connecting to.
+
+**Example:**
+```bash
+allorad q emissions latest-network-inferences 1 --node https://allora-rpc.testnet.allora.network/
+```
+
+An **outlier-resistant** variant (single-label regression topics only) is available via `allorad q emissions latest-network-inferences-outlier-resistant [topic_id]`.
+
+**Response:**
+The response includes the network inference bundle — the combined value, individual worker values, a naive baseline, and one-out/one-in values. Since v0.17.0 every value is **labeled**; single-output topics use the canonical label `y`. Here's a simplified example:
+
+```json
+{
+  "network_inferences": {
+    "topic_id": "1",
+    "nonce": "1349577",
+    "combined_value": [
+      { "label_id": 1, "label_name": "y", "value": "2605.533879185080648394998043723508" }
+    ],
+    "inferer_values": [
+      {
+        "worker": "allo102ksu3kx57w0mrhkg37kvymmk2lgxqcan6u7yn",
+        "values": [ { "label_id": 1, "label_name": "y", "value": "2611.01109296" } ]
+      },
+      {
+        "worker": "allo10q6hm2yae8slpvvgmxqrcasa30gu5qfysp4wkz",
+        "values": [ { "label_id": 1, "label_name": "y", "value": "2661.505295679922" } ]
+      }
+    ],
+    "naive_value": [
+      { "label_id": 1, "label_name": "y", "value": "2605.533879185080648394998043723508" }
+    ]
+  },
+  "inference_block_height": "1349577"
+}
+```
+
+The `combined_value` field is a list of labeled values representing the optimized inference that takes both worker submissions and forecast data into account. For a single-output topic it holds a single entry (labeled `y`), which is typically the value you want for most consumer applications. A multi-output / classification topic returns one entry per label.
+
+## Using RPC in Your Applications
+
+The CometBFT `abci_query` method takes **protobuf-encoded** request bytes and returns protobuf-encoded response bytes — it does not accept or return JSON. Calling it from a plain HTTP client therefore requires generated protobuf stubs for the emissions module. For everything below, the Cosmos SDK **LCD (REST)** endpoints expose the same queries as JSON over `GET`, which is what a typical application should use.
+
+Every `allorad q emissions` query has a matching LCD path. The one used below is
+`/<emissions-namespace>/latest_network_inferences/{topic_id}`, where the namespace is `emissions/v10`
+on testnet and `emissions/v9` on mainnet.
+
+### JavaScript/TypeScript Example
+
+```typescript
+// See https://docs.allora.network/reference/networks for the LCD URL and
+// emissions namespace of each network.
+const LCD_URL = "https://allora-api.testnet.allora.network";
+const EMISSIONS = "emissions/v10";
+
+async function getLatestInference(topicId: number): Promise<any> {
+  const url = `${LCD_URL}/${EMISSIONS}/latest_network_inferences/${topicId}`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`LCD request failed: ${response.status} ${response.statusText}`);
+  }
+  return response.json();
+}
+
+async function main() {
+  const data = await getLatestInference(1);
+  // combined_value is a list of labeled values; a single-output topic has one entry ("y")
+  console.log(`Latest inference: ${data.network_inferences.combined_value[0].value}`);
+  console.log(`Inference block height: ${data.inference_block_height}`);
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
+```
+
+### Python Example
+
+```python
+import json
+import urllib.request
+
+# See https://docs.allora.network/reference/networks for the LCD URL and
+# emissions namespace of each network.
+LCD_URL = "https://allora-api.testnet.allora.network"
+EMISSIONS = "emissions/v10"
+
+
+def get_latest_inference(topic_id):
+    url = f"{LCD_URL}/{EMISSIONS}/latest_network_inferences/{topic_id}"
+    with urllib.request.urlopen(url, timeout=30) as response:
+        return json.load(response)
+
+
+data = get_latest_inference(1)
+# combined_value is a list of labeled values; a single-output topic has one entry ("y")
+print(f"Latest inference: {data['network_inferences']['combined_value'][0]['value']}")
+print(f"Inference block height: {data['inference_block_height']}")
+```
+
+## RPC vs API: When to Use Each
+
+### Use RPC When:
+
+- You need direct blockchain access without intermediaries
+- You want to query historical data that might not be available through the API
+- You're building applications that need to interact with multiple aspects of the Allora network
+- You want to avoid potential rate limiting on the API
+
+### Use the API When:
+
+- You need a simpler interface with standardized authentication
+- You want to avoid the complexity of RPC calls
+- You're primarily interested in the latest inference data
+- You need additional features provided by the API that aren't available through RPC
+
+RPC nodes may have their own rate limiting or access restrictions. Make sure to implement proper error handling and retry logic in your applications.

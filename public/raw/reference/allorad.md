@@ -1,0 +1,775 @@
+---
+title: allorad Reference
+description: Reference for allorad query and transaction commands to read from and write to the Allora chain.
+persona: Builder or operator
+verified_against: allora-chain v0.17.0 (x/emissions/module/autocli.go, emissions/v10 query.proto and tx.proto); pre-rename query names checked against v0.16.0 (autocli.go, emissions/v9 query.proto)
+last_reviewed: 2026-08-02
+---
+
+# `allorad` Reference
+
+`allorad` commands below are broken out into:
+1. [Query functions](#query-functions), or functions that read from the chain
+    - e.g. get active topics, get amount of stake in a topic
+2. [Tx functions](#tx-functions), or functions that write to the chain
+    - e.g. create a topic, add stake to a reputer
+
+## Query Functions
+
+These functions read from the appchain only and do not write. Add the **Command** value into your query to retrieve the expected data.
+
+```bash
+allorad q emissions [Command] --node <RPC_URL>
+```
+
+### Params
+
+- **RPC Method:** `GetParams`
+- **Command:** `params`
+- **Description:** Get the current module parameters.
+
+### Get Next Topic ID
+
+- **RPC Method:** `GetNextTopicId`
+- **Command:** `next-topic-id`
+- **Description:** Get next topic id. Topic ids are incremented with each newly added topic.
+
+### Get Topic
+
+- **RPC Method:** `GetTopic`
+- **Command:** `topic [topic_id]`
+- **Description:** Get topic by topic_id.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+
+### Topic Exists
+
+- **RPC Method:** `TopicExists`
+- **Command:** `topic-exists [topic_id]`
+- **Description:** True if topic exists at given id, else false.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+
+### Get Active Topics At Block
+
+- **RPC Method:** `GetActiveTopicsAtBlock`
+- **Command:** `active-topics-at-block [block_height]`
+- **Description:** Get the topics that were active at a given block height.
+- **Positional Arguments:**
+  - `block_height` Block height to query.
+
+### Is Topic Active
+
+- **RPC Method:** `IsTopicActive`
+- **Command:** `is-topic-active [topic_id]`
+- **Description:** True if the topic is active, else false.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+
+### Get Delegate Reward Per Share
+
+- **RPC Method:** `GetDelegateRewardPerShare`
+- **Command:** `delegate-reward-per-share [topic_id] [reputer_address]`
+- **Description:** Get total delegate reward per share stake in a reputer for a topic.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `reputer_address` Address of the reputer.
+
+### Get Delegate Stake Placement
+
+- **RPC Method:** `GetDelegateStakePlacement`
+- **Command:** `delegate-stake-placement [topic_id] [delegator] [target]`
+- **Description:** Get the amount of token delegated to a target by a delegator in a topic.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `delegator` Address of the delegator.
+  - `target` Address of the target.
+
+### Get Delegate Stake Removal
+
+- **RPC Method:** `GetDelegateStakeRemoval`
+- **Command:** `delegate-stake-removal [block_height] [topic_id] [delegator] [reputer]`
+- **Description:** Get the current state of a pending delegate stake removal.
+- **Positional Arguments:**
+  - `block_height` Block height to query.
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `delegator` Address of the delegator.
+  - `reputer` Address of the reputer.
+
+### Get Delegate Stake Upon Reputer
+
+- **RPC Method:** `GetDelegateStakeUponReputer`
+- **Command:** `delegate-stake-on-reputer [topic_id] [target]`
+- **Description:** Get the total amount of token delegated to a target reputer in a topic.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `target` Address of the target reputer.
+
+### Get Forecast Scores Until Block
+
+- **RPC Method:** `GetForecastScoresUntilBlock`
+- **Command:** `forecast-scores-until-block [topic_id] [block_height]`
+- **Description:** Get all saved scores for all forecasters for a topic descending until a given past block height.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `block_height` Block height to query.
+
+### Get Forecaster Network Regret
+
+- **RPC Method:** `GetForecasterNetworkRegret`
+- **Command:** `forecaster-regret [topic_id] [worker]`
+- **Description:** Get current network regret for a given forecaster.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `worker` Address of the forecaster.
+
+### Get Inference Scores Until Block
+
+- **RPC Method:** `GetInferenceScoresUntilBlock`
+- **Command:** `inference-scores-until-block [topic_id] [block_height]`
+- **Description:** Get all saved scores for all inferers for a topic descending until a given past block height.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `block_height` Block height to query.
+
+### Get Inferer Network Regret
+
+- **RPC Method:** `GetInfererNetworkRegret`
+- **Command:** `inferer-regret [topic_id] [actor_id]`
+- **Description:** Get current network regret for a given inferer.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `actor_id` Address of the inferer.
+
+### Is Reputer Nonce Unfulfilled
+
+- **RPC Method:** `IsReputerNonceUnfulfilled`
+- **Command:** `reputer-nonce-unfulfilled [topic_id] [block_height]`
+- **Description:** True if reputer nonce is unfulfilled, else false.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `block_height` Block height to query.
+
+### Is Worker Nonce Unfulfilled
+
+- **RPC Method:** `IsWorkerNonceUnfulfilled`
+- **Command:** `worker-nonce-unfulfilled [topic_id] [block_height]`
+- **Description:** True if worker nonce is unfulfilled, else false.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `block_height` Block height to query.
+
+### Get Forecaster Score EMA
+
+- **RPC Method:** `GetForecasterScoreEma`
+- **Command:** `forecaster-score-ema [topic_id] [forecaster]`
+- **Description:** Returns the latest score for a forecaster in a topic.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `forecaster` Address of the forecaster.
+
+### Get Inferer Score EMA
+
+- **RPC Method:** `GetInfererScoreEma`
+- **Command:** `inferer-score-ema [topic_id] [inferer]`
+- **Description:** Returns the latest score for an inferer in a topic.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `inferer` Address of the inferer.
+
+### Get Reputer Score EMA
+
+- **RPC Method:** `GetReputerScoreEma`
+- **Command:** `reputer-score-ema [topic_id] [reputer]`
+- **Description:** Returns the latest score for a reputer in a topic.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `reputer` Address of the reputer.
+
+### Get Latest Topic Inferences
+
+- **RPC Method:** `GetLatestTopicInferences`
+- **Command:** `latest-topic-raw-inferences [topic_id]`
+- **Description:** Returns the latest round of raw inferences from workers for a topic.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+
+### Get Listening Coefficient
+
+- **RPC Method:** `GetListeningCoefficient`
+- **Command:** `listening-coefficient [topic_id] [reputer]`
+- **Description:** Returns the current listening coefficient for a given reputer.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `reputer` Address of the reputer.
+
+### Get One In Forecaster Network Regret
+
+- **RPC Method:** `GetOneInForecasterNetworkRegret`
+- **Command:** `one-in-forecaster-regret [topic_id] [forecaster] [inferer]`
+- **Description:** Returns regret born from including a forecaster's implied inference in a batch with an inferer.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `forecaster` Address of the forecaster.
+  - `inferer` Address of the inferer.
+
+### Get Naive Inferer Network Regret
+
+- **RPC Method:** `GetNaiveInfererNetworkRegret`
+- **Command:** `naive-inferer-network-regret [topic_id] [inferer]`
+- **Description:** Returns regret born from including an inferer's naive inference in a batch.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `inferer` Address of the inferer.
+
+### Get One Out Inferer Inferer Network Regret
+
+- **RPC Method:** `GetOneOutInfererInfererNetworkRegret`
+- **Command:** `one-out-inferer-inferer-network-regret [topic_id] [one_out_inferer] [inferer]`
+- **Description:** Returns regret born from including one inferer's implied inference in a batch with another inferer.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `one_out_inferer` Address of the inferer being compared.
+  - `inferer` Address of the primary inferer.
+
+### Get One Out Inferer Forecaster Network Regret
+
+- **RPC Method:** `GetOneOutInfererForecasterNetworkRegret`
+- **Command:** `one-out-inferer-forecaster-network-regret [topic_id] [one_out_inferer] [forecaster]`
+- **Description:** Returns regret born from including one inferer's implied inference in a batch with a forecaster.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `one_out_inferer` Address of the inferer.
+  - `forecaster` Address of the forecaster.
+
+### Get One Out Forecaster Inferer Network Regret
+
+- **RPC Method:** `GetOneOutForecasterInfererNetworkRegret`
+- **Command:** `one-out-forecaster-inferer-network-regret [topic_id] [one_out_forecaster] [inferer]`
+- **Description:** Returns regret born from including one forecaster's implied inference in a batch with an inferer.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `one_out_forecaster` Address of the forecaster.
+  - `inferer` Address of the inferer.
+
+### Get One Out Forecaster Forecaster Network Regret
+
+- **RPC Method:** `GetOneOutForecasterForecasterNetworkRegret`
+- **Command:** `one-out-forecaster-forecaster-network-regret [topic_id] [one_out_forecaster] [forecaster]`
+- **Description:** Returns regret born from including one forecaster's implied inference in a batch with another forecaster.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `one_out_forecaster` Address of the forecaster being compared.
+  - `forecaster` Address of the primary forecaster.
+
+### Get Previous Forecast Reward Fraction
+
+- **RPC Method:** `GetPreviousForecastRewardFraction`
+- **Command:** `previous-forecaster-reward-fraction [topic_id] [worker]`
+- **Description:** Return previous reward fraction for a worker.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `worker` Address of the worker.
+
+### Get Previous Inference Reward Fraction
+
+- **RPC Method:** `GetPreviousInferenceRewardFraction`
+- **Command:** `previous-inference-reward-fraction [topic_id] [worker]`
+- **Description:** Return previous reward fraction for a worker.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `worker` Address of the worker.
+
+### Get Previous Percentage Reward To Staked Reputers
+
+- **RPC Method:** `GetPreviousPercentageRewardToStakedReputers`
+- **Command:** `previous-percentage-reputer-reward`
+- **Description:** Return the previous percentage reward paid to staked reputers.
+
+### Get Previous Reputer Reward Fraction
+
+- **RPC Method:** `GetPreviousReputerRewardFraction`
+- **Command:** `previous-reputer-reward-fraction [topic_id] [reputer]`
+- **Description:** Return the previous reward fraction for a reputer.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `reputer` Address of the reputer.
+
+### Get Previous Topic Weight
+
+- **RPC Method:** `GetPreviousTopicWeight`
+- **Command:** `previous-topic-weight [topic_id]`
+- **Description:** Return the previous topic weight.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+
+### Get Reputer Loss Bundles At Block
+
+- **RPC Method:** `GetReputerLossBundlesAtBlock`
+- **Command:** `reputer-loss-bundle [topic_id] [block_height]`
+- **Description:** Return the reputer loss bundle at a block height.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `block_height` Block height to query.
+
+### Get Reputers Scores At Block
+
+- **RPC Method:** `GetReputersScoresAtBlock`
+- **Command:** `reputer-scores-at-block [topic_id] [block_height]`
+- **Description:** Return reputer scores at a block height.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `block_height` Block height to query.
+
+### Get Stake Removal For Reputer And Topic Id
+
+- **RPC Method:** `GetStakeRemovalForReputerAndTopicId`
+- **Command:** `stake-removal [reputer] [topic_id]`
+- **Description:** Return stake removal information for a reputer in a topic.
+- **Positional Arguments:**
+  - `reputer` Address of the reputer.
+  - `topic_id` Identifier of the topic whose information will be returned.
+
+### Get Stake Reputer Authority
+
+- **RPC Method:** `GetStakeReputerAuthority`
+- **Command:** `reputer-authority [topic_id] [reputer]`
+- **Description:** Return total stake on reputer in a topic, including delegate stake and their own.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `reputer` Address of the reputer.
+
+### Get Topic Fee Revenue
+
+- **RPC Method:** `GetTopicFeeRevenue`
+- **Command:** `topic-fee-revenue [topic_id]`
+- **Description:** Return effective fee revenue for a topic.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+
+### Get Topic Reward Nonce
+
+- **RPC Method:** `GetTopicRewardNonce`
+- **Command:** `topic-reward-nonce [topic_id]`
+- **Description:** Return the reward nonce for a topic.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+
+### Get Topic Stake
+
+- **RPC Method:** `GetTopicStake`
+- **Command:** `topic-stake [topic_id]`
+- **Description:** Return total stake in a topic, including delegate stake.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+
+### Get Total Reward To Distribute
+
+- **RPC Method:** `GetTotalRewardToDistribute`
+- **Command:** `total-rewards`
+- **Description:** Return total rewards to be distributed among all rewardable topics.
+
+### Get Unfulfilled Reputer Nonces
+
+- **RPC Method:** `GetUnfulfilledReputerNonces`
+- **Command:** `unfulfilled-reputer-nonces [topic_id]`
+- **Description:** Return topic reputer nonces that have yet to be fulfilled.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+
+### Get Unfulfilled Worker Nonces
+
+- **RPC Method:** `GetUnfulfilledWorkerNonces`
+- **Command:** `unfulfilled-worker-nonces [topic_id]`
+- **Description:** Return topic worker nonces that have yet to be fulfilled.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+
+### Get Worker Forecast Scores At Block
+
+- **RPC Method:** `GetWorkerForecastScoresAtBlock`
+- **Command:** `forecast-scores [topic_id] [block_height]`
+- **Description:** Return scores for a worker at a block height.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `block_height` Block height to query.
+
+### Get Worker Inference Scores At Block
+
+- **RPC Method:** `GetWorkerInferenceScoresAtBlock`
+- **Command:** `inference-scores [topic_id] [block_height]`
+- **Description:** Return scores for a worker at a block height.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+  - `block_height` Block height to query.
+
+### Get Stake From Reputer In Topic In Self
+
+- **RPC Method:** `GetStakeFromReputerInTopicInSelf`
+- **Command:** `stake-reputer-in-topic-self [reputer_address] [topic_id]`
+- **Description:** Get the stake of a reputer in a topic that they put on themselves.
+- **Positional Arguments:**
+  - `reputer_address` Address of the reputer.
+  - `topic_id` Identifier of the topic whose information will be returned.
+
+### Get Stake Removals Up Until Block
+
+- **RPC Method:** `GetStakeRemovalsUpUntilBlock`
+- **Command:** `stake-removals-up-until-block [block_height]`
+- **Description:** Get all pending stake removal requests going to happen at a given block height.
+- **Positional Arguments:**
+  - `block_height` Block height to query.
+
+### Get Delegate Stake Removals Up Until Block
+
+- **RPC Method:** `GetDelegateStakeRemovalsUpUntilBlock`
+- **Command:** `delegate-stake-removals-up-until-block [block_height]`
+- **Description:** Get all pending delegate stake removal requests going to happen at a given block height.
+- **Positional Arguments:**
+  - `block_height` Block height to query.
+
+### Get Stake Removal Info
+
+- **RPC Method:** `GetStakeRemovalInfo`
+- **Command:** `stake-removal-info [address] [topic_id]`
+- **Description:** Get a pending stake removal for a reputer in a topic.
+- **Positional Arguments:**
+  - `address` Address of the reputer.
+  - `topic_id` Identifier of the topic whose information will be returned.
+
+### Get Delegate Stake Removal Info
+
+- **RPC Method:** `GetDelegateStakeRemovalInfo`
+- **Command:** `delegate-stake-removal-info [delegator] [reputer] [topic_id]`
+- **Description:** Get a pending delegate stake removal for a delegator in a topic.
+- **Positional Arguments:**
+  - `delegator` Address of the delegator.
+  - `reputer` Address of the reputer.
+  - `topic_id` Identifier of the topic whose information will be returned.
+
+### Get Topic Last Worker Commit Info
+
+- **RPC Method:** `GetTopicLastWorkerCommitInfo`
+- **Command:** `topic-last-worker-commit [topic_id]`
+- **Description:** Get the last commit by a worker for a topic.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+
+### Get Topic Last Reputer Commit Info
+
+- **RPC Method:** `GetTopicLastReputerCommitInfo`
+- **Command:** `topic-last-reputer-commit [topic_id]`
+- **Description:** Get the last commit by a reputer for a topic.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned.
+
+### Get Forecasts for a Topic at Block Height
+- **RPC Method:** `GetForecastsAtBlock`
+- **Command:** `forecasts-at-block [topic_id] [block_height]`
+- **Description:** Get the Forecasts for a topic at block height.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned
+  - `block_height` Number of blocks that precede the specific block you are trying to query
+
+### Get Multiple Reputer Stakes in a Topic
+- **RPC Method:** `GetMultiReputerStakeInTopic`
+- **Command:** `multi-reputer-stake [addresses] [topic_id]`
+- **Description:** Returns the stake for each reputer in a given list. The list can be up to `max_page_limit` in length; reputers with no stake default to 0.
+- **Positional Arguments:**
+  - `addresses` List of reputer addresses
+  - `topic_id` Identifier of the topic whose information will be returned
+
+### Get All Inferences Produced for a Topic in a Particular Timestamp
+- **RPC Method:** `GetInferencesAtBlock`
+- **Command:** `inferences-at-block [topic_id] [block_height]`
+- **Description:** Get All Inferences produced for a topic in a particular timestamp.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned
+  - `block_height` Number of blocks that precede the specific block you are trying to query
+
+### Check if Reputer is Registered in the Topic
+- **RPC Method:** `IsReputerRegisteredInTopicId`
+- **Command:** `is-reputer-registered [topic_id] [address]`
+- **Description:** True if reputer is registered in the topic.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned
+  - `address` Reputer Address
+
+### Check if an Address is a Whitelist Admin
+- **RPC Method:** `IsWhitelistAdmin`
+- **Command:** `is-whitelist-admin [address]`
+- **Description:** Check if an address is a whitelist admin. True if so, else false.
+- **Positional Arguments:**
+  - `address` Address to check
+
+### Check if Worker is Registered in the Topic
+- **RPC Method:** `IsWorkerRegisteredInTopicId`
+- **Command:** `is-worker-registered [topic_id] [address]`
+- **Description:** True if worker is registered in the topic.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned
+  - `address` Address to check
+
+### Get the Latest Network Inferences and Weights for a Topic
+- **RPC Method:** `GetLatestNetworkInferences`
+- **Command:** `latest-network-inferences [topic_id]`
+- **Description:** Get the latest Network inferences and weights for a topic. Returns whatever information it has available. An outlier-resistant variant is available as `GetLatestNetworkInferencesOutlierResistant` (`latest-network-inferences-outlier-resistant [topic_id]`).
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned
+
+### Get the Network Inferences for a Topic at a Block Height
+- **RPC Method:** `GetNetworkInferencesAtBlock`
+- **Command:** `network-inferences-at-block [topic_id] [block_height_last_inference]`
+- **Description:** Get the Network Inferences for a topic at a block height where the last inference was made.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned
+  - `block_height_last_inference` Block height where the last inference was made
+
+### Get the Network Loss Bundle for a Topic at Given Block Height
+- **RPC Method:** `GetNetworkLossBundleAtBlock`
+- **Command:** `network-loss-bundle-at-block [topic_id] [block]`
+- **Description:** Get the network loss bundle for a topic at given block height.
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned
+  - `block` Block to query on
+
+### Get Amount of Stake in a Topic for a Delegator
+- **RPC Method:** `GetStakeFromDelegatorInTopic`
+- **Command:** `stake-delegator-in-topic [delegator_address] [topic_id]`
+- **Description:** Get amount of stake in a topic for a delegator.
+- **Positional Arguments:**
+  - `delegator_address` Address of the delegator
+  - `topic_id` Identifier of the topic whose information will be returned
+
+### Get Amount of Stake from Delegator in a Topic for a Reputer
+- **RPC Method:** `GetStakeFromDelegatorInTopicInReputer`
+- **Command:** `stake-delegator-in-topic-reputer [delegator_address] [reputer_address] [topic_id]`
+- **Description:** Get amount of stake from delegator in a topic for a reputer.
+- **Positional Arguments:**
+  - `delegator_address` Address of the delegator
+  - `reputer_address` Address of the reputer
+  - `topic_id` Identifier of the topic whose information will be returned
+
+### Get Reputer Stake in a Topic
+- **RPC Method:** `GetReputerStakeInTopic`
+- **Command:** `stake-in-topic-reputer [address] [topic_id]`
+- **Description:** Get reputer stake in a topic, including stake delegated to them in that topic.
+- **Positional Arguments:**
+  - `address` Address of the reputer
+  - `topic_id` Identifier of the topic whose information will be returned
+
+### Get Total Delegate Stake in a Topic and Reputer
+- **RPC Method:** `GetDelegateStakeInTopicInReputer`
+- **Command:** `stake-total-delegated-in-topic-reputer [reputer_address] [topic_id]`
+- **Description:** Get total delegate stake in a topic and reputer.
+- **Positional Arguments:**
+  - `reputer_address` Address of the reputer
+  - `topic_id` Identifier of the topic whose information will be returned
+
+### Get the Total Amount of Staked Tokens by All Participants in the Network
+- **RPC Method:** `GetTotalStake`
+- **Command:** `total-stake`
+- **Description:** Get the total amount of staked tokens by all participants in the network.
+
+### Get the Latest Inference for a Given Worker and Topic
+- **RPC Method:** `GetWorkerLatestInputInferenceByTopicId`
+- **Command:** `latest-input-inference [topic_id] [worker_address]`
+- **Description:** Get the latest inference submitted by a given worker for a topic. Returns an `InputInference` (the worker's submitted payload, including its labeled `values`).
+- **Positional Arguments:**
+  - `topic_id` Identifier of the topic whose information will be returned
+  - `worker_address` Given worker to query on
+
+In v0.17.0 this query was renamed from `GetWorkerLatestInferenceByTopicId` (`worker-latest-inference`) to `GetWorkerLatestInputInferenceByTopicId` (`latest-input-inference`), and now returns an `InputInference` instead of a dense `Inference`. The REST path is `/emissions/v10/topics/{topic_id}/workers/{worker_address}/latest_input_inference`.
+
+## Tx Functions
+
+These functions write to the appchain. Add the **Command** value into your query to retrieve the expected data.
+
+```bash
+allorad tx emissions [Command]
+```
+
+### Create New Topic
+- **RPC Method:** `CreateNewTopic`
+- **Command:** `create-topic [creator] [metadata] [loss_method] [epoch_length] [ground_truth_lag] [worker_submission_window] [p_norm] [alpha_regret] [allow_negative] [epsilon] [merit_sortition_alpha] [active_inferer_quantile] [active_forecaster_quantile] [active_reputer_quantile] [enable_worker_whitelist] [enable_reputer_whitelist] [c_norm] [topic_type] [output_arity] [require_unity] [unity_tolerance] [max_labels_per_submission] [label_whitelist] [label_default_value] [label_case_sensitive]`
+- **Description:** Add a new topic to the network.
+- **Positional Arguments:**
+  - `creator` The creator is the owner of the topic that is able to update the topic in the future
+  - `metadata`
+  - `loss_method`
+  - `epoch_length`
+  - `ground_truth_lag`
+  - `worker_submission_window`
+  - `p_norm`
+  - `alpha_regret`
+  - `allow_negative`
+  - `epsilon`
+  - `merit_sortition_alpha`
+  - `active_inferer_quantile`
+  - `active_forecaster_quantile`
+  - `active_reputer_quantile`
+  - `enable_worker_whitelist`
+  - `enable_reputer_whitelist`
+  - `c_norm`
+  - `topic_type` — `1` = regression, `2` = classification
+  - `output_arity` — `1` = single output, `2` = multiple labeled outputs
+  - `require_unity` — classification only: require per-label outputs to sum to one
+  - `unity_tolerance`
+  - `max_labels_per_submission`
+  - `label_whitelist` — JSON array of permitted labels; `'[]'` means unrestricted
+  - `label_default_value`
+  - `label_case_sensitive` — immutable after creation
+
+Detailed instructions on [how to create a topic](https://docs.allora.network/operate/topics/create) are linked.
+
+### Update Topic
+- **RPC Method:** `UpdateTopic`
+- **Command:** `update-topic [sender] [topic_id] [metadata] [loss_method] [alpha_regret] [merit_sortition_alpha] [p_norm] [c_norm] [max_labels_per_submission] [label_whitelist] [label_default_value]`
+- **Description:** Update an existing topic's modifiable configuration. Only the topic creator may do so. `topic_type`, `output_arity`, `require_unity` and `label_case_sensitive` are fixed at creation.
+- **Positional Arguments:**
+  - `sender` Must be the topic creator
+  - `topic_id`
+  - `metadata`
+  - `loss_method`
+  - `alpha_regret`
+  - `merit_sortition_alpha`
+  - `p_norm`
+  - `c_norm`
+  - `max_labels_per_submission`
+  - `label_whitelist` — full replacement; an empty list sets the topic to unrestricted
+  - `label_default_value`
+
+`update-topic` performs a **full replacement** of the fields it accepts. In particular, sending an empty `label_whitelist` sets the topic to *unrestricted* rather than preserving the current list. Label changes are rejected while a worker submission window is open for the topic.
+
+### Add an Admin Address to the Whitelist
+- **RPC Method:** `AddToWhitelistAdmin`
+- **Command:** `add-to-whitelist-admin [sender] [address]`
+- **Description:** Add an admin address to the whitelist used for admin functions on-chain.
+- **Positional Arguments:**
+  - `sender` Address of the sender
+  - `address` Address that will be added to the whitelist
+
+### Remove an Admin Address from the Whitelist
+- **RPC Method:** `RemoveFromWhitelistAdmin`
+- **Command:** `remove-from-whitelist-admin [sender] [address]`
+- **Description:** Remove an admin address from the whitelist used for admin functions on-chain.
+- **Positional Arguments:**
+  - `sender` Address of the sender
+  - `address` Address that will be removed to the whitelist
+
+### Register Network Actor
+- **RPC Method:** `Register`
+- **Command:** `register [sender] [topic_id] [owner] [is_reputer]`
+- **Description:** Register a new reputer or worker for a topic.
+- **Positional Arguments:**
+  - `sender` This is the address of the transaction sender
+  - `topic_id` Identifier of the topic to register in
+  - `owner` Address that will receive the actor's payouts
+  - `is_reputer` Set to `true` to register as a reputer, `false` for a worker
+
+### Remove a Reputer or Worker from a Topic
+- **RPC Method:** `RemoveRegistration`
+- **Command:** `remove-registration [sender] [topic_id] [is_reputer]`
+- **Description:** Remove a reputer or worker from a topic.
+- **Positional Arguments:**
+  - `sender` This is the address of the transaction sender
+  - `topic_id` Identifier of the topic to deregister from
+  - `is_reputer` Set to `true` if the network participant to remove is a reputer
+
+### Insert Reputer Payload
+- **RPC Method:** `InsertReputerPayload`
+- **Command:** `insert-reputer-payload [sender] [reputer_data]`
+- **Description:** Insert reputer payload.
+- **Positional Arguments:**
+  - `sender` This is the address of the transaction sender
+  - `reputer_data` Reputer payload to insert
+
+### Insert Worker Payload
+- **RPC Method:** `InsertWorkerPayload`
+- **Command:** `insert-worker-payload [sender] [worker_data]`
+- **Description:** Insert worker payload.
+- **Positional Arguments:**
+  - `sender` This is the address of the transaction sender
+  - `worker_data` Worker payload to insert
+
+### Add Stake
+- **RPC Method:** `AddStake`
+- **Command:** `add-stake [sender] [topic_id] [amount]`
+- **Description:** Add stake [amount] to one's self sender [reputer or worker] for a topic.
+- **Positional Arguments:**
+  - `sender` The staker. This is the address of the transaction sender.
+  - `topic_id` Identifier of the topic to add stake to
+  - `amount` The stake
+
+### Remove Stake from a Topic
+- **RPC Method:** `RemoveStake`
+- **Command:** `remove-stake [sender] [topic_id] [amount]`
+- **Description:** Modify sender's [reputer] stake position by removing [amount] stake from a topic [topic_id].
+- **Positional Arguments:**
+  - `sender` The staker. This is the address of the transaction sender.
+  - `topic_id` Identifier of the topic to remove stake from
+  - `amount` The amount staked
+
+### Delegate Stake to a Reputer for a Topic
+- **RPC Method:** `DelegateStake`
+- **Command:** `delegate-stake [sender] [topic_id] [reputer] [amount]`
+- **Description:** Delegate stake [amount] to a reputer for a topic.
+- **Positional Arguments:**
+  - `sender` This is the address of the transaction sender
+  - `topic_id` Identifier of the topic to add stake to
+  - `reputer` Address of the reputer
+  - `amount` The amount to add to stake
+
+### Remove Delegate Stake from a Topic
+- **RPC Method:** `RemoveDelegateStake`
+- **Command:** `remove-delegate-stake [sender] [topic_id] [reputer] [amount]`
+- **Description:** Modify sender's [reputer] delegate stake position by removing [amount] stake from a topic [topic_id] from a reputer [reputer].
+- **Positional Arguments:**
+  - `sender` This is the address of the transaction sender
+  - `topic_id` Identifier of the topic to remove stake from
+  - `reputer` Address of the reputer
+  - `amount` The amount to remove from stake
+
+### Cancel Removing Delegate Stake
+- **RPC Method:** `CancelRemoveDelegateStake`
+- **Command:** `cancel-remove-delegate-stake [sender] [topic_id] [delegator] [reputer]`
+- **Description:** Cancel the removal of delegated stake for a delegator staking on a reputer in a topic
+- **Positional Arguments:**
+  - `sender` This is the address of the transaction sender
+  - `topic_id` Identifier of the topic
+  - `delegator` Address of the delegator
+  - `reputer` Address of the reputer
+
+### Cancel Removing Stake
+- **RPC Method:** `CancelRemoveStake`
+- **Command:** `cancel-remove-stake [sender] [topic_id]`
+- **Description:** Cancel the removal of stake for a reputer in a topic
+- **Positional Arguments:**
+  - `sender` This is the address of the transaction sender
+  - `topic_id` Identifier of the topic
+
+### Send Funds to a Topic to Pay for Inferences
+- **RPC Method:** `FundTopic`
+- **Command:** `fund-topic [sender] [topic_id] [amount]`
+- **Description:** Send funds to a topic to pay for inferences.
+- **Positional Arguments:**
+  - `sender` This is the address of the transaction sender
+  - `topic_id` Identifier of the topic
+  - `amount` The amount to send
+
+### Get Reward for Delegator for a Topic
+- **RPC Method:** `RewardDelegateStake`
+- **Command:** `reward-delegate-stake [sender] [topic_id] [reputer]`
+- **Description:** Get Reward for Delegator [sender] for a topic.
+- **Positional Arguments:**
+  - `sender` This is the address of the transaction sender
+  - `topic_id` Identifier of the topic
+  - `reputer` Address of the reputer
+
+### Update Network Parameters
+- **RPC Method:** `UpdateParams`
+- **Command:** `update-params [sender] [params]`
+- **Description:** Update parameters of the network.
+- **Positional Arguments:**
+  - `sender` This is the address of the transaction sender
+  - `params` Params to be updated

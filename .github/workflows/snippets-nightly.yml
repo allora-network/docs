@@ -1,0 +1,293 @@
+name: Run Snippets Nightly
+
+# The docs embed snippets/ verbatim (scripts/remarkIncludeCode.js), so a snippet
+# that stops working against testnet is a page that has silently gone stale.
+# This job executes every runnable snippet each night and opens an issue when one
+# fails.
+#
+# Required repository secrets:
+#   ALLORA_API_KEY          free API key from developer.allora.network; the
+#                           consume snippets authenticate with it and the worker
+#                           snippets use it to faucet testnet gas.
+#   ALLORA_WALLET_MNEMONIC  BIP-39 mnemonic of a funded allora-testnet-1 wallet.
+#                           The runner writes it to .allora_key in each run
+#                           directory so the worker never prompts for a mnemonic
+#                           on a runner that has no stdin.
+#
+# The whole job runs on the default branch only — see the `guard` job. This job
+# executes the repository's own runner and every file in snippets/ with a funded
+# wallet's mnemonic and an issue-write token in scope, so whichever ref it runs
+# from decides what that code is. Try snippet changes by running
+# `yarn runsnippets` locally on the branch, not by dispatching this workflow
+# from it.
+
+on:
+  schedule:
+    # 04:00 UTC, an hour before the external-link check.
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+# Every worker snippet signs with the same wallet, and two processes signing for
+# one account race on the sequence number. Never run two of these at once.
+concurrency:
+  group: snippets-nightly
+  cancel-in-progress: false
+
+jobs:
+  # Everything past this gate checks the repository out and executes it -- the
+  # runner, every snippet, and the packages they install -- with a funded
+  # wallet's mnemonic and an issue-write token in scope. Only the default
+  # branch's tree is trusted with that combination, because it is the one that
+  # cannot change without review, so the decision is made here, in a job with no
+  # credentials, no checkout and nothing to exfiltrate. GitHub only schedules
+  # workflows from the default branch, so this never blocks a nightly run; a
+  # dispatch from any other ref logs one line and stops.
+  guard:
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      trusted: ${{ steps.check.outputs.trusted }}
+    steps:
+      - name: Decide whether this ref may run the job
+        id: check
+        env:
+          # Hardcoded, so the gate never depends on a webhook payload field
+          # being present -- but cross-checked against the payload when it
+          # carries one, so renaming the default branch fails loudly here
+          # instead of silently disabling the automation.
+          TRUSTED_BRANCH: main
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          if [ -n "$DEFAULT_BRANCH" ] && [ "$DEFAULT_BRANCH" != "$TRUSTED_BRANCH" ]; then
+            echo "::error::This workflow trusts '$TRUSTED_BRANCH', but the repository's default branch is '$DEFAULT_BRANCH'. Update TRUSTED_BRANCH in the automation workflows."
+            exit 1
+          fi
+          # The FULL ref, never github.ref_name. ref_name strips the refs/heads/
+          # or refs/tags/ prefix, so a TAG named "main" presents the same string
+          # as the branch and would walk straight through a ref_name comparison.
+          # A tag is not the reviewed branch: it can be created by anyone who can
+          # push one, and it can be moved. Only refs/heads/<trusted> is trusted.
+          if [ "$GITHUB_REF" != "refs/heads/$TRUSTED_BRANCH" ]; then
+            echo "trusted=false" >> "$GITHUB_OUTPUT"
+            echo "Dispatched from '$GITHUB_REF', not the trusted branch ('refs/heads/$TRUSTED_BRANCH'): doing nothing. This workflow runs this repository's snippet runner and every file in snippets/ with a funded wallet's mnemonic in scope, which is only safe from a ref that cannot change without review. Run 'yarn runsnippets' locally to try a branch."
+            exit 0
+          fi
+          echo "trusted=true" >> "$GITHUB_OUTPUT"
+
+  run-snippets:
+    needs: guard
+    if: needs.guard.outputs.trusted == 'true'
+    runs-on: ubuntu-latest
+    # A cancelled job writes no report and opens no issue, so this cap has to
+    # sit above the worst case the runner can legitimately spend -- not above
+    # the happy path, which is minutes (every window ends the moment its
+    # snippet prints what it is expected to print). Worst case, computed from
+    # scripts/snippets.config.json and the runner's own budgets:
+    #
+    #   Python setup     3 steps x 600s (venv, pip upgrade, install)  =  30 min
+    #   Node setup       1 step  x 600s (npm install)                 =  10 min
+    #   Go warm-up       2 Go snippets x 4 steps x 900s
+    #                    (mod init, get, tidy, build)                 = 120 min
+    #   snippet windows  sum of timeoutSeconds over the 13
+    #                    runnable snippets (3600s)                    =  60 min
+    #                                                         total   = 220 min
+    #
+    # Nobody has to keep that arithmetic right by hand: the first step of the
+    # job recomputes it from the config and fails the run if this number is no
+    # longer big enough. `node scripts/runSnippets.js --budget` prints it.
+    timeout-minutes: 240
+
+    steps:
+      # Every third-party action is pinned to a full commit SHA: a tag is a
+      # mutable pointer, and this job holds a funded wallet's mnemonic.
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          # This job pushes nothing, and it runs third-party snippet code and
+          # third-party package installs. Leaving a repository credential in
+          # .git/config for all of that to find would be a gift.
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.11'
+
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version: '1.24'
+
+      # The cap above is a number somebody typed; the time the run is allowed to
+      # take is computed from scripts/snippets.config.json. They drift apart the
+      # moment a snippet is added, and the drift is invisible until the night the
+      # job is cancelled halfway -- no report, no issue, and nothing to say it
+      # happened. Checking it here, before any credential is in scope, turns that
+      # into a red run with the arithmetic printed.
+      - name: Check the run budget against this job's timeout
+        env:
+          # Keep in step with timeout-minutes above.
+          TIMEOUT_MINUTES: '240'
+        run: node ./scripts/runSnippets.js --budget-cap-minutes="$TIMEOUT_MINUTES"
+
+      # The runner is plain Node with no dependencies, so the site's own
+      # node_modules are not needed here.
+      - name: Run snippets against testnet
+        id: snippets
+        continue-on-error: true
+        shell: bash
+        env:
+          ALLORA_API_KEY: ${{ secrets.ALLORA_API_KEY }}
+          ALLORA_WALLET_MNEMONIC: ${{ secrets.ALLORA_WALLET_MNEMONIC }}
+          PYTHON: python
+        run: |
+          set -o pipefail
+          node scripts/runSnippets.js --report=snippet-failures.md 2>&1 | tee snippet-run.log
+
+      # GitHub masks secrets in the workflow log, but NOT in uploaded artifacts
+      # and NOT in issue bodies -- both of which come out of this job. The runner
+      # already redacts at the source; this is the belt-and-braces pass over
+      # anything on its way out, and it runs before the upload and the issue.
+      #
+      # Both of those steps are gated on this one having SUCCEEDED. If redaction
+      # fails, nothing leaves the job and the run is red on this step alone --
+      # publishing a possibly-unredacted log to work around a broken redactor
+      # would defeat the point of having one.
+      - name: Redact credentials from anything leaving the job
+        id: redact
+        if: always()
+        shell: bash
+        env:
+          ALLORA_API_KEY: ${{ secrets.ALLORA_API_KEY }}
+          ALLORA_WALLET_MNEMONIC: ${{ secrets.ALLORA_WALLET_MNEMONIC }}
+        run: node scripts/redactSecrets.js snippet-run.log snippet-failures.md
+
+      - name: Upload run log
+        if: ${{ !cancelled() && steps.redact.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: snippet-run-log
+          path: |
+            snippet-run.log
+            snippet-failures.md
+          if-no-files-found: warn
+
+      # `!cancelled()` rather than the default implicit `success()`: with the
+      # implicit guard, a transient failure of the upload step above would
+      # silently suppress the failure report, and a broken snippet would go
+      # unnoticed until someone read the run log. Redaction is still required
+      # (see above) -- an issue body is public.
+      - name: Report the failure as an issue
+        if: ${{ !cancelled() && steps.snippets.outcome == 'failure' && steps.redact.outcome == 'success' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: 'Nightly snippet run failed'
+          LABEL: 'snippets-nightly'
+        run: |
+          set -euo pipefail
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          {
+            echo "The nightly snippet run failed on \`${{ github.sha }}\`."
+            echo
+            echo "Run log: $RUN_URL"
+            echo
+            if [ -s snippet-failures.md ]; then
+              cat snippet-failures.md
+            else
+              # The runner exits 2 before writing a report when the environment
+              # itself is wrong (a missing secret, a toolchain that will not
+              # install). The tail of the log is the whole story in that case.
+              echo '## The runner did not get as far as executing snippets'
+              echo
+              echo '```'
+              tail -n 40 snippet-run.log
+              echo '```'
+            fi
+          } > issue-body.md
+
+          # One issue per outage, not one per night. Every issue this job opens
+          # carries a marker label, so the lookup is over a handful of issues and
+          # is fully paginated -- scanning the N newest open issues would silently
+          # start opening a new issue every night once the repo has more than N.
+          #
+          # That makes the label load-bearing: an issue opened without it is
+          # invisible to the lookup below, so the next night finds nothing and
+          # opens another one, and so on for the length of the outage. Create it
+          # up front (--force is a no-op update when it already exists) and let a
+          # failure here fail the step. A red run is a fixable signal; a drift of
+          # untracked duplicate issues is not.
+          gh label create "$LABEL" --force \
+            --color 'BFD4F2' \
+            --description 'Opened by the nightly snippet run' >/dev/null
+
+          # Buffer the full paginated result before taking the first match --
+          # piping gh straight into `head` would SIGPIPE it, and `pipefail`
+          # would turn that into a step failure.
+          MATCHES=$(gh api --paginate -X GET "repos/${{ github.repository }}/issues" \
+            -f state=open -f labels="$LABEL" -f per_page=100 \
+            --jq ".[] | select(.pull_request == null) | select(.title == \"$TITLE\") | .number")
+          EXISTING=$(printf '%s\n' "$MATCHES" | head -n 1)
+
+          if [ -n "$EXISTING" ]; then
+            echo "Commenting on existing issue #$EXISTING"
+            gh issue comment "$EXISTING" --body-file issue-body.md
+          else
+            echo 'Opening a new issue'
+            # No unlabeled fallback: an issue this job cannot label is an issue
+            # it cannot find again, which is exactly the duplicate-per-night
+            # failure the label exists to prevent.
+            gh issue create --title "$TITLE" --body-file issue-body.md --label "$LABEL"
+          fi
+
+      # The mirror image of the step above, and what makes "one issue per
+      # outage" true rather than aspirational. Without it the first outage's
+      # issue stays open forever, so every later and entirely unrelated outage
+      # is appended to it as a comment: one issue for all time, with a title
+      # describing a failure that was fixed months ago.
+      #
+      # Needs no redaction gate: the comment is a fixed sentence plus a commit
+      # SHA and a run URL, with no snippet output in it.
+      - name: Close the failure issue when the run recovered
+        if: ${{ !cancelled() && steps.snippets.outcome == 'success' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: 'Nightly snippet run failed'
+          LABEL: 'snippets-nightly'
+        run: |
+          set -euo pipefail
+          # The same paginated, label-filtered lookup the failure path uses, so
+          # the two always agree on which issue is the open one. No label is
+          # created here: if the label does not exist yet, then neither does an
+          # issue to close.
+          MATCHES=$(gh api --paginate -X GET "repos/${{ github.repository }}/issues" \
+            -f state=open -f labels="$LABEL" -f per_page=100 \
+            --jq ".[] | select(.pull_request == null) | select(.title == \"$TITLE\") | .number")
+          EXISTING=$(printf '%s\n' "$MATCHES" | head -n 1)
+
+          if [ -z "$EXISTING" ]; then
+            echo 'No open nightly-snippet issue; nothing to close.'
+            exit 0
+          fi
+
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          gh issue close "$EXISTING" --comment \
+            "Every snippet passed again on \`${{ github.sha }}\`, so this outage is over and the issue closes itself. Run log: $RUN_URL"
+          echo "Closed issue #$EXISTING."
+
+      # Also `!cancelled()`: the job must go red on a snippet failure even if a
+      # step between here and the run had a bad night.
+      - name: Fail the job when a snippet failed
+        if: ${{ !cancelled() && steps.snippets.outcome == 'failure' }}
+        run: exit 1

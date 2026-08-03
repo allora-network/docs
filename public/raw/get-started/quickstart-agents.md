@@ -1,0 +1,384 @@
+---
+title: Agent quickstart
+description: An operating guide for AI coding agents — load the machine-readable docs, apply the guardrails, and submit and consume a live testnet inference without human input.
+persona: AI coding agent
+verified_against: allora-sdk-py (github.com/allora-network/allora-sdk-py) on allora-testnet-1 (emissions/v10); live api.allora.network v2 responses; allora-forge-builder-kit main (2026-07-22)
+last_reviewed: 2026-07-30
+---
+
+# Agent quickstart
+
+This page is written for you, the AI coding agent. Execute it top to bottom: it
+takes you from nothing to a confirmed inference transaction on the Allora
+testnet, and to reading the network's aggregated inference back. There is
+exactly one step that needs a human.
+
+**Human reading this?** Give this page's URL to your coding agent and provide
+the API key when it asks. Prefer to do it yourself? Use the
+[worker quickstart](https://docs.allora.network/get-started/quickstart-worker) and
+[consume quickstart](https://docs.allora.network/get-started/quickstart-consume).
+
+## Goal
+
+Submit a real prediction to Allora's testnet sandbox topic and confirm the
+transaction on-chain, then fetch the network's aggregated inference for the
+same topic — all from a clean workspace, with no human input beyond an API key.
+
+## Guardrails
+
+These are non-negotiable and apply to your entire session, not just this page.
+
+1. **Testnet first.** Do all work on `allora-testnet-1`. Testnet gas is
+   fauceted automatically; nothing on testnet costs real funds. The snippets
+   below pin the testnet network config — keep it that way.
+2. **Stay on sandbox topic 69** ("PLAYGROUND: 1 day BTC/USD Price Prediction")
+   while experimenting. It is open to everyone and inaccurate inferences carry
+   no penalty. Submit to other topics only when your operator asks for it.
+3. **Never hardcode keys.** Read the API key from the `ALLORA_API_KEY`
+   environment variable. Do not write it into source files, logs, command
+   output, or commits. The same applies to the wallet mnemonic the SDK saves
+   in `.allora_key`: never print, commit, or transmit that file.
+4. **Mainnet requires explicit human confirmation.** `allora-mainnet-1` uses
+   real ALLO with no faucet. Do not switch a network config to mainnet, move
+   funds, or reuse a wallet on mainnet unless your operator explicitly
+   instructs you to in the current session. If a task seems to need mainnet,
+   stop and ask.
+
+## Machine-readable docs
+
+- **Live now:** [`https://docs.allora.network/llms.txt`](https://docs.allora.network/llms.txt)
+  — an index of every docs page with one-line descriptions. Fetch it first and
+  use it to route any Allora question to the right page:
+
+  ```bash
+  curl -s https://docs.allora.network/llms.txt
+  ```
+
+- **Live now:** [`https://docs.allora.network/llms-full.txt`](https://docs.allora.network/llms-full.txt)
+  — the full text of every docs page in a single file, in the same order as the
+  index. Fetch it when you need the details rather than the routing:
+
+  ```bash
+  curl -s https://docs.allora.network/llms-full.txt
+  ```
+- **Live now:** the raw markdown of any single page, at the page's path under
+  `/raw/` with `.md` appended. Fetch this when you already know which page you
+  need and want it without the site chrome:
+
+  ```bash
+  curl -s https://docs.allora.network/raw/get-started/quickstart-agents.md
+  ```
+- **Live now:** JSON manifests for the facts that change without an edit —
+  `https://docs.allora.network/api/topics.json` (active topics per network),
+  `/api/networks.json` (endpoints and chain IDs), and `/api/versions.json`
+  (current component versions).
+
+The full convention — URL rules, what the raw markdown contains, and what is in
+each manifest — is on
+[llms.txt and agent endpoints](https://docs.allora.network/reference/llms-and-agents).
+
+## Prerequisites
+
+- **`ALLORA_API_KEY` — the one human step.** Keys are self-serve for humans:
+  your operator signs up at the
+  [Allora Developer Portal](https://developer.allora.network) and creates a
+  key from the dashboard (keys are prefixed `UP-`). Have them export it in
+  your environment:
+
+  ```bash
+  export ALLORA_API_KEY=<YOUR_API_KEY>
+  ```
+
+  If the variable is not set and you cannot find a key the operator already
+  provided, **stop and ask** — do not scrape, guess, or fabricate one.
+- **Python 3.10+** for the submit path. If `python3` is older than 3.10, use
+  a `python3.11`/`python3.12` binary explicitly, or provision one with
+  `uv venv --python 3.12 --seed .venv` (the `--seed` flag installs `pip` into
+  the venv, which `uv venv` otherwise omits).
+- **`curl`** for the read path and on-chain verification.
+
+## Steps
+
+### 1. Create an isolated workspace
+
+Check `python3 --version` first: if it is older than 3.10, substitute the
+interpreter fallback from Prerequisites for the `venv` line below.
+
+```bash
+mkdir allora-agent-quickstart && cd allora-agent-quickstart
+python3 -m venv .venv && source .venv/bin/activate
+pip install allora_sdk
+```
+
+### 2. Save the worker
+
+Save this file exactly as `quickstart_worker.py`. The SDK generates a wallet,
+requests testnet ALLO from the faucet, registers you as an inferer on topic
+69, and submits whatever float `run_model` returns once per epoch. The
+placeholder `123.45` stands in for a real model's prediction.
+
+```python
+import asyncio
+import os
+
+from allora_sdk import AlloraNetworkConfig, AlloraWorker
+
+
+async def run_model(nonce: int) -> float:
+    # Replace this with your model's prediction logic.
+    return 123.45
+
+
+async def main():
+    worker = AlloraWorker.inferer(
+        topic_id=69,  # sandbox topic: no penalty for inaccurate inferences
+        network=AlloraNetworkConfig.testnet(),
+        api_key=os.environ["ALLORA_API_KEY"],  # used to faucet testnet gas
+        run=run_model,
+    )
+    async for result in worker.run():
+        if isinstance(result, Exception):
+            print(f"Inference worker error: {result}")
+        else:
+            print(f"Prediction submitted to Allora: {result.submission}")
+
+
+asyncio.run(main())
+```
+
+### 3. Run it without a prompt
+
+On first run the SDK asks for a wallet mnemonic on stdin; piping a single
+newline accepts the default, which generates a fresh mnemonic and saves it to
+`.allora_key` (permissions `0600`) for reuse on later runs. Run the worker in
+the background and capture its log:
+
+```bash
+printf '\n' | python quickstart_worker.py > worker.log 2>&1 &
+echo $! > worker.pid
+```
+
+### 4. Wait for the submission, then stop the worker
+
+Topic 69 opens a new submission window every few minutes. Poll the log until
+the submission lands (bounded at 15 minutes), extract the transaction hash,
+and stop the worker:
+
+```bash
+for i in $(seq 1 90); do
+  grep -q "Successfully submitted" worker.log && break
+  sleep 10
+done
+grep -E "Successfully submitted|Transaction hash" worker.log
+TX_HASH=$(grep -o 'Transaction hash: [0-9A-F]*' worker.log | head -1 | awk '{print $3}')
+kill "$(cat worker.pid)"
+echo "TX_HASH=$TX_HASH"
+```
+
+A `SANITY CHECK WARNING` may appear in the log — the placeholder `123.45` is
+far from the topic's consensus BTC/USD price. It is informational only and
+does not block submission on the sandbox topic.
+
+### 5. Read the network inference back
+
+Fetch the network's aggregated inference for the same topic from the Allora
+API. This is the value consumers integrate — your submission from step 4 is
+one of the inputs the network synthesizes it from.
+
+```bash
+curl -s "https://api.allora.network/v2/allora/consumer/ethereum-11155111?allora_topic_id=69" \
+  -H "accept: application/json" \
+  -H "x-api-key: $ALLORA_API_KEY"
+```
+
+The one field to extract is `data.inference_data.network_inference_normalized`
+— the aggregated inference in human-readable units. `timestamp` (Unix
+seconds) should be recent; active topics settle every few minutes.
+
+If you are integrating this into an application, use the SDK for the runtime
+you are already in instead of raw HTTP:
+
+**TypeScript** (Node.js 18+):
+
+```bash
+npm init -y && npm install @alloralabs/allora-sdk tsx
+```
+
+```typescript
+import { AlloraAPIClient, ChainSlug } from "@alloralabs/allora-sdk";
+
+async function main() {
+  const client = new AlloraAPIClient({
+    chainSlug: ChainSlug.TESTNET,
+    apiKey: process.env.ALLORA_API_KEY,
+    baseAPIUrl: "https://api.allora.network/v2",
+  });
+
+  const inference = await client.getInferenceByTopicID(69);
+  const data = inference.inference_data;
+  console.log(`Topic ${data.topic_id} network inference: ${data.network_inference_normalized}`);
+  console.log(`Timestamp: ${data.timestamp}`);
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
+```
+
+Run with `npx tsx quickstart-consume.ts`. Import from the package root
+(`@alloralabs/allora-sdk`, not `/v2`) and keep `baseAPIUrl` pinned as in the
+snippet.
+
+**Python** (3.10+, same venv as above):
+
+```python
+import asyncio
+import os
+
+from allora_sdk.api_client import AlloraAPIClient, ChainID
+
+
+async def main():
+    client = AlloraAPIClient(
+        chain_id=ChainID.TESTNET,
+        api_key=os.environ["ALLORA_API_KEY"],
+    )
+    inference = await client.get_inference_by_topic_id(69)
+    data = inference.inference_data
+    print(f"Topic {data.topic_id} network inference: {data.network_inference_normalized}")
+    print(f"Timestamp: {data.timestamp}")
+
+
+asyncio.run(main())
+```
+
+Run with `python quickstart_consume.py`.
+
+**Go** (1.24+):
+
+```bash
+go mod init allora-consume && go get github.com/allora-network/allora-sdk-go
+```
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+	"os"
+
+	allora "github.com/allora-network/allora-sdk-go"
+)
+
+func main() {
+	client := allora.NewAPIClient(os.Getenv("ALLORA_API_KEY"))
+
+	topic, err := client.GetTopic(69)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if topic.LatestNetworkInference == nil {
+		log.Fatal("topic has no network inference yet")
+	}
+
+	fmt.Printf("%s (topic %d)\n", topic.TopicName, topic.TopicID)
+	fmt.Printf("Network inference: %s\n", topic.LatestNetworkInference.CombinedValue)
+}
+```
+
+Run with `go run .`.
+
+## Verify
+
+Confirm the submission from step 4 on-chain via the testnet LCD:
+
+```bash
+curl -s "https://allora-api.testnet.allora.network/cosmos/tx/v1beta1/txs/$TX_HASH"
+```
+
+Success criteria — all three must hold:
+
+- `tx_response.code` is `0`
+- the transaction's message `@type` is `/emissions.v10.InsertWorkerPayloadRequest`
+- the message's worker data bundle carries `"topic_id": "69"`
+
+To see the submitted number itself, look in the bundle's inference `values`
+list — your prediction appears as `{"label": "y", "value": "123.45"}`. The
+legacy top-level `value` field reads `"0"` for topics that use labeled
+values; that is not a failed submission.
+
+For the read path, the curl in step 5 returns `"status": true` and a
+`network_inference_normalized` in the vicinity of the current BTC/USD price.
+
+Report the transaction hash and the fetched inference value back to your
+operator. Do not report `.allora_key` contents or the API key.
+
+## Troubleshoot
+
+- **Run hangs at `Mnemonic:`** — you are attached to an interactive TTY, so
+  the prompt reads from the terminal instead of stdin. Have the human press
+  Enter once, or rerun from a non-interactive shell.
+- **`unknown service emissions.v9.QueryService`** — the installed
+  `allora_sdk` release predates the testnet's `emissions/v10` upgrade.
+  Upgrade with `pip install --upgrade allora_sdk`; see
+  [Networks](https://docs.allora.network/reference/networks) for the currently deployed chain version.
+- **Faucet rate-limited** (`Too many faucet requests`) — the worker process
+  **exits** on this error, so the background job from step 3 is gone. Request
+  funds directly, authenticated with your API key, for the wallet address
+  printed in the worker's startup banner (one request per address — repeats
+  within a short window are themselves rate-limited):
+
+  ```bash
+  ADDR=$(grep -o 'allo1[0-9a-z]*' worker.log | head -1)
+  curl -s -X POST "https://faucet.testnet.allora.run/api/request" \
+    -H "x-api-key: $ALLORA_API_KEY" \
+    -d "chain=allora-testnet-1" -d "address=$ADDR"
+  ```
+
+  Then rerun the worker; it reuses the wallet saved in `.allora_key`.
+- **Worker sits idle** (`Our unfulfilled nonces: -`) — the current submission
+  window is already fulfilled or closed. Keep the worker running; the step 4
+  poll loop covers the wait for the next window.
+- **HTTP 401 from api.allora.network** — `ALLORA_API_KEY` is missing from the
+  environment or not sent in the `x-api-key` header. Go back to
+  Prerequisites; if there is no key, ask the human.
+- **`pip` cannot find a compatible `allora_sdk`** — the interpreter is older
+  than Python 3.10. Recreate the venv with a newer interpreter (see
+  Prerequisites).
+
+## Next
+
+- **Build a real model with the Forge Builder Kit.** The kit is built to be
+  driven by an agent — it ships its own agent operating guide and skills:
+
+  ```bash
+  git clone https://github.com/allora-network/allora-forge-builder-kit
+  ```
+
+  Read in this order:
+  - `AGENTS.md` — the kit's agent operating guide: first-run checklist,
+    canonical clone-to-live-worker flows, the base feature schema, and the
+    prediction-format correctness rule. It enforces the same key guardrail as
+    this page: treat the API key as human-confirmed input, and stop and ask
+    before using any discovered key.
+  - `SKILLS.md` — task router mapping your task to a skill.
+  - `skills/allora-data-exploration/SKILL.md` — fetch market data from the
+    Atlas data service and discover topics.
+  - `skills/allora-model-builder/SKILL.md` — build, evaluate, and deploy an
+    ML model as an Allora worker.
+  - `skills/allora-worker-manager/SKILL.md` — manage multiple workers with
+    `WorkerManager`, plus monitoring dashboards.
+  - `allora_research_model_skills/` — three methodology skills
+    (`hypothesis-driven`, `robustness-first`, `signal-discovery`) with shared
+    references, for building models that survive out-of-sample validation.
+
+- **Compete.** Point your operator at
+  [Allora Forge competitions](https://docs.allora.network/build/forge/competitions) to put the model on
+  a live scored topic.
+- **Monitor.** Track submissions and scores with
+  [worker data queries](https://docs.allora.network/build/worker/query-worker-data) and the
+  [monitoring guide](https://docs.allora.network/build/worker/monitoring).
+- **Mainnet** — only with explicit human confirmation (guardrail 4). Chain
+  IDs and endpoints are in [Networks](https://docs.allora.network/reference/networks).

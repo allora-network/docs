@@ -8,6 +8,14 @@ const readFile = util.promisify(fs.readFile);
 const relativeDirectoryPath = process.argv[2] || './pages';
 const directoryPath = path.resolve(relativeDirectoryPath);
 
+// Machine-readable manifests under public/api are scanned alongside pages/.
+// They hold endpoint URLs that used to be written into page prose, and without
+// this every URL moved into a manifest would silently drop out of link
+// checking. Skipped when an explicit directory is passed on the command line.
+const extraDirectoryPaths = process.argv[2]
+  ? []
+  : [path.resolve('./public/api')].filter(dir => fs.existsSync(dir));
+
 // Any github.com/allora-network/* link (including raw.githubusercontent.com)
 // that does not resolve with a 200 for an anonymous request is a hard failure:
 // a private or deleted org repo must count as a dead link. All other domains
@@ -47,6 +55,9 @@ const retryBackoffMs = 1000;     // backoff base: 1s, 2s, ...
 const requestTimeoutMs = 15000;
 const userAgent = 'allora-docs-link-checker/1.0 (+https://docs.allora.network)';
 
+// .mdx for prose, .json for Nextra's _meta.json and the public/api manifests.
+const isScannable = file => file.endsWith('.mdx') || file.endsWith('.json');
+
 async function getAllFiles(dirPath, arrayOfFiles) {
   const files = await readdir(dirPath);
 
@@ -55,7 +66,7 @@ async function getAllFiles(dirPath, arrayOfFiles) {
   await Promise.all(files.map(async file => {
     if (fs.statSync(path.join(dirPath, file)).isDirectory()) {
       arrayOfFiles = await getAllFiles(path.join(dirPath, file), arrayOfFiles);
-    } else if (file.endsWith('.mdx') || file === '_meta.json') {
+    } else if (isScannable(file)) {
       arrayOfFiles.push(path.join(dirPath, file));
     }
   }));
@@ -289,9 +300,14 @@ async function checkAllUrls(urlMap) {
 (async () => {
   try {
     const files = await getAllFiles(directoryPath);
+    const scanned = [directoryPath];
+    for (const extra of extraDirectoryPaths) {
+      files.push(...await getAllFiles(extra, []));
+      scanned.push(extra);
+    }
     const urlMap = await extractUrls(files);
     const totalUrls = Object.keys(urlMap).length;
-    console.log(`Scanned ${files.length} files under ${directoryPath}; found ${totalUrls} unique external URLs.`);
+    console.log(`Scanned ${files.length} files under ${scanned.join(', ')}; found ${totalUrls} unique external URLs.`);
 
     const { failures, warnings, skipped, passed } = await checkAllUrls(urlMap);
 

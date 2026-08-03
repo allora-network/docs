@@ -1,0 +1,43 @@
+{
+  "updated": "2026-07-31",
+  "docs": "https://docs.allora.network/reference/networks",
+  "field_notes": {
+    "chain_id": "Cosmos SDK chain ID to pass to allorad and wallet software.",
+    "deployed_version": "allora-chain release tag documented as deployed on this network.",
+    "emissions_namespace": "Versioned emissions module namespace used in LCD/REST and gRPC query paths, e.g. <lcd>/emissions/v10/params.",
+    "rpc": "CometBFT RPC JSON endpoint.",
+    "grpc": "Cosmos SDK gRPC endpoint.",
+    "lcd": "Cosmos SDK LCD (REST) endpoint.",
+    "explorer": "Block explorer for this network.",
+    "faucet": "Testnet-only faucet for ALLO gas. Omitted on networks that have none.",
+    "sandbox_topic_ids": "Topic IDs on this network that are no-penalty \"playground\" topics: no whitelist required, intended for a first worker submission. The chain exposes no sandbox flag, so this list is declared here and nowhere else — the topics job reads it to mark rows in /api/topics.json, and the docs render it from there.",
+    "abci_version": "Raw result.response.version returned by <rpc>abci_info when this file was last updated. allora-chain reports a build identifier here rather than a release tag; the scheduled drift check compares against this value."
+  },
+  "networks": {
+    "testnet": {
+      "name": "Testnet",
+      "chain_id": "allora-testnet-1",
+      "deployed_version": "v0.17.0",
+      "emissions_namespace": "emissions/v10",
+      "rpc": "https://allora-rpc.testnet.allora.network/",
+      "grpc": "https://allora-grpc.testnet.allora.network/",
+      "lcd": "https://allora-api.testnet.allora.network/",
+      "explorer": "https://explorer.testnet.allora.network/allora-testnet-1",
+      "faucet": "https://faucet.testnet.allora.network/",
+      "sandbox_topic_ids": [69, 77],
+      "abci_version": "HEAD-ac7ae1565bda7266fd741515e09faccf85bc8af1"
+    },
+    "mainnet": {
+      "name": "Mainnet",
+      "chain_id": "allora-mainnet-1",
+      "deployed_version": "v0.16.0",
+      "emissions_namespace": "emissions/v9",
+      "rpc": "https://allora-rpc.mainnet.allora.network/",
+      "grpc": "https://allora-grpc.mainnet.allora.network/",
+      "lcd": "https://allora-api.mainnet.allora.network/",
+      "explorer": "https://explorer.allora.network/",
+      "sandbox_topic_ids": [],
+      "abci_version": "HEAD-8cbbba6ebe15edad2bcf1adab72eb67cb4568a08"
+    }
+  }
+}

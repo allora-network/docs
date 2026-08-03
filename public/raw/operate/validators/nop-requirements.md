@@ -1,0 +1,42 @@
+---
+title: System Requirements
+description: You can use any modern Linux distribution (internally we use Debian 12 x86_64) to run an Allora validator.
+persona: Validator operator
+verified_against: docs content as of 2026-07-16
+last_reviewed: 2026-07-16
+---
+
+# System Requirements
+
+You can use any modern Linux distribution to run an Allora validator.
+Internally we use **Debian 12** x86_64.
+
+## MAINNET and TESTNET validators' requirements:
+
+- CPU: ≥6cores, ≥12 threads
+- Memory: ≥64GB
+- Disk: SSD or NVMe ≥1.92 TB total
+- Bandwidth: ≥1Gbit/s guaranteed
+
+## Note
+
+Participating as a validator is temporarily allowed only for whitelisted accounts. The Upshot Team currently has access to whitelisted addresses. We plan to make this action permissionless soon. In the meantime, those interested in becoming validators should reach out [here](https://docs.google.com/forms/d/e/1FAIpQLScj2rGAjFAAPZANrr2vZr_WAmLhniHn2x_l8K7EQcJ1i8XqHw/viewform).
+
+## Responsibilities
+
+Validators are responsible for operating most of the infrastructure associated with instantiating the Allora Network. They do this in three ways:
+
+1. Staking in worker nodes (data scientists) based on their confidence in said workers' abilities to produce accurate inferences.
+2. Operating the appchain as Cosmos validators.
+
+## Executing Loss-Calculation Logic Off-Chain
+
+The topic-specific logic ran by validators is compiled to WASM and stored on IPFS. Our appchain calls upon validators to execute this logic in every `topic.loss_cadence`-length epoch. Running this WASM involves querying for the following values:
+
+- Current set of losses between reputers and workers
+- Inferences from the past epoch
+- The revealed ground truth consisting of up to `topic.inference_cadence/topic.loss_cadence`-many values. In other words, it entails one ground truth value for each inference cadence within the preceding loss-calculation epoch.
+
+The new losses are then committed to the appchain in a transaction.
+
+Computing loss-calculation logic off-chain saves the network validators operating expenses (because less is run on-chain), allows topic creators to write loss-calculation logic in any language (that compiles to WASM), and lessens the need for frequent node software upgrades (because the module source code remains unchanged even as new topics are added, each with their specific loss-calculation schemes).

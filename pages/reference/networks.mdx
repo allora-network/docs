@@ -8,6 +8,7 @@ last_reviewed: 2026-07-30
 
 import { Callout } from 'nextra/components'
 import { CHAIN_VERSION_MAINNET, CHAIN_VERSION_TESTNET } from '../../components/versions'
+import NetworksTable, { NetworkDetails } from '../../components/NetworksTable'
 
 # Networks
 
@@ -18,15 +19,11 @@ the production **mainnet**. Each may run a different `allora-chain` version, whi
 `emissions` REST/gRPC API version (for example, mainnet's {CHAIN_VERSION_MAINNET} serves `emissions/v9`
 while testnet's {CHAIN_VERSION_TESTNET} serves `emissions/v10`).
 
-| | Testnet | Mainnet |
-|---|---|---|
-| **Chain ID** | `allora-testnet-1` | `allora-mainnet-1` |
-| **Deployed version** | {CHAIN_VERSION_TESTNET} | {CHAIN_VERSION_MAINNET} |
-| **Emissions API namespace** | `emissions/v10` | `emissions/v9` |
-| **RPC JSON** | `https://allora-rpc.testnet.allora.network/` | `https://allora-rpc.mainnet.allora.network/` |
-| **gRPC** | `https://allora-grpc.testnet.allora.network/` | `https://allora-grpc.mainnet.allora.network/` |
-| **API (Cosmos LCD - REST)** | `https://allora-api.testnet.allora.network/` | `https://allora-api.mainnet.allora.network/` |
-| **Explorer** | `https://explorer.testnet.allora.network/allora-testnet-1` | `https://explorer.allora.network/` |
+<NetworksTable />
+
+The tables on this page are rendered from a machine-readable manifest served at `/api/networks.json`.
+Agents and scripts can read the same chain IDs, endpoints, and versions from there instead of scraping
+this page.
 
 <Callout type="warning">
 Deployed versions change with each [software upgrade](/operate/validators/software-upgrades). Testnet is
@@ -38,25 +35,17 @@ and the [Release Notes](/reference/release-notes).
 
 ## Testnet
 
-- **Chain ID**: `allora-testnet-1`
-- **Deployed version**: {CHAIN_VERSION_TESTNET} (serves the `emissions/v10` API)
-- **RPC JSON**: `https://allora-rpc.testnet.allora.network/`
-- **gRPC**: `https://allora-grpc.testnet.allora.network/`
-- **API (Cosmos LCD - REST)**: `https://allora-api.testnet.allora.network/`
-- **Explorer**: `https://explorer.testnet.allora.network/allora-testnet-1`
-- **Faucet / wallet setup**: see [Setup Wallet](/get-started/setup-wallet)
+<NetworkDetails network="testnet" />
 
 Use the testnet for building and testing integrations, running workers/reputers, and trying features
-before they ship to mainnet.
+before they ship to mainnet. For wallet creation and faucet funding, see
+[Setup Wallet](/get-started/setup-wallet).
 
 ## Mainnet
 
-- **Chain ID**: `allora-mainnet-1`
-- **Deployed version**: {CHAIN_VERSION_MAINNET} (serves the `emissions/v9` API)
-- **RPC JSON**: `https://allora-rpc.mainnet.allora.network/`
-- **gRPC**: `https://allora-grpc.mainnet.allora.network/`
-- **API (Cosmos LCD - REST)**: `https://allora-api.mainnet.allora.network/`
-- **Explorer**: `https://explorer.allora.network/`
+<NetworkDetails network="mainnet" />
+
+Mainnet has no faucet — fund addresses with ALLO yourself.
 
 <Callout type="info">
 The `emissions` API version differs by network. On mainnet ({CHAIN_VERSION_MAINNET}) network-inference

@@ -21,5 +21,28 @@ jobs:
     - name: Install dependencies
       run: npm install
 
+    # Fails if public/llms.txt and public/llms-full.txt no longer match the page
+    # set under pages/ — i.e. a page was added, removed, renamed, retitled, or
+    # edited without regenerating the bundle. Runs before the link script, which
+    # rewrites .mdx files in place and would otherwise make the comparison
+    # reflect uncommitted edits. The checker is plain Node with no dependencies.
+    - name: Check generated llms.txt is up to date
+      run: node ./scripts/generateLlmsTxt.js --check
+
+    # Same contract for the per-page raw markdown under public/raw/: fails if a
+    # page was added, renamed, removed, or edited without regenerating it, and
+    # if public/raw/ still holds a file no page maps to.
+    - name: Check generated raw markdown is up to date
+      run: node ./scripts/generateRawMarkdown.js --check
+
     - name: Run MDX link check script
       run: node ./scripts/fixRelativeLinks.js
+
+    # The three layers that stop a manifest pushed to the machine-owned drift
+    # branch from choosing the URLs the nightly drift job fetches while it holds
+    # a write-capable token: the merge that keeps endpoints trusted, and the
+    # probe guard that refuses anything still pointing somewhere it should not.
+    # Both shipped once without tests and both had holes, so they run on every
+    # pull request. Plain Node, no dependencies, about two seconds.
+    - name: Run the drift-manifest and probe-guard tests
+      run: npm run testdrift

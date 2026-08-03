@@ -10,11 +10,20 @@
   },
   "scripts": {
     "dev": "next",
-    "build": "node scripts/checkFrontmatter.js && next build",
+    "build": "node scripts/checkFrontmatter.js && node scripts/checkVersionStrings.js && node scripts/generateLlmsTxt.js && node scripts/generateRawMarkdown.js && next build",
     "start": "next start",
     "fixlinks": "node scripts/fixRelativeLinks.js",
     "checklinks": "node scripts/checkExternalLinks.js",
     "checkfm": "node scripts/checkFrontmatter.js",
-    "frontmatter": "node scripts/addFrontmatter.js"
+    "frontmatter": "node scripts/addFrontmatter.js",
+    "runsnippets": "node scripts/runSnippets.js",
+    "topics": "node scripts/generateTopics.js",
+    "llms": "node scripts/generateLlmsTxt.js",
+    "checkllms": "node scripts/generateLlmsTxt.js --check",
+    "raw": "node scripts/generateRawMarkdown.js",
+    "checkraw": "node scripts/generateRawMarkdown.js --check",
+    "checkversions": "node scripts/checkVersionStrings.js",
+    "testdrift": "node scripts/testHardenDriftManifest.js && node scripts/testNetworkDriftGuard.js",
+    "bumpversions": "node scripts/bumpVersions.js"
   }
 }

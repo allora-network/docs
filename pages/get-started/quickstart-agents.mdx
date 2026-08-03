@@ -58,10 +58,28 @@ These are non-negotiable and apply to your entire session, not just this page.
   curl -s https://docs.allora.network/llms.txt
   ```
 
-- **Coming:** `https://docs.allora.network/llms-full.txt` — the full docs
-  corpus in a single file. Not yet live; do not assume it exists.
-- **Coming:** a raw-markdown version of each docs page. Until it lands, fetch
-  the rendered HTML pages.
+- **Live now:** [`https://docs.allora.network/llms-full.txt`](https://docs.allora.network/llms-full.txt)
+  — the full text of every docs page in a single file, in the same order as the
+  index. Fetch it when you need the details rather than the routing:
+
+  ```bash
+  curl -s https://docs.allora.network/llms-full.txt
+  ```
+- **Live now:** the raw markdown of any single page, at the page's path under
+  `/raw/` with `.md` appended. Fetch this when you already know which page you
+  need and want it without the site chrome:
+
+  ```bash
+  curl -s https://docs.allora.network/raw/get-started/quickstart-agents.md
+  ```
+- **Live now:** JSON manifests for the facts that change without an edit —
+  `https://docs.allora.network/api/topics.json` (active topics per network),
+  `/api/networks.json` (endpoints and chain IDs), and `/api/versions.json`
+  (current component versions).
+
+The full convention — URL rules, what the raw markdown contains, and what is in
+each manifest — is on
+[llms.txt and agent endpoints](/reference/llms-and-agents).
 
 ## Prerequisites
 

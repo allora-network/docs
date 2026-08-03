@@ -1,0 +1,73 @@
+---
+title: How to Query Network Data using allorad
+description: To query network-level data on the Allora chain using the allorad CLI, you need to interact with various RPC methods designed to return aggregate or holistic information about the network.
+persona: Topic creator
+verified_against: allora-chain v0.17.0 (x/emissions/module/autocli.go)
+last_reviewed: 2026-08-02
+---
+
+# How to Query Network Data using `allorad`
+
+To query network-level data on the Allora chain using the `allorad` CLI, you need to interact with various RPC methods designed to return aggregate or holistic information about the
+network. These methods enable you to pull data that is crucial for understanding the overall state and performance of the network.
+
+## Prerequisites
+
+- [`allorad` CLI](https://docs.allora.network/get-started/cli)
+
+## Query Functions
+
+These functions read from the appchain only and do not write. Add the **Command** value into your query to retrieve the expected data.
+
+```bash
+allorad q emissions [Command] --node <RPC_URL>
+```
+
+### Get Latest Network Inferences
+
+- **RPC Method:** `GetLatestNetworkInferences`
+- **Command:** `latest-network-inferences [topic_id]`
+- **Description:** Returns the latest network inference and weights for a given topic. The chain returns whatever information it currently has available for the topic.
+- **Positional Arguments:**
+    - `topic_id`: The identifier of the topic for which you want to retrieve the latest network inference.
+
+An outlier-resistant variant (single-label regression topics only) is available as `GetLatestNetworkInferencesOutlierResistant` (`latest-network-inferences-outlier-resistant [topic_id]`).
+
+#### Use Case:
+**Why use it?**
+- This command is the primary way to retrieve the most recent network-wide inference for a topic. The response carries an `inference_block_height` field, so you can tell how recent the returned inference is before acting on it.
+
+**Example Scenario:**
+- You want the latest ETH price prediction produced by the network, together with the worker and forecaster values that fed into it.
+
+---
+
+### Get Total Rewards to Distribute
+
+- **RPC Method:** `GetTotalRewardToDistribute`
+- **Command:** `total-rewards`
+- **Description:** Returns the total amount of rewards that will be distributed across all rewardable topics in the current block. It provides an aggregate view of the rewards available for distribution.
+
+#### Use Case:
+**Why use it?**
+- This command is useful if you want to understand the total reward pool for a given block. It helps participants gauge the potential rewards available and how they may be distributed across topics based on performance.
+
+**Example Scenario:**
+- As a worker or forecaster, you might use this command to estimate the reward pool for the current block. This allows you to understand the potential total rewards before they are distributed across different topics and participants.
+
+---
+
+### Get Current Module Parameters
+
+- **RPC Method:** `GetParams`
+- **Command:** `params`
+- **Description:** Retrieves the current parameters of the module in the Allora network. It is used to check the configuration and settings that control various aspects of the module's behavior.
+- **Positional Arguments:**
+    - This command does not require any positional arguments.
+
+#### Use Case:
+**Why use it?**
+- This command is useful for querying the configuration settings of the module. It provides transparency into how the module is configured and allows participants to verify whether certain parameters, such as reward distribution rules or other operational settings, are up-to-date.
+
+**Example Scenario:**
+- If you're troubleshooting the behavior of a module or need to verify the configuration before making any changes, this command can give you insight into the current parameters and their values.

@@ -7,6 +7,7 @@ last_reviewed: 2026-07-30
 ---
 
 import { Callout } from 'nextra/components'
+import { Version } from '../../components/Version'
 
 # Migrate from the Offchain Node
 
@@ -28,7 +29,7 @@ Replace an `allora-offchain-node` worker with a Python SDK worker that keeps the
 - An Allora API key — free at [developer.allora.network](https://developer.allora.network). On testnet, the worker uses it to request ALLO gas from the faucet automatically.
 
 <Callout type="warning">
-The published SDK release (`allora_sdk` 1.0.6) supports **workers only**. The offchain node's `reputer` configuration (`groundTruthEntrypointName`, `lossFunctionEntrypointName`, `minStake`, ...) has no SDK equivalent yet — [reputers](/build/reputer/deploy-docker) continue to run on the offchain node for now.
+The published SDK release (`allora_sdk` <Version of="allora-sdk"/>) supports **workers only**. The offchain node's `reputer` configuration (`groundTruthEntrypointName`, `lossFunctionEntrypointName`, `minStake`, ...) has no SDK equivalent yet — [reputers](/build/reputer/deploy-docker) continue to run on the offchain node for now.
 </Callout>
 
 ## Steps
@@ -62,35 +63,7 @@ pip install allora_sdk
 
 Save this as `worker.py`. The body of `run_model` is where the logic behind your old `InferenceEndpoint` goes — return the value your inference server used to serve over HTTP:
 
-```python
-import asyncio
-import os
-
-from allora_sdk import AlloraNetworkConfig, AlloraWorker
-from allora_sdk.rpc_client.config import AlloraWalletConfig
-
-async def run_model(nonce: int) -> float:
-    # The prediction logic your inference server exposed over HTTP goes here
-    return 123.45
-
-async def main():
-    worker = AlloraWorker.inferer(
-        run=run_model,
-        # Your worker[].topicId from config.json
-        topic_id=69,
-        network=AlloraNetworkConfig.testnet(),
-        # Keep your existing address: reuse wallet.addressRestoreMnemonic from config.json.
-        # Omit `wallet=` to generate a fresh identity instead.
-        wallet=AlloraWalletConfig(mnemonic=os.environ["ALLORA_WALLET_MNEMONIC"]),
-        api_key=os.environ["ALLORA_API_KEY"],
-    )
-    async for result in worker.run():
-        if isinstance(result, Exception):
-            print(f"Inference worker error: {result}")
-        else:
-            print(f"Prediction submitted to Allora: {result.submission}")
-
-asyncio.run(main())
+```python file=../../snippets/migrate_worker.py
 ```
 
 Run it:

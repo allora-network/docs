@@ -2,8 +2,8 @@
 title: Accessing Allora Data Through RPC
 description: In addition to the Allora API, you can also access Allora network data directly through RPC (Remote Procedure Call) endpoints.
 persona: App developer
-verified_against: docs content as of 2026-07-16
-last_reviewed: 2026-07-16
+verified_against: docs content as of 2026-07-16; examples live in snippets/ and are executed against the live testnet LCD (emissions/v10) by the nightly snippet run, last locally on 2026-08-02
+last_reviewed: 2026-08-02
 ---
 
 import { Callout } from 'nextra/components'
@@ -14,8 +14,8 @@ In addition to the [Allora API](/consume/api), you can also access Allora networ
 
 ## Prerequisites
 
-- [`allorad` CLI](/get-started/cli) installed
-- Access to an Allora RPC node
+- [`allorad` CLI](/get-started/cli) installed, for the command-line examples
+- Access to an Allora node: the CometBFT RPC endpoint for `allorad`, or the LCD (REST) endpoint for the programmatic examples — see [Networks](/reference/networks)
 
 For a complete list of available RPC endpoints and commands, see the [allorad reference section](/reference/allorad).
 
@@ -24,9 +24,11 @@ For a complete list of available RPC endpoints and commands, see the [allorad re
 Each network uses a different RPC URL and Chain ID which are needed to specify which network to run commands on when using specific commands on allorad.
 
 ### Testnet
-- **RPC URLs**:
-  - `https://allora-rpc.testnet.allora.network/`
+- **RPC URL** (CometBFT): `https://allora-rpc.testnet.allora.network/`
+- **LCD URL** (Cosmos SDK REST): `https://allora-api.testnet.allora.network/`
 - **Chain ID**: `allora-testnet-1`
+
+See [Networks](/reference/networks) for the current endpoints of every network, including the versioned `emissions` namespace each one serves.
 
 ## RPC Endpoints for Consumers
 
@@ -86,101 +88,22 @@ The `combined_value` field is a list of labeled values representing the optimize
 
 ## Using RPC in Your Applications
 
+<Callout type="info">
+The CometBFT `abci_query` method takes **protobuf-encoded** request bytes and returns protobuf-encoded response bytes — it does not accept or return JSON. Calling it from a plain HTTP client therefore requires generated protobuf stubs for the emissions module. For everything below, the Cosmos SDK **LCD (REST)** endpoints expose the same queries as JSON over `GET`, which is what a typical application should use.
+</Callout>
+
+Every `allorad q emissions` query has a matching LCD path. The one used below is
+`/<emissions-namespace>/latest_network_inferences/{topic_id}`, where the namespace is `emissions/v10`
+on testnet and `emissions/v9` on mainnet.
+
 ### JavaScript/TypeScript Example
 
-Here's an example of how to query the Allora network using RPC in a JavaScript/TypeScript application:
-
-```typescript
-import axios from 'axios';
-
-async function getLatestInference(topicId: number, rpcUrl: string) {
-  try {
-    const response = await axios.post(rpcUrl, {
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'abci_query',
-      params: {
-        path: `/allora.emissions.v10.Query/GetLatestNetworkInferences`,
-        data: Buffer.from(JSON.stringify({ topic_id: topicId })).toString('hex'),
-        prove: false
-      }
-    });
-
-    // Parse the response
-    const result = response.data.result;
-    if (result.response.code !== 0) {
-      throw new Error(`Query failed with code ${result.response.code}`);
-    }
-
-    // Decode the response value
-    const decodedValue = Buffer.from(result.response.value, 'base64').toString();
-    const parsedValue = JSON.parse(decodedValue);
-
-    return parsedValue;
-  } catch (error) {
-    console.error('Error querying Allora RPC:', error);
-    throw error;
-  }
-}
-
-// Example usage
-getLatestInference(1, 'https://allora-rpc.testnet.allora.network/')
-  .then(data => {
-    // combined_value is a list of labeled values; a single-output topic has one entry ("y")
-    console.log('Latest inference:', data.network_inferences.combined_value[0].value);
-    console.log('Inference block height:', data.inference_block_height);
-  })
-  .catch(error => {
-    console.error('Failed to get inference:', error);
-  });
+```typescript file=../../snippets/lcd_latest_inference.ts
 ```
 
 ### Python Example
 
-Here's an example of how to query the Allora network using RPC in a Python application:
-
-```python
-import requests
-import json
-import base64
-
-def get_latest_inference(topic_id, rpc_url):
-    try:
-        payload = {
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "abci_query",
-            "params": {
-                "path": "/allora.emissions.v10.Query/GetLatestNetworkInferences",
-                "data": bytes(json.dumps({"topic_id": topic_id}), 'utf-8').hex(),
-                "prove": False
-            }
-        }
-        
-        response = requests.post(rpc_url, json=payload)
-        response.raise_for_status()
-        
-        result = response.json()["result"]
-        if result["response"]["code"] != 0:
-            raise Exception(f"Query failed with code {result['response']['code']}")
-        
-        # Decode the response value
-        decoded_value = base64.b64decode(result["response"]["value"]).decode('utf-8')
-        parsed_value = json.loads(decoded_value)
-        
-        return parsed_value
-    except Exception as e:
-        print(f"Error querying Allora RPC: {e}")
-        raise
-
-# Example usage
-try:
-    data = get_latest_inference(1, "https://allora-rpc.testnet.allora.network/")
-    # combined_value is a list of labeled values; a single-output topic has one entry ("y")
-    print(f"Latest inference: {data['network_inferences']['combined_value'][0]['value']}")
-    print(f"Inference block height: {data['inference_block_height']}")
-except Exception as e:
-    print(f"Failed to get inference: {e}")
+```python file=../../snippets/lcd_latest_inference.py
 ```
 
 ## RPC vs API: When to Use Each

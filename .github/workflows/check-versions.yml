@@ -1,0 +1,40 @@
+name: Check Version Strings
+
+on:
+  pull_request:
+    branches:
+      - main
+
+# This job only reads the tree and reports a verdict, so its token can do no
+# more than that. Nothing here writes to the repository, and an action or
+# dependency that turned hostile would find no write scope to use.
+permissions:
+  contents: read
+
+jobs:
+  check-versions:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      with:
+        # Read-only check: nothing here pushes, so nothing here needs a
+        # credential left behind in .git/config.
+        persist-credentials: false
+
+    - name: Set up Node.js
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      with:
+        node-version: '20'
+
+    # The checker is plain Node (no dependencies), so no install step is needed.
+    # It fails if any version string from public/api/versions.json is typed by
+    # hand in pages/, components/ or snippets/ instead of coming from the
+    # <Version of="..."/> component, and if versions.json's chain_* keys and
+    # public/api/networks.json's per-network deployed_version disagree — both
+    # files are hand-maintained records of the same fact, and
+    # pages/reference/networks.mdx renders from both. `yarn build` runs the same
+    # check locally.
+    - name: Run version string check script
+      run: node ./scripts/checkVersionStrings.js

@@ -1,0 +1,156 @@
+---
+title: Monitor a Worker
+description: Watch an Allora worker's submissions and health with logs, the explorer, the Forge Builder Kit's workerctl CLI and web dashboard, and EMA score queries via allorad.
+persona: ML builder operating a worker
+verified_against: allora-forge-builder-kit 3.0.0 (workerctl.py, web_dashboard.py, worker_monitor.py); allorad emissions query commands as documented in this repo
+last_reviewed: 2026-07-30
+---
+
+# Monitor a Worker
+
+A running worker answers three questions in three places: **is it alive** (its logs), **are its submissions landing on-chain** (the explorer, or the [Forge Builder Kit](https://github.com/allora-network/allora-forge-builder-kit)'s dashboards), and **is it scoring well enough to earn rewards** (EMA score queries via `allorad`).
+
+## Goal
+
+Watch your worker submit, see its submissions and scores on-chain, and check whether it is in a topic's active set — from the terminal, a web dashboard, and `allorad`.
+
+## Prerequisites
+
+- A running worker — from the [Python SDK guide](https://docs.allora.network/build/worker/sdk-py), [Docker](https://docs.allora.network/build/worker/containerize), or the Forge Builder Kit
+- For the dashboard and `workerctl` (steps 3–4): workers deployed with the [Forge Builder Kit](https://github.com/allora-network/allora-forge-builder-kit)'s `WorkerManager` (`python deploy_worker.py` in the kit's `notebooks/` directory), which records them in its local `worker_state.db`
+- For EMA queries (step 5): the [`allorad` CLI](https://docs.allora.network/get-started/cli)
+
+## Steps
+
+### 1. Read the worker's logs
+
+The SDK worker logs every lifecycle event: wallet address and balance at startup, submission windows opening and closing, each submission's transaction hash, and any errors.
+
+- **Local run**: the logs are in your terminal. Successful submissions look like `✅ Successfully submitted: topic=<id> nonce=<block height>` followed by the transaction hash.
+- **Docker**: `docker logs -f allora-worker` (see [Deploy a Worker with Docker](https://docs.allora.network/build/worker/containerize)).
+- **Builder Kit deployments**: each worker runs as a managed subprocess and writes to `worker_logs/`. Faucet requests, balance checks, and on-chain errors appear there — not in the deploy script's output. You can also tail programmatically:
+
+  ```python
+  from allora_forge_builder_kit import WorkerManager
+
+  wm = WorkerManager(reconcile_on_start=False)
+  lines = wm.get_worker_log_tail(topic_id=69, address="allo1...", lines=50)
+  print("\n".join(lines))
+  ```
+
+### 2. Check the explorer
+
+Every submission is a transaction. Look your worker up by its `allo...` address:
+
+- **Testnet**: [testnet.explorer.allora.network](https://testnet.explorer.allora.network) — your topic's page (e.g. [topics/69](https://testnet.explorer.allora.network/topics/69)) lists its workers, and the transaction hashes from your logs resolve under `/explorer/transactions/<tx hash>`.
+- **Mainnet**: [explorer.allora.network](https://explorer.allora.network).
+
+### 3. Run the web dashboard
+
+The Builder Kit ships a local web dashboard for every worker deployed with its `WorkerManager`:
+
+```bash
+python -m allora_forge_builder_kit.web_dashboard
+```
+
+Open **http://localhost:8787**. The page auto-refreshes every 5 seconds and shows, per wallet address and topic:
+
+- run status and submission counts (successes and errors), with 24-hour and 7-day breakdowns
+- the latest **on-chain EMA score** and **reward fraction**, synced from the chain every 5 seconds
+- a submission timeline of the last 25 submission windows — hover a cell for the nonce, inference value, transaction hash, and the latest score
+- a live tail of each worker's stdout log
+
+Options: `--port` (default `8787`), `--db-path` / `--secrets-path` / `--network` (defaults `worker_state.db` / `worker_secrets.json` / `testnet` — run the command from the directory where you deployed, or point these at it). The JSON behind the UI is available at `/api/dashboard` and `/api/workers`.
+
+The dashboard binds to `127.0.0.1` by default. If you expose it with `--host 0.0.0.0`, an auth token is generated and printed to stderr (or pass your own with `--token`); every request must then include it, either as `?token=...` in the URL or an `Authorization: Bearer ...` header.
+
+### 4. Use the `workerctl` CLI
+
+For terminals and scripts, `workerctl` prints the same registry as text:
+
+```bash
+# Text dashboard: status, submission counts, rewards, last inference per worker
+python -m allora_forge_builder_kit.workerctl dashboard
+
+# Include workers that are not currently running
+python -m allora_forge_builder_kit.workerctl dashboard --all
+
+# Skip the on-chain sync for an instant, local-only view
+python -m allora_forge_builder_kit.workerctl dashboard --no-monitor
+
+# Reconcile recorded state with what is actually running
+python -m allora_forge_builder_kit.workerctl reconcile
+
+# Start every enabled worker (e.g. after a reboot) / stop all running workers
+python -m allora_forge_builder_kit.workerctl start-all
+python -m allora_forge_builder_kit.workerctl stop-all
+```
+
+`workerctl` accepts the same `--db-path`, `--secrets-path`, and `--network` options as the web dashboard. For finer control (starting, stopping, or removing a single worker), use the `WorkerManager` Python API:
+
+```python
+from allora_forge_builder_kit import WorkerManager
+
+wm = WorkerManager(reconcile_on_start=False)
+
+for w in wm.status_all():
+    print(w['topic_id'], w['address'], w['status'])
+
+wm.stop_worker(topic_id=69, address="allo1...")
+wm.start_worker(topic_id=69, address="allo1...")
+```
+
+### 5. Query EMA scores with `allorad`
+
+The EMA score (Exponential Moving Average) reflects a participant's performance over time for a given topic, balancing recent and past achievements, and determines whether the participant stays in the **active set** (eligible for [rewards](https://docs.allora.network/learn/consensus-and-rewards#worker-rewards)) or remains in the **passive set**. Active participants have their EMA score updated based on their current performance; participants who do not contribute during a given [epoch](https://docs.allora.network/learn/key-terms#epochs) receive an adjusted score using a "dummy" value, which determines whether they can re-enter the active set in future epochs. Read about the v0.3.0 release on [Merit-Based Sortitioning](https://docs.allora.network/reference/release-notes#v030) for a deeper dive on what makes up the active and passive sets.
+
+The commands below use the testnet RPC endpoint; swap in the mainnet endpoint from [networks](https://docs.allora.network/reference/networks) as needed.
+
+#### Worker EMA scores
+
+Query the EMA score for a specific worker (identified by its `allo...` address):
+
+```bash
+allorad q emissions inferer-score-ema [topic_id] [worker_address] --node https://allora-rpc.testnet.allora.network/
+```
+
+Query the lowest EMA score among workers in the topic's active set:
+
+```bash
+allorad q emissions current-lowest-inferer-score [topic_id] --node https://allora-rpc.testnet.allora.network/
+```
+
+#### Reputer EMA scores
+
+The same pair of queries exists for [reputers](https://docs.allora.network/build/reputer/build-a-reputer):
+
+```bash
+allorad q emissions reputer-score-ema [topic_id] [reputer_address] --node https://allora-rpc.testnet.allora.network/
+
+allorad q emissions current-lowest-reputer-score [topic_id] --node https://allora-rpc.testnet.allora.network/
+```
+
+To determine whether a participant is in the active set and eligible for rewards, compare its EMA score against the lowest EMA score in the active set for the same topic: if the participant's score is higher, it is in the active set.
+
+For the full catalog of worker-related chain queries — registration checks, per-block inference scores, latest submitted inference, and network regrets — see [How to Query Worker Data using `allorad`](https://docs.allora.network/build/worker/query-worker-data).
+
+## Verify
+
+- Your worker's log shows `✅ Successfully submitted` lines, and the transaction hashes resolve on the [explorer](https://testnet.explorer.allora.network).
+- The web dashboard at [http://localhost:8787](http://localhost:8787) lists your worker with a `running` status and a populating submission timeline.
+- `allorad q emissions inferer-score-ema <topic_id> <your allo... address> --node https://allora-rpc.testnet.allora.network/` returns a score, and comparing it with `current-lowest-inferer-score` tells you whether you are in the active set.
+
+## Troubleshoot
+
+- **Dashboard or `workerctl` shows no workers** — they only track workers deployed through the Builder Kit's `WorkerManager`, and read `worker_state.db` from the current directory. Run them from the directory you deployed in, or pass `--db-path`. Workers started by hand (e.g. `python worker.py`, Docker) are monitored via their logs, the explorer, and `allorad` instead.
+- **`401 Unauthorized` from the dashboard** — you exposed it beyond localhost, so requests need the auth token printed to stderr at startup: append `?token=...` to the URL.
+- **EMA query returns no score** — the worker has not been scored yet. Scores appear only after its submissions are included in completed epochs; confirm submissions on the explorer first.
+- **`allorad: command not found`** — install the CLI: [Allora CLI](https://docs.allora.network/get-started/cli).
+- **Dashboard `sync_ok=false` or zero on-chain data** — the on-chain sync (every 5 seconds) may be failing; check network access to the RPC endpoint, and the `--network` flag matches where the worker is deployed (`testnet` by default).
+
+## Next
+
+- All worker chain queries: [query worker data using `allorad`](https://docs.allora.network/build/worker/query-worker-data)
+- Understand how scores drive rewards: [worker rewards](https://docs.allora.network/learn/consensus-and-rewards#worker-rewards)
+- Build or reconfigure your worker: [build a worker with the Python SDK](https://docs.allora.network/build/worker/sdk-py)
+- Run it unattended: [deploy a worker with Docker](https://docs.allora.network/build/worker/containerize)

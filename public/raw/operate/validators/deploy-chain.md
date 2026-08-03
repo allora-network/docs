@@ -1,0 +1,80 @@
+---
+title: Deploy Allora Appchain
+description: We discuss the settlement layer for the Allora Network and how to deploy it.
+persona: Validator operator
+verified_against: docs content as of 2026-07-16; helm values file re-checked against upshot-tech/helm-charts (charts/universal-helm) on 2026-08-02
+last_reviewed: 2026-08-02
+---
+
+# Deploy Allora Appchain
+
+> We discuss the settlement layer for the Allora Network and how to deploy it
+
+## What is the Appchain?
+
+The Allora Appchain is a Cosmos SDK appchain that serves as the settlement layer for the Allora Network. It serves to coordinate all incentives for all actors:
+
+- The weights between reputers and workers, as well as a reference to the logic used to update those weights, are stored on-chain.
+- Rewards payable from inflation are calculated based on those weights at a global cadence on-chain.
+- Consumers pay for inferences to be collected and for all the above calculations to run. These funds get allocated to workers and reputers, respectively.
+
+The appchain also coordinates actions between protocol actors.
+
+- The appchain triggers requests to workers and reputers to collect inferences and run loss-calculation logic, respectively, as per each topic's respective inference and loss-calculation cadence.
+- The appchain collects a recent history of inferences in batches to later be scored by loss-calculation.
+
+## Why and How might one interact with the Allora Appchain?
+
+Different actors interact with the Allora Appchain for different reasons. They do so via a standard client connection (such as [CosmJS](https://tutorials.cosmos.network/tutorials/7-cosmjs/1-cosmjs-intro.html)) or the [Appchain CLI](https://docs.allora.network/get-started/cli#installing-allorad).
+
+- Data scientists interact with the Appchain to [register their worker nodes](https://docs.allora.network/reference/allorad#register-network-actor) and to [withdraw rewards](https://docs.allora.network/reference/allorad#remove-stake-from-a-topic) accrued for their inferences. These rewards are paid by both consumers and inflation based on their relative weight.
+- Developers interact with the Appchain to [create topics](https://docs.allora.network/reference/allorad#create-new-topic), fund topics, and perhaps also to [read recent inferences](https://docs.allora.network/reference/allorad#get-the-latest-network-inferences-and-weights-for-a-topic).
+- Validators run the Appchain and receive standard inflationary rewards for running Cosmos SDK appchains and a cut of the funds from consumers. They will also [register themselves](https://docs.allora.network/operate/validators/stake-a-validator) on the Appchain so that they can be eligible for rewards.
+
+## Dependencies
+
+- Create a set of keys and initialize genesis. See example in `scripts/init.sh`.
+- The script `scripts/l1_node.sh` is provided too, to facilitate configuration and maintenance of the node when connecting it to a network: it runs `allorad init`, downloads that network's genesis file, seeds and peers, and then starts the node against them.
+
+## Deploy with docker-compose
+
+There is a `docker-compose.yml` provided that sets up a validator node.
+
+### Run
+
+Once this is set up, run `docker compose up`.
+
+## Deploy in k8s with helm chart
+
+Upshot team uses a [universal-helm](https://upshot-tech.github.io/helm-charts/) chart to deploy applications into kubernetes clusters.
+The chart ships an [`example--allora-validator.yaml`](https://github.com/upshot-tech/helm-charts/blob/main/charts/universal-helm/example--allora-validator.yaml) values file that sets up the node components. Download it and edit it for your environment before installing.
+
+### Dependencies
+
+- You need to have configured `kubeconfig` file on the computer to connect to the cluster and deploy the node.
+
+### Deploy with the Helm Chart
+
+1. Add upshot Helm chart repo:
+
+```bash
+helm repo add upshot https://upshot-tech.github.io/helm-charts
+
+```
+
+2. Install helm chart with the given values file:
+
+```bash
+helm install \
+  allora-validator \
+  upshot/universal-helm \
+  -f example--allora-validator.yaml
+```
+
+### Edit Chain Parameters
+
+The public mainnet uses standard cosmos governance modules to vote on global network parameters (such as reward epoch time in blocks, for example). For testnets and devnets, however, you can use the following allorad CLI command to set the global parameters of the blockchain if you are whitelisted to do so. The parameters below are just example values:
+
+```Text bash
+allorad tx emissions update-params  "$VALIDATOR_KEY_FOR_TX_SEND" '{"version":["v0.0.4"], "min_topic_weight":["5"], "max_topics_per_block":[50]}'
+```

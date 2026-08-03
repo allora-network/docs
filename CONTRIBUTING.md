@@ -76,6 +76,29 @@ tooling can tell how fresh each page is.
 part of `yarn build` and in CI. `yarn frontmatter` fills in missing keys with
 derived defaults — always review what it generated before committing.
 
+## Generated files: llms.txt, llms-full.txt, and raw markdown
+
+`public/llms.txt` and `public/llms-full.txt` are the machine-readable bundle AI
+agents fetch: an [llmstxt.org](https://llmstxt.org) index of every page with its
+title and description, and the full text of every page concatenated in
+navigation order. Both are generated from `pages/**` by
+`scripts/generateLlmsTxt.js`, which runs as part of `yarn build`, and both are
+committed because `public/` is served as-is.
+
+`public/raw/**.md` is the same idea one page at a time: every page published on
+its own as plain markdown, so an agent can fetch a single page instead of the
+whole bundle. It is generated from `pages/**` by
+`scripts/generateRawMarkdown.js` — also part of `yarn build`, also committed —
+and it mirrors the `pages/` tree with the extension swapped to `.md`. The
+directory is generated in full, so renaming or removing a page prunes its stale
+raw file automatically.
+
+So whenever you add, remove, rename, retitle, or edit a page, run `yarn build`
+(or `yarn llms` and `yarn raw`) and commit the regenerated files.
+`yarn checkllms` and `yarn checkraw` verify the committed files still match
+`pages/**` without rewriting them; CI runs the same two checks and fails the
+pull request if either has drifted.
+
 ## How-to page structure
 
 How-to pages use this section order after the frontmatter and the `#` heading:
@@ -92,6 +115,107 @@ How-to pages use this section order after the frontmatter and the `#` heading:
 Code snippets must be copy-paste complete: no elisions, no interactive
 prompts, and environment-variable placeholders for secrets — never real keys.
 
+## Runnable code snippets
+
+Any complete program a reader is told to save and run lives in `snippets/` as a
+real file, and the page embeds it with a `file=` fence rather than a copy:
+
+````mdx
+```python file=../../snippets/quickstart_worker.py
+```
+````
+
+The build inlines the file's contents (`scripts/remarkIncludeCode.js`), so the
+page can never drift from the file, and a typo in the path fails `yarn build`
+instead of shipping an empty code block. Includes must resolve inside
+`snippets/`.
+
+Everything in `snippets/` is executed against testnet each night by
+`.github/workflows/snippets-nightly.yml`, which builds a clean toolchain per
+language, runs `node scripts/runSnippets.js`, and opens an issue with the
+failing snippet and its error when a run fails. New snippets are picked up
+automatically; `scripts/snippets.config.json` carries per-snippet settings and is
+the only place a snippet can be opted out of execution — with a written reason.
+
+A snippet passes only when it prints the result its page documents (its `expect`
+pattern). Exiting 0 is not enough, and for a worker loop neither is staying
+alive: the loop catches its own exceptions and prints them, so a worker whose
+registration or submission failed would otherwise look perfectly healthy. Every
+snippet that runs needs an `expect` — the runner refuses to start without one,
+so a new file is a configuration error until someone says what proves it worked.
+
+Credentials go only to the snippets that ask for them. Each snippet's `requires`
+list is the whole of what its process can see, and package installation runs
+with no credentials at all, so a dependency of a read-only snippet has no
+mnemonic in its environment to take.
+
+To run the suite yourself, export `ALLORA_API_KEY` and `ALLORA_WALLET_MNEMONIC`
+(a funded testnet wallet) and run `yarn runsnippets`. `yarn runsnippets --list`
+prints the plan without running anything, and `yarn runsnippets --budget` prints
+how long the nightly job can legitimately take — a new snippet that pushes that
+past the job's `timeout-minutes` fails the run rather than silently getting the
+job cancelled halfway one night.
+
+Trying a snippet change on a branch means running it locally: the nightly
+workflow only runs from the default branch, because it hands the funded wallet's
+mnemonic to whatever code the ref it runs from contains.
+
+Fragments, config excerpts, and shell one-liners stay inline — only programs
+that are meant to run belong in `snippets/`.
+## Version strings
+
+Never type a current version number into a page. Every "the version we are on
+right now" string lives in `public/api/versions.json` (published at
+[/api/versions.json](https://docs.allora.network/api/versions.json)) and is
+rendered by the `Version` component:
+
+```mdx
+import { Version } from '../../components/Version'
+
+The testnet runs <Version of="chain-testnet"/>, and the release asset is
+named `allorad_<Version of="chain-testnet" bare/>_linux_amd64`.
+```
+
+`of` accepts any key in that file (`chain-testnet`, `chain-mainnet`,
+`allora-sdk`, `builder-kit`); `bare` drops the leading `v`. Where JSX cannot
+render — inside a template literal that builds a copy-paste command — import
+the constants from `components/versions.ts`, which read the same file.
+
+`yarn checkversions` fails if a version from `versions.json` is typed by hand
+anywhere in `pages/`, `components/` or `snippets/`; it also runs as part of
+`yarn build` and in CI. Mentions of *when* something changed ("since v0.17.0",
+"introduced in v0.17.0") are historical facts, not current versions — leave
+those literal. If the checker flags a historical mention it cannot recognise,
+add a `version-literal-ok: <reason>` comment on that line. The reason is not
+decoration: a bare `version-literal-ok:` suppresses nothing, because a marker
+with no reason is indistinguishable from a mistake six months later.
+
+The check covers a page's frontmatter too, apart from `verified_against` —
+that key is a point-in-time attestation and is meant to go stale. Frontmatter
+cannot render the component, so a `title` or `description` that needs a current
+version should be reworded rather than pinned to one.
+
+It also fails on a version the docs have already *left behind*. `versions.json`
+keeps a `superseded` array per key, appended to whenever a version is bumped,
+so a hand-typed `1.0.6` in an install command keeps failing the build after
+`1.0.6` stops being current — the moment it would otherwise start passing
+unnoticed. The same exemptions apply: a changelog, "since 1.0.6", or a
+`version-literal-ok: <reason>` comment.
+
+A scheduled workflow watches upstream for you. When a version that is genuinely
+*published* moves ahead of `versions.json` — a GitHub release or tag, or a PyPI
+release — it opens a pull request with that change already made. Anything it
+cannot confirm on its own it never writes: which release each network is
+running, and versions read from a project's default branch rather than a
+release. Those are collected in a tracking issue for a human to verify and
+apply by hand.
+
+When you apply a network's release by hand, update `public/api/networks.json`'s
+`deployed_version` for that network in the same commit. Both files record the
+same fact — [Networks](https://docs.allora.network/reference/networks) takes its
+prose from `versions.json` and its table from `networks.json` — and
+`yarn checkversions` fails while the two disagree.
+
 ## PR checklist
 
 Before opening a pull request:
@@ -100,11 +224,17 @@ Before opening a pull request:
       (`yarn checkfm` passes).
 - [ ] `yarn build` passes.
 - [ ] `yarn fixlinks` passes (no broken internal links).
+- [ ] No current version is typed by hand; versions come from
+      `public/api/versions.json` (`yarn checkversions` passes).
 - [ ] `_meta.json` is updated for any added, moved, or removed page.
+- [ ] `public/llms.txt`, `public/llms-full.txt`, and `public/raw/**` are
+      regenerated and committed (`yarn checkllms` and `yarn checkraw` pass).
 - [ ] Any removed or moved URL has a 301 redirect in `next.config.js`
       (`redirects()`).
 - [ ] Code snippets run as pasted against the version named in
       `verified_against`.
+- [ ] Any complete runnable program lives in `snippets/` and is embedded with a
+      `file=` fence (`yarn runsnippets --list` shows it).
 - [ ] Commits are signed off (DCO, see above).
 
 # Community & Resources

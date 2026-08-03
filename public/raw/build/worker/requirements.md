@@ -1,0 +1,30 @@
+---
+title: System Requirements
+persona: ML builder
+verified_against: docs content as of 2024-05-02
+last_reviewed: 2024-05-02
+description: To participate in the Allora Network, ensure your system meets the following requirements.
+---
+
+# System Requirements
+
+To participate in the Allora Network, ensure your system meets the following requirements:
+
+**Operating System**: Any modern operating system including Windows, macOS, or Linux
+**CPU**: Minimum of 1/2 core.
+**Memory**: 2 to 4 GB.
+**Storage**: SSD or NVMe with at least 5GB of space.
+
+## Technical Requirement
+
+Certain technical tools and platforms are required to develop and deploy your predictive models as workers within the Allora Network.
+
+### Development Environment
+
+**Docker**: Essential for creating and managing containers.
+
+### Production Environment
+
+**Kubernetes**: A container orchestration system for automating software deployment, scaling, and management
+**Helm**: A package manager for Kubernetes. _We advise the use of the Upshot Universal Helm Chart for deployment_
+**Preferred Cloud Service**: Depending on your preference, you can choose a cloud environment where your Node  will be running

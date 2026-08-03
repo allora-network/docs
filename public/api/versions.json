@@ -1,0 +1,12 @@
+{
+  "chain_testnet": "v0.17.0",
+  "chain_mainnet": "v0.16.0",
+  "allora_sdk": "1.0.6",
+  "builder_kit": "3.0.0",
+  "superseded": {
+    "chain_testnet": [],
+    "chain_mainnet": [],
+    "allora_sdk": [],
+    "builder_kit": []
+  }
+}
