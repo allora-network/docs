@@ -1356,15 +1356,63 @@ Follow the tutorial [here](https://docs.allora.network/reference/allorad#delegat
 
 ---
 
-# Workers
+# Build on Allora
 
 Source: https://docs.allora.network/build/overview
 
-As a data scientist, your expertise in AI and ML is invaluable to this network, enabling you to contribute predictive models and insights that power a wide range of applications.
+Pick your role on the network — run a worker, forecaster, or reputer, compete in Forge, and pull training data from Atlas.
 
-## For Data Scientists
+Allora is a decentralized network where machine-learning models compete to produce
+the best inferences. This section covers the three actor types you can run on the
+network — workers, forecasters, and reputers — plus Forge competitions and the
+Atlas data platform that support model building.
 
-As a data scientist, your expertise in AI and ML is invaluable to this network, enabling you to contribute predictive models and insights that power a wide range of applications. The Allora Network, powered by Allora's unique consensus mechanism, crowdsources financial predictions produced by machine learning models. The network incentivizes the contribution of machine intelligence to optimize various financial objectives.
+- [Workers](https://docs.allora.network/build/worker/sdk-py)
+- [Forecasters](https://docs.allora.network/build/forecaster/build-and-deploy-a-forecaster)
+- [Reputers](https://docs.allora.network/build/reputer)
+- [Forge](https://docs.allora.network/build/forge/competitions)
+- [Atlas](https://docs.allora.network/build/atlas/overview)
+
+- **Workers** — run a model that answers a topic's question directly, submitting
+  live inferences each epoch. [Build a worker with the Python SDK](https://docs.allora.network/build/worker/sdk-py),
+  [deploy it with Docker](https://docs.allora.network/build/worker/containerize), [monitor its submissions and
+  health](https://docs.allora.network/build/worker/monitoring), and [query worker data with
+  allorad](https://docs.allora.network/build/worker/query-worker-data). Check the
+  [system requirements](https://docs.allora.network/build/worker/requirements) first.
+- **Forecasters** — a forecaster is a worker that predicts how accurate other
+  workers' inferences will be, submitting forecasted losses that make the combined
+  network inference context-aware.
+  [Build and deploy a forecaster](https://docs.allora.network/build/forecaster/build-and-deploy-a-forecaster)
+  with the same Python SDK tooling workers use.
+- **Reputers** — reputers serve ground truth and compute losses, ensuring the
+  accuracy and reliability of worker inferences.
+  [Build a reputer](https://docs.allora.network/build/reputer/build-a-reputer),
+  [deploy one with Docker](https://docs.allora.network/build/reputer/deploy-docker),
+  [set and adjust stake](https://docs.allora.network/build/reputer/set-and-adjust-stake), and
+  [query reputer data with allorad](https://docs.allora.network/build/reputer/query-reputer-data).
+- **Forge** — model competitions on live topics: build a testnet track record and
+  graduate to mainnet, where top performers earn ALLO rewards. See
+  [how competitions work](https://docs.allora.network/build/forge/competitions) and browse
+  [existing topics](https://docs.allora.network/build/forge/topics) for live topic IDs, epoch lengths, and
+  loss methods.
+- **Atlas** — the Allora Forge timeseries data platform: discover datasets, query
+  OHLCV candles at multiple resolutions, and stream live market data for model
+  building. Start with the [Atlas overview](https://docs.allora.network/build/atlas/overview), then the
+  [Atlas API reference](https://docs.allora.network/build/atlas/api).
+
+## Migrating from the offchain node?
+
+If you still run a worker on the deprecated `allora-offchain-node` + Model
+Development Kit stack, follow
+[Migrate from the Offchain Node](https://docs.allora.network/build/migrate-from-offchain-node) to move it
+onto the Allora Python SDK and the Forge Builder Kit.
+
+## New to Allora?
+
+The [10-minute worker quickstart](https://docs.allora.network/get-started/quickstart-worker) gets a model
+submitting live predictions to the testnet sandbox topic — no wallet setup and no
+funding steps. For the concepts behind the network, start with
+[What is Allora?](https://docs.allora.network/learn/what-is-allora).
 
 ---
 
@@ -1810,7 +1858,7 @@ worker = AlloraWorker.inferer(
 
 - Productionize your worker: [deploy it with Docker](https://docs.allora.network/build/worker/containerize)
 - Watch it work: [monitor a worker](https://docs.allora.network/build/worker/monitoring) — dashboards, logs, and on-chain EMA scores
-- Run the other worker roles — `AlloraWorker.forecaster(...)` and `AlloraWorker.reputer(...)`: [Build and Deploy a Forecaster](https://docs.allora.network/build/forecaster) and [Build a Reputer](https://docs.allora.network/build/reputer/build-a-reputer)
+- Run the other worker roles — `AlloraWorker.forecaster(...)` and `AlloraWorker.reputer(...)`: [Build and Deploy a Forecaster](https://docs.allora.network/build/forecaster/build-and-deploy-a-forecaster) and [Build a Reputer](https://docs.allora.network/build/reputer/build-a-reputer)
 - Graduate from the sandbox: pick a real topic from [existing topics](https://docs.allora.network/build/forge/topics)
 - Explore the SDK's full surface — RPC queries, transactions, and the REST API client: [Allora Python SDK](https://docs.allora.network/consume/sdk-py)
 - Train and deploy a model end to end with the [Forge Builder Kit](https://github.com/allora-network/allora-forge-builder-kit)
@@ -2311,7 +2359,7 @@ allorad q emissions [Command] --node <RPC_URL>
 
 # Build and Deploy a Forecaster
 
-Source: https://docs.allora.network/build/forecaster
+Source: https://docs.allora.network/build/forecaster/build-and-deploy-a-forecaster
 
 What forecasters do on Allora, and how to submit forecasted losses to a topic with the Python SDK's AlloraWorker.forecaster.
 
@@ -5291,135 +5339,6 @@ print(f"Inference block height: {data['inference_block_height']}")
 - You need additional features provided by the API that aren't available through RPC
 
 RPC nodes may have their own rate limiting or access restrictions. Make sure to implement proper error handling and retry logic in your applications.
-
----
-
-# Ecosystem Integrations
-
-Source: https://docs.allora.network/consume/integrations
-
-Third-party agent frameworks with maintained Allora plugins for consuming inferences.
-
-Several agent frameworks ship plugins that let their agents consume Allora
-inferences — for example real-time price predictions — without running any
-Allora infrastructure. Each plugin is maintained upstream in the framework's
-own repository.
-
-## Available integrations
-
-- ### [GOAT SDK](https://docs.allora.network/consume/integrations/goat-sdk)
-  Allora plugin for GOAT (Great On-chain Agent Toolkit). Adds an Allora
-  price-prediction tool to GOAT-powered on-chain agents. [Documented here](https://docs.allora.network/consume/integrations/goat-sdk)
-  and published as [`@goat-sdk/plugin-allora`](https://www.npmjs.com/package/@goat-sdk/plugin-allora).
-
-- ### [ZerePy](https://github.com/blorm-network/ZerePy/blob/main/src/connections/allora_connection.py)
-  Python agent framework with a built-in Allora connection for fetching
-  inferences and price predictions. See the upstream
-  [Allora connection source](https://github.com/blorm-network/ZerePy/blob/main/src/connections/allora_connection.py).
-
-- ### [Virtuals GAME](https://github.com/game-by-virtuals/game-node/tree/main/plugins/alloraPlugin)
-  Allora plugin for the Virtuals GAME agent framework (`game-node`). See the
-  upstream [plugin source](https://github.com/game-by-virtuals/game-node/tree/main/plugins/alloraPlugin).
-
-## Next
-
-- Prefer a direct integration? Use the [Allora API](https://docs.allora.network/consume/api) or the
-  [SDKs](https://docs.allora.network/consume/sdk-overview).
-
----
-
-# GOAT SDK Allora Plugin
-
-Source: https://docs.allora.network/consume/integrations/goat-sdk
-
-Add an Allora price-prediction tool to GOAT-powered on-chain agents with @goat-sdk/plugin-allora.
-
-[GOAT](https://github.com/goat-sdk/goat) (Great On-chain Agent Toolkit) is an
-open-source library that lets AI agents interact with blockchain protocols and
-smart contracts through their own wallets. The Allora plugin,
-[`@goat-sdk/plugin-allora`](https://www.npmjs.com/package/@goat-sdk/plugin-allora),
-gives GOAT-powered agents a tool for fetching future price predictions from the
-Allora Network.
-
-## Goal
-
-Register the Allora plugin in a GOAT agent so the agent can fetch BTC and ETH
-price predictions from Allora.
-
-## Prerequisites
-
-- A TypeScript agent project built on the [GOAT SDK](https://github.com/goat-sdk/goat)
-  (`@goat-sdk/core`).
-- An Allora API key — get one for free at
-  [developer.allora.network](https://developer.allora.network).
-
-## Steps
-
-### 1. Install the plugin
-
-```bash
-npm install @goat-sdk/plugin-allora
-```
-
-`yarn add` and `pnpm add` work equally.
-
-### 2. Register the plugin
-
-```typescript
-import { allora } from '@goat-sdk/plugin-allora'
-
-const plugin = allora({
-    apiKey: process.env.ALLORA_API_KEY,
-})
-```
-
-Pass the resulting plugin to your GOAT agent's plugin list the same way as any
-other GOAT plugin — see the
-[GOAT examples](https://github.com/goat-sdk/goat/tree/main/typescript/examples)
-for complete agent setups.
-
-The plugin accepts two options:
-
-| Option | Required | Description |
-| :--- | :--- | :--- |
-| `apiKey` | No, but recommended | Your Allora API key from [developer.allora.network](https://developer.allora.network). |
-| `apiRoot` | No | Override the Allora API root URL. Defaults to the public Allora API. |
-
-### 3. Use the price-prediction tool
-
-The plugin exposes a single tool, `getPricePrediction`, which fetches a future
-price prediction for a crypto asset from the Allora Network. It takes:
-
-| Parameter | Allowed values | Description |
-| :--- | :--- | :--- |
-| `ticker` | `BTC`, `ETH` | The asset to fetch a price prediction for. |
-| `timeframe` | `5m`, `8h` | How far into the future: 5 minutes or 8 hours. |
-
-Once the plugin is registered, your agent can call the tool in response to
-prompts such as "What will the ETH price be 5 minutes from now?".
-
-## Verify
-
-Ask your agent for an ETH price prediction 5 minutes out. The agent should
-invoke the `getPricePrediction` tool and reply with a numeric network
-inference from Allora.
-
-## Troubleshoot
-
-- **Unsupported asset or timeframe** — the plugin currently supports only the
-  `BTC` and `ETH` tickers and the `5m` and `8h` timeframes.
-- **Authentication errors** — check that `ALLORA_API_KEY` is set in your
-  environment and passed to `allora()`. Free keys are available at
-  [developer.allora.network](https://developer.allora.network).
-
-## Next
-
-- Browse other [ecosystem integrations](https://docs.allora.network/consume/integrations).
-- Query inferences directly through the [Allora API](https://docs.allora.network/consume/api) or the
-  [SDKs](https://docs.allora.network/consume/sdk-overview).
-- GOAT resources: [Docs](https://ohmygoat.dev) ·
-  [Examples](https://github.com/goat-sdk/goat/tree/main/typescript/examples) ·
-  [Discord](https://discord.gg/goat-sdk)
 
 ---
 

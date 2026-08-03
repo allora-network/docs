@@ -18,13 +18,13 @@ Every page below is live at https://docs.allora.network/. The full text of all o
 
 ## Build on Allora
 
-- [Workers](https://docs.allora.network/build/overview): As a data scientist, your expertise in AI and ML is invaluable to this network, enabling you to contribute predictive models and insights that power a wide range of applications.
+- [Build on Allora](https://docs.allora.network/build/overview): Pick your role on the network — run a worker, forecaster, or reputer, compete in Forge, and pull training data from Atlas.
 - [System Requirements](https://docs.allora.network/build/worker/requirements): To participate in the Allora Network, ensure your system meets the following requirements.
 - [Build a Worker with the Python SDK](https://docs.allora.network/build/worker/sdk-py): Build and configure an Allora inference worker with the Python SDK — plug in a real price model, then set up wallets, networks, fee tiers, and error handling.
 - [Deploy a Worker with Docker](https://docs.allora.network/build/worker/containerize): Containerize an Allora Python SDK worker — build the image, mount the wallet key read-only, set a restart policy, and run it unattended.
 - [Monitor a Worker](https://docs.allora.network/build/worker/monitoring): Watch an Allora worker's submissions and health with logs, the explorer, the Forge Builder Kit's workerctl CLI and web dashboard, and EMA score queries via allorad.
 - [How to Query Worker Data using allorad](https://docs.allora.network/build/worker/query-worker-data): Commands for pulling information about workers via allorad.
-- [Build and Deploy a Forecaster](https://docs.allora.network/build/forecaster): What forecasters do on Allora, and how to submit forecasted losses to a topic with the Python SDK's AlloraWorker.forecaster.
+- [Build and Deploy a Forecaster](https://docs.allora.network/build/forecaster/build-and-deploy-a-forecaster): What forecasters do on Allora, and how to submit forecasted losses to a topic with the Python SDK's AlloraWorker.forecaster.
 - [Reputers](https://docs.allora.network/build/reputer): Reputers ensure the accuracy and reliability of worker inferences and the overall integrity of topics.
 - [Build a Reputer](https://docs.allora.network/build/reputer/build-a-reputer): Configure and run an Allora reputer node that serves ground truth and computes losses, stake ALLO on a topic, and verify your reputer's status.
 - [Deploy a Reputer Node using Docker](https://docs.allora.network/build/reputer/deploy-docker): Deploying a reputer in the Allora network involves configuring the config.example.json file to ensure your reputer can interact with the network and provide accurate truth data.
@@ -45,8 +45,6 @@ Every page below is live at https://docs.allora.network/. The full text of all o
 - [Allora Python SDK](https://docs.allora.network/consume/sdk-py): Submit ML predictions with AlloraWorker, make typed chain queries with AlloraRPCClient, and read topics and inferences with AlloraAPIClient.
 - [Allora Go SDK](https://docs.allora.network/consume/sdk-go): Read topics, inferences, and market data over the Allora API, and make typed chain queries with load balancing and failover, from Go.
 - [Accessing Allora Data Through RPC](https://docs.allora.network/consume/rpc-grpc): In addition to the Allora API, you can also access Allora network data directly through RPC (Remote Procedure Call) endpoints.
-- [Ecosystem Integrations](https://docs.allora.network/consume/integrations): Third-party agent frameworks with maintained Allora plugins for consuming inferences.
-- [GOAT SDK Allora Plugin](https://docs.allora.network/consume/integrations/goat-sdk): Add an Allora price-prediction tool to GOAT-powered on-chain agents with @goat-sdk/plugin-allora.
 
 ## Operate the Network
 

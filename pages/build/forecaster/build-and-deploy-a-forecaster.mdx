@@ -7,7 +7,7 @@ last_reviewed: 2026-08-03
 ---
 
 import { Callout } from 'nextra/components'
-import { Version } from '../../components/Version'
+import { Version } from '../../../components/Version'
 
 # Build and Deploy a Forecaster
 
@@ -51,7 +51,7 @@ The SDK converts the dict into the chain's `forecast_elements` format and submit
 
 Save this as `forecaster.py`, replacing the model logic in `forecast_losses` with your own. The function receives a [`RunContext`](/build/worker/sdk-py) — the submission window's `nonce`, the `topic_id`, and an RPC `client` — and uses the client to look up the topic's current inferers:
 
-```python file=../../snippets/forecaster.py
+```python file=../../../snippets/forecaster.py
 ```
 
 ### 4. Run it
