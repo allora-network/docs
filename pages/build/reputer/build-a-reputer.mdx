@@ -2,8 +2,8 @@
 title: Build a Reputer
 description: Configure and run an Allora reputer node that serves ground truth and computes losses, stake ALLO on a topic, and verify your reputer's status.
 persona: Reputer operator
-verified_against: allora-offchain-node (github.com/allora-network/allora-offchain-node, dev branch) config.example.json + README; allora_sdk 1.0.6 (latest release on PyPI)
-last_reviewed: 2026-07-30
+verified_against: allora-offchain-node (github.com/allora-network/allora-offchain-node, dev branch) config.example.json + README; allora_sdk 1.3.0 (PyPI)
+last_reviewed: 2026-08-03
 ---
 
 import { Callout } from 'nextra/components'
@@ -13,7 +13,7 @@ import { Version } from '../../../components/Version'
 
 [Reputers](/learn/consensus-and-rewards#reputer-rewards) are the Allora Network's source of truth. Each epoch, a reputer fetches the network's inferences for its topic, compares them against ground truth obtained from its own data sources, computes losses using the topic's loss method, and submits the resulting loss bundle on-chain. Reputers must [stake ALLO](/build/reputer/set-and-adjust-stake), and rewards depend on accuracy relative to reputer consensus and on stake.
 
-Reputers run on the [`allora-offchain-node`](https://github.com/allora-network/allora-offchain-node), which handles registration, staking, submission windows, and transaction retries. You supply two HTTP services: one that returns the ground truth and one that computes the loss.
+This page runs a reputer on the [`allora-offchain-node`](https://github.com/allora-network/allora-offchain-node), which handles registration, staking, submission windows, and transaction retries. You supply two HTTP services: one that returns the ground truth and one that computes the loss. The [Python SDK](/consume/sdk-py) can run the same role in-process — see the callout in step 5.
 
 ## Goal
 
@@ -109,7 +109,7 @@ docker compose up --build
 On startup the node registers your reputer on each configured topic and tops your stake up to `minStake`. It then submits a loss bundle every epoch — reputer submission windows are one full topic epoch long.
 
 <Callout type="info">
-**Coming to the Python SDK.** As of `allora_sdk` <Version of="allora-sdk"/> (the latest release on PyPI), the SDK's `AlloraWorker` supports the inferer role only, so reputers run on the offchain node. A reputer mode is under development on the [`allora-sdk-py`](https://github.com/allora-network/allora-sdk-py) `dev` branch and is not yet released: `AlloraWorker.reputer(...)` will take a reputer function — built from a ground-truth function and a loss function via the `make_reputer_function(get_ground_truth, loss_fn)` helper — and automate the fetch–compute–submit cycle, including stake top-ups. It also ships default implementations of the loss methods used on the network: squared error (`sqe`/`mse`), absolute error (`abse`/`mae`), Huber (`huber`), log-cosh (`logcosh`), binary cross-entropy (`bce`), Poisson (`poisson`), and the z-transformed variants `ztae` and `zptae` (which require the standard deviation of historical values). This page will be updated when SDK reputer support is published.
+**Also in the Python SDK.** As of `allora_sdk` <Version of="allora-sdk"/> (the latest release on PyPI), `AlloraWorker.reputer(...)` runs the reputer role in-process, with no offchain node or HTTP services: it takes a reputer function — built from a ground-truth function and a loss function via the `make_reputer_function(get_ground_truth, loss_fn)` helper — and automates the fetch–compute–submit cycle, with an optional self-stake top-up to `min_stake_uallo` after each submission. The SDK ships default implementations of the loss methods used on the network: squared error (`sqe`/`mse`), absolute error (`abse`/`mae`), Huber (`huber`), log-cosh (`logcosh`), binary cross-entropy (`bce`), Poisson (`poisson`), and the z-transformed variants `ztae` and `zptae` (parameterized via `make_ztae_loss`/`make_zptae_loss` with the standard deviation of historical values).
 </Callout>
 
 ## Verify
@@ -136,5 +136,5 @@ allorad q emissions stake-in-topic-reputer [address] [topic_id] --node https://a
 - Manage your stake: [Set and Adjust Stake](/build/reputer/set-and-adjust-stake)
 - Query reputer data with `allorad`: [How to Query Reputer Data](/build/reputer/query-reputer-data)
 - Understand scoring and the active set: [query EMA scores with `allorad`](/build/worker/monitoring#5-query-ema-scores-with-allorad)
-- Running an inference worker too? The Python SDK supports workers today: [migrate a worker from the offchain node](/build/migrate-from-offchain-node)
+- Running an inference worker too? [Migrate a worker from the offchain node](/build/migrate-from-offchain-node)
 - Explore the Python SDK: [Allora Python SDK](/consume/sdk-py)

@@ -1,14 +1,14 @@
 import asyncio
 import os
 
-from allora_sdk import AlloraNetworkConfig, AlloraWorker
+from allora_sdk import AlloraNetworkConfig, AlloraWorker, RunContext
 
 from model import predict_price, train
 
 # Train once at startup (retrain and restart as often as you like)
 model = train()
 
-def run_model(nonce: int) -> float:
+def run_model(ctx: RunContext) -> float:
     prediction = predict_price(model)
     print(f"Predicted BTC/USD price in 24 hours: {prediction:,.2f}")
     return prediction

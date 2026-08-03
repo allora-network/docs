@@ -2,8 +2,8 @@
 title: Allora Python SDK
 description: Submit ML predictions with AlloraWorker, make typed chain queries with AlloraRPCClient, and read topics and inferences with AlloraAPIClient.
 persona: ML builder
-verified_against: allora_sdk 1.0.6 (latest release on PyPI), github.com/allora-network/allora-sdk-py
-last_reviewed: 2026-07-30
+verified_against: allora_sdk 1.3.0 (PyPI), github.com/allora-network/allora-sdk-py
+last_reviewed: 2026-08-03
 ---
 
 import { Callout } from 'nextra/components'
@@ -71,10 +71,10 @@ The worker then listens for the topic's submission windows and calls your `run_m
 ```python
 import os
 
-from allora_sdk import AlloraNetworkConfig, AlloraWorker, FeeTier
+from allora_sdk import AlloraNetworkConfig, AlloraWorker, FeeTier, RunContext
 from allora_sdk.rpc_client.config import AlloraWalletConfig
 
-def my_model(nonce: int) -> float:
+def my_model(ctx: RunContext) -> float:
     # Your ML model's prediction logic goes here
     return 123.45
 
@@ -152,16 +152,20 @@ client = AlloraRPCClient.from_env()
 Queries take typed protobuf request objects and return typed responses:
 
 ```python
+import asyncio
+
 from allora_sdk import AlloraRPCClient
-from allora_sdk.protos.cosmos.base.tendermint.v1beta1 import GetLatestBlockRequest
+from allora_sdk.rpc_client.protos.cosmos.base.tendermint.v1beta1 import GetLatestBlockRequest
 
-client = AlloraRPCClient.testnet()
+async def main():
+    client = AlloraRPCClient.testnet()
+    response = await client.tendermint.query.get_latest_block(GetLatestBlockRequest())
+    print(f"Current block height: {response.sdk_block.header.height}")
 
-response = client.tendermint.get_latest_block(GetLatestBlockRequest())
-print(f"Current block height: {response.sdk_block.header.height}")
+asyncio.run(main())
 ```
 
-Allora-specific queries live under `client.emissions.query` (topics, registrations, nonces, network inferences), with matching request/response types in the SDK's `protos` modules. When a wallet is configured, `client.emissions.tx` submits transactions such as worker registration (`register`) and inference submission (`insert_worker_payload`) — these are the same calls `AlloraWorker` makes for you.
+Allora-specific queries live under `client.emissions.query` (topics, registrations, nonces, network inferences), with matching request/response types in the SDK's `rpc_client.protos` modules. When a wallet is configured, `client.emissions.tx` submits transactions such as worker registration (`register`) and inference submission (`insert_worker_payload`) — these are the same calls `AlloraWorker` makes for you.
 
 ## AlloraAPIClient: topics and inferences over REST
 

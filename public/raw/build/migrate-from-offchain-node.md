@@ -2,8 +2,8 @@
 title: Migrate from the Offchain Node
 description: Move a worker off the deprecated allora-offchain-node + Model Development Kit stack onto the Allora Python SDK and the Forge Builder Kit.
 persona: ML builder running a legacy offchain-node worker
-verified_against: allora-offchain-node README + config.example.json (dev branch), allora_sdk 1.0.6 (latest release on PyPI), allora-forge-builder-kit README (main branch)
-last_reviewed: 2026-07-30
+verified_against: allora-offchain-node README + config.example.json (dev branch), allora_sdk 1.3.0 (PyPI), allora-forge-builder-kit README (main branch)
+last_reviewed: 2026-08-03
 ---
 
 # Migrate from the Offchain Node
@@ -25,7 +25,7 @@ Replace an `allora-offchain-node` worker with a Python SDK worker that keeps the
   - `worker[].topicId` for each topic you serve
 - An Allora API key — free at [developer.allora.network](https://developer.allora.network). On testnet, the worker uses it to request ALLO gas from the faucet automatically.
 
-The published SDK release (`allora_sdk` 1.0.6) supports **workers only**. The offchain node's `reputer` configuration (`groundTruthEntrypointName`, `lossFunctionEntrypointName`, `minStake`, ...) has no SDK equivalent yet — [reputers](https://docs.allora.network/build/reputer/deploy-docker) continue to run on the offchain node for now.
+The published SDK release (`allora_sdk` 1.3.0) also covers reputers: `AlloraWorker.reputer(...)` takes a reputer function built from your ground-truth and loss functions via `make_reputer_function(get_ground_truth, loss_fn)`, and `min_stake_uallo` replaces the offchain node's `minStake` — see [Build a Reputer](https://docs.allora.network/build/reputer/build-a-reputer). The offchain node also continues to run reputers.
 
 ## Steps
 
@@ -46,7 +46,7 @@ The offchain node was configured with a `config.json` (see `config.example.json`
 | `worker[].inferenceEntrypointName` + `worker[].parameters.InferenceEndpoint` / `Token` | `run=...` — your model is a Python function called in-process; there is no HTTP inference server to stand up |
 | Multiple entries in the `worker` array | One `AlloraWorker.inferer(...)` per topic — or let the Builder Kit's `WorkerManager` run one worker process per topic |
 | `init.config` + `docker compose up --build` | `python worker.py` |
-| `reputer[]` | Not yet available in the published SDK — keep the offchain node for reputers |
+| `reputer[]` | `AlloraWorker.reputer(...)` — `groundTruthEntrypointName` + `lossFunctionEntrypointName` become Python functions combined with `make_reputer_function(get_ground_truth, loss_fn)`, and `minStake` becomes `min_stake_uallo` — see [Build a Reputer](https://docs.allora.network/build/reputer/build-a-reputer) |
 
 ### 2. Rewrite the worker as a Python script
 
@@ -62,10 +62,10 @@ Save this as `worker.py`. The body of `run_model` is where the logic behind your
 import asyncio
 import os
 
-from allora_sdk import AlloraNetworkConfig, AlloraWorker
+from allora_sdk import AlloraNetworkConfig, AlloraWorker, RunContext
 from allora_sdk.rpc_client.config import AlloraWalletConfig
 
-async def run_model(nonce: int) -> float:
+async def run_model(ctx: RunContext) -> float:
     # The prediction logic your inference server exposed over HTTP goes here
     return 123.45
 
@@ -138,7 +138,7 @@ Then follow the repository's "Zero to deploy" walkthrough: train an example mode
 - **Worker prompts `Mnemonic:` on startup** — no wallet was configured and no `.allora_key` file exists yet. Paste your `wallet.addressRestoreMnemonic` to keep your old address, or press Enter to generate a fresh identity.
 - **`RuntimeError: asyncio.run() cannot be called from a running event loop`** — you are in a Jupyter/Colab notebook. Replace `asyncio.run(main())` with `await main()`.
 - **`Too many faucet requests`** — the testnet faucet is rate-limited. Your old worker wallet likely still holds ALLO; reuse it via `ALLORA_WALLET_MNEMONIC`, or request funds manually at [faucet.testnet.allora.network](https://faucet.testnet.allora.network).
-- **You run a reputer** — there is no SDK migration path yet; keep your `reputer` configuration on the offchain node.
+- **You run a reputer** — migrate it to `AlloraWorker.reputer(...)` ([Build a Reputer](https://docs.allora.network/build/reputer/build-a-reputer)), or keep your `reputer` configuration on the offchain node — it still runs reputers.
 - **Builder Kit worker fails to start** — faucet activity is logged, not printed: check `worker_logs/` for the subprocess output (faucet requests, balance checks, on-chain errors).
 
 ## Next

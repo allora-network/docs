@@ -2,8 +2,8 @@
 title: Deploy a worker in 10 minutes
 description: Run a Python inference worker that submits a live prediction to Allora's testnet sandbox topic.
 persona: ML builder
-verified_against: allora_sdk 1.0.6 (latest release on PyPI) on allora-testnet-1 (emissions/v10)
-last_reviewed: 2026-07-31
+verified_against: allora_sdk 1.3.0 (PyPI) on allora-testnet-1 (emissions/v10)
+last_reviewed: 2026-08-03
 ---
 
 # Deploy a worker in 10 minutes
@@ -49,10 +49,10 @@ value stands in for your model's prediction logic.
 import asyncio
 import os
 
-from allora_sdk import AlloraNetworkConfig, AlloraWorker
+from allora_sdk import AlloraNetworkConfig, AlloraWorker, RunContext
 
 
-async def run_model(nonce: int) -> float:
+async def run_model(ctx: RunContext) -> float:
     # Replace this with your model's prediction logic.
     return 123.45
 

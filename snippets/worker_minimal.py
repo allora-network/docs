@@ -1,9 +1,9 @@
 import asyncio
 import os
 
-from allora_sdk import AlloraNetworkConfig, AlloraWorker
+from allora_sdk import AlloraNetworkConfig, AlloraWorker, RunContext
 
-async def run_model(nonce: int) -> float:
+async def run_model(ctx: RunContext) -> float:
     return 123.45  # placeholder -- the real model replaces this in step 5
 
 async def main():
