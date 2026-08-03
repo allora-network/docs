@@ -453,6 +453,16 @@ html[class~='light'] .nextra-toc li a.nx-text-primary-600 {
   box-shadow: inset 2px 0 0 0 var(--allora-accent);
 }
 
+/* TOC sticky footer: the theme hardcodes a white fill + white glow shadow
+   (dark: #111) to fade scrolled content; on the token planes the white
+   version shows as a bright patch over the cream bg. Repaint with tokens. */
+html[class~='dark'] .nextra-toc .nx-sticky.nx-bottom-0,
+html[class~='light'] .nextra-toc .nx-sticky.nx-bottom-0 {
+  background-color: var(--allora-bg);
+  box-shadow: 0 -12px 16px var(--allora-bg);
+  border-top-color: var(--allora-border);
+}
+
 /* Footer links ("Give us feedback", "Edit this page"). */
 html[class~='dark'] .nextra-toc .nx-sticky.nx-bottom-0 a,
 html[class~='light'] .nextra-toc .nx-sticky.nx-bottom-0 a {
