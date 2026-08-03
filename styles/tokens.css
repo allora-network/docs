@@ -1,0 +1,248 @@
+/*
+ * Allora design tokens.
+ *
+ * Primitive values are extracted 1:1 from the Allora design system
+ * (Figma variable names noted inline). Semantic tokens map primitives to
+ * roles for the docs site.
+ *
+ * DARK-FIRST: `:root` carries the dark mapping. nextra-theme-docs v2 uses
+ * next-themes with the class strategy, so <html> gets class "dark" or
+ * "light". `html[class~="dark"]` shares the dark block so an explicit dark
+ * class always wins; `html[class~="light"]` overrides with the warm light
+ * mapping.
+ */
+
+/* ------------------------------------------------------------------ */
+/* Primitive tokens (mode-independent)                                */
+/* ------------------------------------------------------------------ */
+
+:root {
+  /* --- Color: accent ramp (Figma accent/*) --- */
+  --allora-accent-1: #ff6200;   /* accent/1 — THE brand orange */
+  --allora-accent-5: #fc7019;   /* accent/5 */
+  --allora-accent-10: #ff8827;  /* accent/10 */
+  --allora-accent-20: #ffa734;  /* accent/20 */
+  --allora-accent-30: #ffb950;  /* accent/30 */
+  --allora-accent-40: #ffcb63;  /* accent/40 */
+  --allora-accent-50: #ffd47f;  /* accent/50 */
+  --allora-accent-75: #ffdb93;  /* accent/75 */
+  --allora-accent-100: #ffe0a2; /* accent/100 */
+  --allora-accent-200: #ffe6b5; /* accent/200 */
+
+  /* --- Color: neutral ramp (Figma neutral/*) --- */
+  --allora-neutral-1: #101010;    /* neutral/1 */
+  --allora-neutral-5: #131313;    /* neutral/5 */
+  --allora-neutral-10: #161616;   /* neutral/10 */
+  --allora-neutral-20: #1c1c1c;   /* neutral/20 */
+  --allora-neutral-30: #252525;   /* neutral/30 */
+  --allora-neutral-40: #2b2b2b;   /* neutral/40 */
+  --allora-neutral-50: #303030;   /* neutral/50 */
+  --allora-neutral-75: #3c3c3c;   /* neutral/75 */
+  --allora-neutral-100: #4d4d4d;  /* neutral/100 */
+  --allora-neutral-200: #5d5d5d;  /* neutral/200 */
+  --allora-neutral-300: #767676;  /* neutral/300 */
+  --allora-neutral-400: #929292;  /* neutral/400 */
+  --allora-neutral-500: #b3b3b3;  /* neutral/500 */
+  --allora-neutral-600: #d7d7d7;  /* neutral/600 */
+  --allora-neutral-white: #ffffff; /* neutral/pure-white */
+
+  /* --- Color: earth ramp (Figma earth/*) --- */
+  --allora-earth-1: #130f0b;    /* earth/1 */
+  --allora-earth-5: #1b1611;    /* earth/5 */
+  --allora-earth-10: #231e18;   /* earth/10 */
+  --allora-earth-20: #2b251e;   /* earth/20 */
+  --allora-earth-30: #332c24;   /* earth/30 */
+  --allora-earth-40: #3c342b;   /* earth/40 */
+  --allora-earth-50: #433b31;   /* earth/50 */
+  --allora-earth-75: #4b4237;   /* earth/75 */
+  --allora-earth-100: #594e41;  /* earth/100 */
+  --allora-earth-200: #6f6151;  /* earth/200 */
+  --allora-earth-300: #827362;  /* earth/300 */
+  --allora-earth-400: #95836d;  /* earth/400 */
+  --allora-earth-500: #ab967e;  /* earth/500 */
+  --allora-earth-600: #bfa990;  /* earth/600 */
+  --allora-earth-700: #d9c2a8;  /* earth/700 */
+  --allora-earth-800: #e9d5be;  /* earth/800 */
+  --allora-earth-900: #eeddcb;  /* earth/900 */
+  --allora-earth-925: #f2e5d7;  /* earth/925 */
+  --allora-earth-950: #f5ece2;  /* earth/950 */
+  --allora-earth-975: #f9f4f0;  /* earth/975 */
+
+  /* --- Color: status (Figma semantic/*) --- */
+  --allora-success-default: #89c841; /* semantic/success/default */
+  --allora-success-hover: #b3f566;   /* semantic/success/hover */
+  --allora-success-overlay: #517726; /* semantic/success/overlay */
+  --allora-success-subtle: #2e4316;  /* semantic/success/subtle */
+  --allora-danger-default: #f55b5b;  /* semantic/danger/default */
+  --allora-danger-hover: #ff8080;    /* semantic/danger/hover */
+  --allora-danger-overlay: #a33636;  /* semantic/danger/overlay */
+  --allora-danger-subtle: #692323;   /* semantic/danger/subtle */
+  --allora-warning-default: #f2b600; /* semantic/warning/default */
+  --allora-warning-hover: #ffd044;   /* semantic/warning/hover */
+  --allora-warning-overlay: #a46a00; /* semantic/warning/overlay */
+  --allora-warning-subtle: #624000;  /* semantic/warning/subtle */
+  --allora-info-default: #61a6fa;    /* semantic/info/default */
+  --allora-info-hover: #87bdff;      /* semantic/info/hover */
+  --allora-info-overlay: #386092;    /* semantic/info/overlay */
+  --allora-info-subtle: #294566;     /* semantic/info/subtle */
+
+  /* --- Spacing (Figma spacing/*) --- */
+  --allora-space-xs: 0.5rem;    /* spacing/xsmall — 8px */
+  --allora-space-sm: 0.75rem;   /* spacing/small — 12px */
+  --allora-space-base: 1rem;    /* spacing/base — 16px */
+  --allora-space-md: 1.25rem;   /* spacing/medium — 20px */
+  --allora-space-lg: 1.5rem;    /* spacing/large — 24px */
+  --allora-space-xl: 2rem;      /* spacing/xlarge — 32px */
+  --allora-space-2xl: 3rem;     /* spacing/2xlarge — 48px */
+  --allora-space-3xl: 4rem;     /* spacing/3xlarge — 64px */
+  --allora-space-4xl: 5rem;     /* spacing/4xlarge — 80px */
+  --allora-space-5xl: 6rem;     /* spacing/5xlarge — 96px */
+  --allora-space-6xl: 8rem;     /* spacing/6xlarge — 128px */
+
+  /* --- Radius (Figma radius/*) --- */
+  --allora-radius-hairline: 2px; /* radius/hairline */
+  --allora-radius-xs: 4px;       /* radius/xs */
+  --allora-radius-sm: 6px;       /* radius/sm */
+  --allora-radius-md: 9px;       /* radius/md */
+  --allora-radius-lg: 13px;      /* radius/lg */
+  --allora-radius-xl: 18px;      /* radius/xl */
+  --allora-radius-2xl: 24px;     /* radius/2xl */
+  --allora-radius-3xl: 32px;     /* radius/3xl */
+  --allora-radius-full: 999px;   /* radius/full */
+
+  /* --- Type scale: sizes (Figma font size tokens) --- */
+  --allora-text-4xs: 0.625rem;  /* 10px */
+  --allora-text-3xs: 0.6875rem; /* 11px */
+  --allora-text-2xs: 0.75rem;   /* 12px */
+  --allora-text-xs: 0.875rem;   /* 14px */
+  --allora-text-sm: 1rem;       /* 16px */
+  --allora-text-md: 1.125rem;   /* 18px */
+  --allora-text-lg: 1.25rem;    /* 20px */
+  --allora-text-xl: 1.5rem;     /* 24px */
+  --allora-text-2xl: 1.75rem;   /* 28px */
+  --allora-text-3xl: 2.25rem;   /* 36px */
+  --allora-text-4xl: 3rem;      /* 48px */
+  --allora-text-5xl: 3.5rem;    /* 56px */
+  --allora-text-6xl: 4rem;      /* 64px */
+  --allora-text-8xl: 5.75rem;   /* 92px */
+
+  /* --- Type scale: line heights (paired with sizes above) --- */
+  --allora-leading-4xs: 0.8125rem; /* 13px */
+  --allora-leading-3xs: 0.9375rem; /* 15px */
+  --allora-leading-2xs: 1.0625rem; /* 17px */
+  --allora-leading-xs: 1.1875rem;  /* 19px */
+  --allora-leading-sm: 1.3125rem;  /* 21px */
+  --allora-leading-md: 1.4375rem;  /* 23px */
+  --allora-leading-lg: 1.6875rem;  /* 27px */
+  --allora-leading-xl: 1.9375rem;  /* 31px */
+  --allora-leading-2xl: 2.1875rem; /* 35px */
+  --allora-leading-3xl: 2.8125rem; /* 45px */
+  --allora-leading-4xl: 3.3125rem; /* 53px */
+  --allora-leading-5xl: 3.8125rem; /* 61px */
+  --allora-leading-6xl: 4.3125rem; /* 69px */
+  --allora-leading-8xl: 6.0625rem; /* 97px */
+
+  /* --- Type scale: letter spacing (unit interpreted as %, emitted as em) --- */
+  --allora-tracking-full: 0;
+  --allora-tracking-4xl: -0.005em; /* -0.5% */
+  --allora-tracking-3xl: -0.01em;  /* -1% */
+  --allora-tracking-2xl: -0.015em; /* -1.5% */
+  --allora-tracking-xl: -0.02em;   /* -2% */
+  --allora-tracking-sm: -0.025em;  /* -2.5% */
+  --allora-tracking-xs: -0.03em;   /* -3% */
+  --allora-tracking-2xs: -0.035em; /* -3.5% */
+
+  /* --- Font weights (Figma weights) --- */
+  --allora-weight-regular: 400;
+  --allora-weight-medium: 500;
+  --allora-weight-semibold: 600;
+
+  /* --- Font stacks --- */
+  --allora-font-title: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --allora-font-body: 'InterVariable', 'Inter', -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --allora-font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo,
+    Consolas, 'Liberation Mono', monospace;
+}
+
+/* ------------------------------------------------------------------ */
+/* Semantic tokens — DARK (default) and explicit html.dark            */
+/* ------------------------------------------------------------------ */
+
+:root,
+html[class~='dark'] {
+  --allora-bg: var(--allora-neutral-1);              /* near-black page bg */
+  --allora-surface: var(--allora-neutral-10);        /* cards, code blocks */
+  --allora-surface-raised: var(--allora-neutral-20); /* popovers, hovers */
+  --allora-text: var(--allora-earth-975);            /* warm off-white */
+  --allora-text-muted: var(--allora-neutral-500);
+  --allora-accent: var(--allora-accent-1);           /* brand orange */
+  --allora-accent-contrast: var(--allora-neutral-1); /* dark text on orange */
+  /* Accent used as TEXT/outline on the page plane. Dark: pure accent
+     (#ff6200 on neutral-1 = 6.34:1, AA). */
+  --allora-accent-ink: var(--allora-accent);
+  --allora-border: var(--allora-neutral-50);
+  --allora-border-strong: var(--allora-neutral-200);
+  --allora-success: var(--allora-success-default);
+  --allora-warn: var(--allora-warning-default);
+  --allora-error: var(--allora-danger-default);
+  --allora-info: var(--allora-info-default);
+}
+
+/* ------------------------------------------------------------------ */
+/* Semantic tokens — LIGHT (warm earth cream, not pure white)         */
+/* ------------------------------------------------------------------ */
+
+html[class~='light'] {
+  --allora-bg: var(--allora-earth-975);             /* warm cream page bg */
+  --allora-surface: var(--allora-earth-950);
+  --allora-surface-raised: var(--allora-neutral-white);
+  --allora-text: var(--allora-earth-1);             /* warm near-black */
+  --allora-text-muted: var(--allora-earth-200);
+  --allora-accent: var(--allora-accent-1);
+  --allora-accent-contrast: var(--allora-neutral-1);
+  /* DERIVED: pure accent on the light plane is only ~2.7:1. Darkened by
+     mixing 30% earth-1 into the accent → resolves ~#b84903: 4.85:1 on
+     earth-975, 5.25:1 on white — AA for normal text and non-text marks.
+     Solid accent FILLS keep the pure token. */
+  --allora-accent-ink: color-mix(
+    in srgb,
+    var(--allora-accent) 70%,
+    var(--allora-earth-1)
+  );
+  --allora-border: var(--allora-earth-800);
+  --allora-border-strong: var(--allora-earth-400);
+  --allora-success: var(--allora-success-default);
+  --allora-warn: var(--allora-warning-default);
+  --allora-error: var(--allora-danger-default);
+  --allora-info: var(--allora-info-default);
+}
+
+/* ------------------------------------------------------------------ */
+/* Minimal global consumption (kept deliberately small)               */
+/* ------------------------------------------------------------------ */
+
+::selection {
+  background: var(--allora-accent);
+  color: var(--allora-accent-contrast);
+}
+
+:focus-visible {
+  /* accent-ink, not accent: the pure orange ring is ~2.7:1 on the light
+     plane, below the 3:1 non-text minimum; the ink passes in both modes. */
+  outline: 2px solid var(--allora-accent-ink);
+  outline-offset: 2px;
+}
+
+/* The page plane carries --allora-bg in both modes. The theme's own body
+   fills (white / #111) leave the light content column white while the
+   sidebar sits on warm cream — navigation.css relies on the rail being
+   flush with the page plane. Mode-scoped to beat the theme's dark: rule. */
+html[class~='dark'][class] body,
+html[class~='light'][class] body {
+  /* The doubled [class] lifts specificity to (0,2,2): the theme paints
+     body via `:is(html[class~=dark] body)` at (0,1,2), which ties a plain
+     mode-scoped rule and wins on bundle order, keeping the dark plane on
+     #111 instead of neutral-1. (body itself carries no class attribute.) */
+  background-color: var(--allora-bg);
+}

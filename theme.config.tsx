@@ -1,9 +1,9 @@
-// theme.config.tsx 
+// theme.config.tsx
 import React from 'react'
 import { useRouter } from 'next/router'
-import Link from 'next/link'
 import { DocsThemeConfig, useConfig } from 'nextra-theme-docs'
 import AiButton from './components/AiButton.js'
+import AlloraLogo from './components/AlloraLogo.jsx'
 
 const config: DocsThemeConfig = {
   useNextSeoProps() {
@@ -15,23 +15,15 @@ const config: DocsThemeConfig = {
     }
   },
   docsRepositoryBase: 'https://github.com/allora-network/docs',
-  logo: () => {
-    return (
-      <>
-        <svg width="140" height="52" viewBox="0 0 1000 367">
-          <path d="M333.119 211.64C335.611 203.274 336.969 194.408 336.969 185.227C336.969 18M636.634 248.469C629.346 248.469 622.822 247.293 617.062 244.942C611.419 76 776.518 220.962C776.518 223.195 777.165 225.076 778.458 226.604C779.751 228.132 781.279 229.367 783.042 230.307C784.923 231.13 786.922 231.718 789.037 232.07C791.271 232.423 793.269 232.599 795.032 232.599C797.266 232.599 799.676 232.305 802.262 231.718C804.848 231.13 807.258 230.131 809.491 228.72C811.842 227.31 813.782 225.546 815.31 223.43C816.838 221.197 817.602 218.493 817.602 215.32V200.332Z" fill="currentColor" />
-        </svg>
-      </>
-    )
-  },
+  logo: AlloraLogo,
   logoLink: "/",
   head: function useHead() {
     const { title } = useConfig()
-    const socialCard = '/allora-link-preview'
+    const socialCard = 'https://docs.allora.network/allora-link-preview.png'
     return (
       <>
-        <meta name="msapplication-TileColor" content="#fff" />
-        <meta name="theme-color" content="#fff" />
+        <meta name="msapplication-TileColor" content="#101010" />
+        <meta name="theme-color" content="#101010" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta httpEquiv="Content-Language" content="en" />
         <meta
@@ -57,8 +49,15 @@ const config: DocsThemeConfig = {
       </>
     )
   },
-  primaryHue: { dark: 144.71, light: 145.41 },
-  primarySaturation: { dark: 75.56, light: 55.78 },
+  // Brand accent: --allora-accent-1 #ff6200 == hsl(23.06deg 100% 50%).
+  // Same orange in both modes, so scalar values cover dark and light.
+  primaryHue: 23.06,
+  primarySaturation: 100,
+  // Dark-first: next-themes defaults to dark on first visit; the toggle
+  // still switches to light and persists via localStorage.
+  nextThemes: {
+    defaultTheme: 'dark',
+  },
   project: {
     link: 'https://github.com/allora-network'
   },
@@ -74,10 +73,10 @@ const config: DocsThemeConfig = {
             display: "flex",
             flexWrap: "wrap",
             justifyContent: "center",
-            gap: "1.5rem",
-            padding: "1.5rem 1rem",
-            fontSize: "0.875rem",
-            opacity: 0.8,
+            gap: "var(--allora-space-lg)",
+            padding: "var(--allora-space-lg) var(--allora-space-base)",
+            fontSize: "var(--allora-text-xs)",
+            color: "var(--allora-text-muted)",
           }}
         >
           <a href="https://github.com/allora-network/docs/blob/main/CONTRIBUTING.md" target="_blank" rel="noreferrer">
@@ -102,8 +101,8 @@ const config: DocsThemeConfig = {
         <div
           style={{
             position: "fixed",
-            right: "20px",
-            bottom: "20px",
+            right: "var(--allora-space-md)",
+            bottom: "var(--allora-space-md)",
             zIndex: 1000,
           }}
         >
@@ -115,7 +114,7 @@ const config: DocsThemeConfig = {
   sidebar: {
     autoCollapse: true,
   },
- 
+
 }
 
 export default config;
