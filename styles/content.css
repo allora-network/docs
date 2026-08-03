@@ -132,16 +132,11 @@ html[class~='light'] .nextra-code-block > .nx-truncate {
   border-top-right-radius: var(--allora-radius-md);
 }
 
-/* Copy / word-wrap buttons: visible at rest, full strength on interaction. */
+/* Copy / word-wrap buttons: fully opaque at rest — the resting state is the
+   AA-safe muted button color, not an opacity dim (0.6 dropped the light-mode
+   icon below 3:1). */
 html[class~='dark'] .nextra-code-block > .nx-opacity-0,
 html[class~='light'] .nextra-code-block > .nx-opacity-0 {
-  opacity: 0.6;
-}
-
-html[class~='dark'] .nextra-code-block:hover > .nx-opacity-0,
-html[class~='light'] .nextra-code-block:hover > .nx-opacity-0,
-html[class~='dark'] .nextra-code-block > .nx-opacity-0:focus-within,
-html[class~='light'] .nextra-code-block > .nx-opacity-0:focus-within {
   opacity: 1;
 }
 
@@ -226,6 +221,11 @@ html[class~='dark'] .nextra-callout.nx-border-orange-100 > div:first-child {
 html[class~='light'] .nextra-callout.nx-border-orange-100 > div:first-child {
   color: var(--allora-accent-ink);
 }
+/* Light status rule matches the icon ink: the vivid defaults are <3:1 on
+   the cream plane, so the 3px indicator would not be perceivable. */
+html[class~='light'] .nextra-callout.nx-border-orange-100 {
+  border-left-color: var(--allora-accent-ink);
+}
 
 /* info → --allora-info */
 html[class~='dark'] .nextra-callout.nx-border-blue-200 {
@@ -245,6 +245,9 @@ html[class~='dark'] .nextra-callout.nx-border-blue-200 > div:first-child {
 }
 html[class~='light'] .nextra-callout.nx-border-blue-200 > div:first-child {
   color: var(--allora-info-overlay);
+}
+html[class~='light'] .nextra-callout.nx-border-blue-200 {
+  border-left-color: var(--allora-info-overlay);
 }
 
 /* warning → --allora-warn */
@@ -266,6 +269,9 @@ html[class~='dark'] .nextra-callout.nx-border-yellow-100 > div:first-child {
 html[class~='light'] .nextra-callout.nx-border-yellow-100 > div:first-child {
   color: var(--allora-warning-overlay);
 }
+html[class~='light'] .nextra-callout.nx-border-yellow-100 {
+  border-left-color: var(--allora-warning-overlay);
+}
 
 /* error → --allora-error */
 html[class~='dark'] .nextra-callout.nx-border-red-200 {
@@ -285,6 +291,9 @@ html[class~='dark'] .nextra-callout.nx-border-red-200 > div:first-child {
 }
 html[class~='light'] .nextra-callout.nx-border-red-200 > div:first-child {
   color: var(--allora-danger-overlay);
+}
+html[class~='light'] .nextra-callout.nx-border-red-200 {
+  border-left-color: var(--allora-danger-overlay);
 }
 
 /* ------------------------------------------------------------------ */
@@ -314,7 +323,7 @@ html[class~='light'] .nextra-cards .nextra-card:hover > span {
   color: var(--allora-text);
   font-family: var(--allora-font-mono);
   font-size: var(--allora-text-xs);
-  font-weight: var(--allora-weight-medium);
+  font-weight: var(--allora-weight-semibold); /* Mono M2/M3 are 600; no 500 face exists */
 }
 
 /* Hover arrow → accent ink (AA-safe on the light card surface). */
@@ -349,7 +358,7 @@ html[class~='light'] article.nextra-content th {
   color: var(--allora-earth-600);
   font-family: var(--allora-font-mono);
   font-size: var(--allora-text-2xs);
-  font-weight: var(--allora-weight-medium);
+  font-weight: var(--allora-weight-semibold); /* Mono M2/M3 are 600; no 500 face exists */
   text-transform: uppercase;
   letter-spacing: 0.06em;
   text-align: left;
@@ -415,7 +424,7 @@ html[class~='light'] article.nextra-content [role='tab'] {
   color: var(--allora-text-muted);
   font-family: var(--allora-font-mono);
   font-size: var(--allora-text-2xs);
-  font-weight: var(--allora-weight-medium);
+  font-weight: var(--allora-weight-semibold); /* Mono M2/M3 are 600; no 500 face exists */
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }

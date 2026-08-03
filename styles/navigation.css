@@ -176,7 +176,7 @@ html[class~='light'] aside.nextra-sidebar-container {
   font-family: var(--allora-font-mono);
   font-size: var(--allora-text-2xs);
   line-height: var(--allora-leading-2xs);
-  font-weight: var(--allora-weight-medium);
+  font-weight: var(--allora-weight-semibold); /* Mono M2/M3 are 600; no 500 face exists */
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--allora-nav-accent-ink);
@@ -188,7 +188,7 @@ html[class~='light'] aside.nextra-sidebar-container {
   font-family: var(--allora-font-mono);
   font-size: var(--allora-text-2xs);
   line-height: var(--allora-leading-2xs);
-  font-weight: var(--allora-weight-medium);
+  font-weight: var(--allora-weight-semibold); /* Mono M2/M3 are 600; no 500 face exists */
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--allora-nav-accent-ink);
@@ -247,6 +247,7 @@ html[class~='dark'] .nextra-sidebar-container > div.nx-sticky button,
 html[class~='light'] .nextra-sidebar-container > div.nx-sticky button {
   color: var(--allora-text-muted);
   font-family: var(--allora-font-mono);
+  font-weight: var(--allora-weight-semibold); /* theme's 500 has no mono face */
   border-radius: var(--allora-radius-sm);
 }
 
@@ -256,9 +257,12 @@ html[class~='light'] .nextra-sidebar-container > div.nx-sticky button:hover {
   color: var(--allora-text);
 }
 
-/* Theme-toggle dropdown (headlessui listbox). */
-html[class~='dark'] .nextra-sidebar-container ul[role='listbox'],
-html[class~='light'] .nextra-sidebar-container ul[role='listbox'] {
+/* Theme-toggle dropdown (headlessui listbox). The theme portals the open
+   Listbox.Options to document.body, so these rules must NOT be scoped to
+   .nextra-sidebar-container. Direct-child-of-body keeps them away from the
+   search results list (which lives inside .nextra-search). */
+html[class~='dark'] body > ul[role='listbox'],
+html[class~='light'] body > ul[role='listbox'] {
   background-color: var(--allora-surface-raised);
   border: 1px solid var(--allora-border);
   border-radius: var(--allora-radius-sm);
@@ -266,16 +270,21 @@ html[class~='light'] .nextra-sidebar-container ul[role='listbox'] {
   font-family: var(--allora-font-mono);
 }
 
-html[class~='dark'] .nextra-sidebar-container ul[role='listbox'] li,
-html[class~='light'] .nextra-sidebar-container ul[role='listbox'] li {
+html[class~='dark'] body > ul[role='listbox'] li,
+html[class~='light'] body > ul[role='listbox'] li {
   color: var(--allora-text-muted);
 }
 
-/* Hover/selected option (headlessui sets data-headlessui-state). */
-html[class~='dark'] .nextra-sidebar-container ul[role='listbox'] li[data-headlessui-state*='active'],
-html[class~='light'] .nextra-sidebar-container ul[role='listbox'] li[data-headlessui-state*='active'],
-html[class~='dark'] .nextra-sidebar-container ul[role='listbox'] li[data-headlessui-state*='selected'],
-html[class~='light'] .nextra-sidebar-container ul[role='listbox'] li[data-headlessui-state*='selected'] {
+/* Hover/selected option. headlessui only stamps data-headlessui-state on
+   pointer/keyboard movement, so cover aria-selected and :hover too. */
+html[class~='dark'] body > ul[role='listbox'] li[data-headlessui-state*='active'],
+html[class~='light'] body > ul[role='listbox'] li[data-headlessui-state*='active'],
+html[class~='dark'] body > ul[role='listbox'] li[data-headlessui-state*='selected'],
+html[class~='light'] body > ul[role='listbox'] li[data-headlessui-state*='selected'],
+html[class~='dark'] body > ul[role='listbox'] li[aria-selected='true'],
+html[class~='light'] body > ul[role='listbox'] li[aria-selected='true'],
+html[class~='dark'] body > ul[role='listbox'] li:hover,
+html[class~='light'] body > ul[role='listbox'] li:hover {
   background-color: var(--allora-accent);
   color: var(--allora-accent-contrast);
 }
@@ -283,6 +292,18 @@ html[class~='light'] .nextra-sidebar-container ul[role='listbox'] li[data-headle
 /* ------------------------------------------------------------------ */
 /* Navbar                                                             */
 /* ------------------------------------------------------------------ */
+
+/* Logo lockup variant swap (components/AlloraLogo.jsx renders both).
+   Dark is the default so the no-class SSR frame never shows both. */
+img.allora-logo-light {
+  display: none;
+}
+html[class~='light'] img.allora-logo-light {
+  display: block;
+}
+html[class~='light'] img.allora-logo-dark {
+  display: none;
+}
 
 /* Orange accent line across the very top of the viewport. The container is
    sticky (positioned), so the absolute pseudo pins to it. */
@@ -431,7 +452,7 @@ html[class~='light'] .nextra-search ul.nextra-scrollbar li[class*='nx-bg-primary
   font-family: var(--allora-font-mono);
   font-size: var(--allora-text-2xs);
   line-height: var(--allora-leading-2xs);
-  font-weight: var(--allora-weight-medium);
+  font-weight: var(--allora-weight-semibold); /* Mono M2/M3 are 600; no 500 face exists */
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--allora-nav-accent-ink);
@@ -448,12 +469,11 @@ html[class~='light'] .nextra-toc li a:hover {
   color: var(--allora-text);
 }
 
-/* Active heading: orange ink + 2px accent marker on the rail edge (inset
-   shadow: no layout shift). The theme adds nx-text-primary-600 client-side. */
+/* Active heading: orange ink only — no edge marker, per design review.
+   The theme adds nx-text-primary-600 client-side. */
 html[class~='dark'] .nextra-toc li a.nx-text-primary-600,
 html[class~='light'] .nextra-toc li a.nx-text-primary-600 {
   color: var(--allora-nav-accent-ink);
-  box-shadow: inset 2px 0 0 0 var(--allora-accent);
 }
 
 /* TOC sticky footer: the theme hardcodes a white fill + white glow shadow
