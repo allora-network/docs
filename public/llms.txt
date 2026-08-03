@@ -45,8 +45,6 @@ Every page below is live at https://docs.allora.network/. The full text of all o
 - [Allora Python SDK](https://docs.allora.network/consume/sdk-py): Submit ML predictions with AlloraWorker, make typed chain queries with AlloraRPCClient, and read topics and inferences with AlloraAPIClient.
 - [Allora Go SDK](https://docs.allora.network/consume/sdk-go): Read topics, inferences, and market data over the Allora API, and make typed chain queries with load balancing and failover, from Go.
 - [Accessing Allora Data Through RPC](https://docs.allora.network/consume/rpc-grpc): In addition to the Allora API, you can also access Allora network data directly through RPC (Remote Procedure Call) endpoints.
-- [Ecosystem Integrations](https://docs.allora.network/consume/integrations): Third-party agent frameworks with maintained Allora plugins for consuming inferences.
-- [GOAT SDK Allora Plugin](https://docs.allora.network/consume/integrations/goat-sdk): Add an Allora price-prediction tool to GOAT-powered on-chain agents with @goat-sdk/plugin-allora.
 
 ## Operate the Network
 

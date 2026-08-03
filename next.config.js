@@ -122,9 +122,13 @@ const exactRedirects = {
   '/learn/layers/consensus/total-rewards': '/learn/consensus-and-rewards#total-rewards',
   '/home/layers/consensus/total-rewards': '/learn/consensus-and-rewards#total-rewards',
 
+  // ── Ecosystem Integrations section removed ──
+  '/consume/integrations': '/consume/overview',
+  '/consume/integrations/goat-sdk': '/consume/overview',
+
   // ── /marketplace → Consume Inference ──
-  '/marketplace': '/consume/integrations',
-  '/marketplace/explore': '/consume/integrations',
+  '/marketplace': '/consume/overview',
+  '/marketplace/explore': '/consume/overview',
 
   // ── /community → repo CONTRIBUTING ──
   '/community': 'https://github.com/allora-network/docs/blob/main/CONTRIBUTING.md',
@@ -133,19 +137,18 @@ const exactRedirects = {
 };
 
 const treeRedirects = [
-  // Eliza-OS integration removed (upstream no longer ships the plugin); these
-  // must precede the slug-preserving /marketplace/integrations rule so old
-  // Eliza URLs reach their final destination in a single hop.
-  { source: '/consume/integrations/eliza-os/:path*', destination: '/consume/integrations', permanent },
-  { source: '/marketplace/integrations/eliza-os/:path*', destination: '/consume/integrations', permanent },
+  // Ecosystem Integrations section removed entirely; everything under it (and
+  // the old /marketplace/integrations tree that used to map onto it, including
+  // the earlier-removed Eliza-OS pages) lands on the Consume overview in one hop.
+  { source: '/consume/integrations/:path*', destination: '/consume/overview', permanent },
+  { source: '/marketplace/integrations/:path*', destination: '/consume/overview', permanent },
   // Slug-preserving subtree moves.
   { source: '/devs/reference/:path*', destination: '/reference/:path*', permanent },
   { source: '/devs/validators/:path*', destination: '/operate/validators/:path*', permanent },
-  { source: '/marketplace/integrations/:path*', destination: '/consume/integrations/:path*', permanent },
   { source: '/home/:path*', destination: '/learn/:path*', permanent },
   // Backstops: anything else under the removed trees lands somewhere useful.
   { source: '/devs/:path*', destination: '/get-started', permanent },
-  { source: '/marketplace/:path*', destination: '/consume/integrations', permanent },
+  { source: '/marketplace/:path*', destination: '/consume/overview', permanent },
   { source: '/community/:path*', destination: 'https://github.com/allora-network/docs/blob/main/CONTRIBUTING.md', permanent },
 ];
 
