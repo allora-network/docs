@@ -1,0 +1,59 @@
+/*
+ * Self-hosted web fonts for the Allora docs.
+ *
+ * - Inter v4.1 (variable) — https://github.com/rsms/inter — SIL OFL 1.1
+ *   (license: /fonts/OFL-Inter.txt)
+ * - JetBrains Mono v2.304 (static instances; the official release ships no
+ *   variable woff2) — https://github.com/JetBrains/JetBrainsMono — SIL OFL 1.1
+ *   (license: /fonts/OFL-JetBrainsMono.txt)
+ *
+ * The title face (Helvetica Neue) is a system stack — no files shipped.
+ */
+
+@font-face {
+  font-family: 'InterVariable';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/InterVariable.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'InterVariable';
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/InterVariable-Italic.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/JetBrainsMono-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/JetBrainsMono-Italic.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/JetBrainsMono-SemiBold.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/JetBrainsMono-Bold.woff2') format('woff2');
+}
