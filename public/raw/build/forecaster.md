@@ -1,28 +1,28 @@
 ---
 title: Build and Deploy a Forecaster
-description: What forecasters do on Allora, and how to submit forecasted losses to a topic with the published Python SDK's RPC client.
+description: What forecasters do on Allora, and how to submit forecasted losses to a topic with the Python SDK's AlloraWorker.forecaster.
 persona: ML builder
-verified_against: allora_sdk 1.0.6 (latest release on PyPI) + allora-network/allora-sdk-py dev branch
-last_reviewed: 2026-07-30
+verified_against: allora_sdk 1.3.0 (PyPI)
+last_reviewed: 2026-08-03
 ---
 
 # Build and Deploy a Forecaster
 
 A **forecaster** is a worker that predicts how accurate other workers' inferences will be, instead of (or in addition to) answering the topic's question itself. For each inferer, it submits a **forecasted loss** — an estimate of the error that inferer's inference will show against the eventual ground truth. The network turns forecasted losses into [regrets and weights](https://docs.allora.network/learn/inference-synthesis#forecast) and combines them into [forecast-implied inferences](https://docs.allora.network/learn/inference-synthesis#forecast-implied-inferences), making the network inference [context-aware](https://docs.allora.network/learn/inference-synthesis#context-awareness) — better than any individual model's output. [Forecast and Synthesis](https://docs.allora.network/learn/inference-synthesis) explains the mechanism end to end.
 
-**Standalone forecaster tooling is not published yet.** The high-level [`AlloraWorker`](https://docs.allora.network/consume/sdk-py) in the current Python SDK release (`allora_sdk` 1.0.6) automates the **inferer** role only; first-class forecaster support is in development on the SDK's public [dev branch](https://github.com/allora-network/allora-sdk-py/tree/dev) for an upcoming release. If you want to participate on Allora today, the smoothest path is running an inference worker — see [build a worker with the Python SDK](https://docs.allora.network/build/worker/sdk-py).
-
-That said, forecast submission itself **is** available in the published SDK through its lower-level RPC client: `client.emissions.tx.insert_worker_payload()` accepts a `forecast_elements` parameter — the same transaction the upcoming forecaster tooling drives. The steps below use that published surface.
+The forecaster role has the same first-class tooling as the inferer: [`AlloraWorker.forecaster(...)`](https://docs.allora.network/consume/sdk-py) (`allora_sdk` 1.3.0) handles wallet creation, testnet faucet funding, registration, submission windows, and transaction submission — you supply one Python function that returns your forecasted losses.
 
 ## Goal
 
-Register a worker on an Allora testnet topic and submit a forecast — predicted losses for the topic's active inferers — using the published Python SDK ([`allora_sdk`](https://pypi.org/project/allora-sdk/)).
+Register a worker on an Allora testnet topic and submit a forecast — predicted losses for the topic's active inferers — with the Python SDK's ([`allora_sdk`](https://pypi.org/project/allora-sdk/)) `AlloraWorker.forecaster`.
 
 ## Prerequisites
 
 - Python 3.10–3.13
-- A wallet mnemonic whose `allo...` address holds a small amount of ALLO for gas. On testnet, request funds from [faucet.testnet.allora.network](https://faucet.testnet.allora.network). If you already ran an [inference worker](https://docs.allora.network/consume/sdk-py), you can reuse the mnemonic it saved to its `.allora_key` file.
+- An Allora API key — get one for free at [developer.allora.network](https://developer.allora.network). On testnet, the worker uses it to automatically request ALLO gas from the faucet.
 - A topic with active inferers to forecast on. The example uses [Allora's testnet sandbox topic (ID 69)](https://testnet.explorer.allora.network/topics/69); browse [existing topics](https://docs.allora.network/build/forge/topics) for others.
+
+If you already ran an [inference worker](https://docs.allora.network/build/worker/sdk-py) in the same directory, the forecaster reuses the identity saved in its `.allora_key` file; otherwise it creates one on first run.
 
 ## Steps
 
@@ -32,117 +32,56 @@ Register a worker on an Allora testnet topic and submit a forecast — predicted
 pip install allora_sdk
 ```
 
-### 2. Understand the payload
+### 2. Understand the forecast function
 
-`client.emissions.tx.insert_worker_payload()` submits one worker payload per epoch. Alongside the required `inference_value` — your own answer to the topic's question — the payload can carry `forecast_elements`, one entry per inferer whose accuracy you are predicting:
+`AlloraWorker.forecaster(...)` takes a `run` function that returns one predicted loss per inferer, as a dict keyed by the inferer's `allo...` address:
 
 ```python
-forecast_elements = [
-    {"inferer": "allo1...", "value": "0.05"},  # your predicted loss for this inferer
-]
+{"allo1...": 0.05}  # your predicted loss for this inferer, this epoch
 ```
 
-Both fields are strings: the inferer's `allo...` address and your forecasted loss for its inference in the current epoch. Because `inference_value` is required, a forecaster built on the published SDK always infers *and* forecasts — a combination the network explicitly supports ([some workers do both](https://docs.allora.network/learn/inference-synthesis#losses)).
+The SDK converts the dict into the chain's `forecast_elements` format and submits it as a worker payload — the same `insert_worker_payload` transaction inferers send, with the forecast in place of an inference. A worker payload can also carry both at once — a combination the network explicitly supports ([some workers do both](https://docs.allora.network/learn/inference-synthesis#losses)) — by calling the lower-level `client.emissions.tx.insert_worker_payload()` with `inference_value` and `forecast_elements` together.
 
 ### 3. Write the forecaster
 
-Save this as `forecaster.py`, replacing the bodies of `forecast_losses` and `my_inference` with your models:
+Save this as `forecaster.py`, replacing the model logic in `forecast_losses` with your own. The function receives a [`RunContext`](https://docs.allora.network/build/worker/sdk-py) — the submission window's `nonce`, the `topic_id`, and an RPC `client` — and uses the client to look up the topic's current inferers:
 
 ```python
 import asyncio
 import os
 
-from allora_sdk import AlloraRPCClient, FeeTier
-from allora_sdk.protos.emissions.v9 import (
-    CanSubmitWorkerPayloadRequest,
-    GetForecastsAtBlockRequest,
-    GetLatestNetworkInferencesRequest,
-    GetUnfulfilledWorkerNoncesRequest,
-    IsWorkerRegisteredInTopicIdRequest,
-)
-from allora_sdk.rpc_client.config import AlloraWalletConfig
+from allora_sdk import AlloraNetworkConfig, AlloraWorker, RunContext
+from allora_sdk.rpc_client.protos.emissions.v10 import GetLatestNetworkInferencesRequest
 
 TOPIC_ID = 69
-POLL_SECONDS = 120
 
 
-def forecast_losses(inferer_addresses: list[str], nonce: int) -> dict[str, float]:
+async def forecast_losses(ctx: RunContext) -> dict[str, float]:
+    # Find the inferers whose accuracy you are forecasting
+    latest = await ctx.client.emissions.query.get_latest_network_inferences(
+        GetLatestNetworkInferencesRequest(topic_id=ctx.topic_id)
+    )
+    if latest.network_inferences is None or not latest.network_inferences.inferer_values:
+        raise RuntimeError(f"Topic {ctx.topic_id} has no network inferences yet -- nothing to forecast")
+    inferers = [v.worker for v in latest.network_inferences.inferer_values]
+
     # Your ML model goes here: for each inferer, predict the loss of the
     # inference it submits this epoch.
-    return {address: 0.05 for address in inferer_addresses}
-
-
-def my_inference(nonce: int) -> float:
-    # A worker payload always carries your own inference for the topic.
-    return 123.45
+    return {address: 0.05 for address in inferers}
 
 
 async def main():
-    client = AlloraRPCClient.testnet(
-        wallet=AlloraWalletConfig(mnemonic=os.environ["ALLORA_WALLET_MNEMONIC"]),
-        debug=False,
-    )
-    address = client.address
-
-    # Register on the topic (first run only) -- forecasters register as workers,
-    # exactly like inferers
-    registered = client.emissions.query.is_worker_registered_in_topic_id(
-        IsWorkerRegisteredInTopicIdRequest(topic_id=TOPIC_ID, address=address)
-    )
-    if not registered.is_registered:
-        tx = await client.emissions.tx.register(
-            topic_id=TOPIC_ID,
-            owner_addr=address,
-            sender_addr=address,
-            is_reputer=False,
-            fee_tier=FeeTier.PRIORITY,
-        )
-        result = await tx.wait()
-        if result.code != 0:
-            raise SystemExit(f"Registration failed (code {result.code}): {result.raw_log}")
-        print(f"Registered {address} on topic {TOPIC_ID}")
-
-    whitelisted = client.emissions.query.can_submit_worker_payload(
-        CanSubmitWorkerPayloadRequest(topic_id=TOPIC_ID, address=address)
-    )
-    if not whitelisted.can_submit_worker_payload:
-        raise SystemExit(f"{address} is not whitelisted on topic {TOPIC_ID} -- contact the topic creator")
-
-    # Wait for an open submission window (an unfulfilled worker nonce)
-    while True:
-        resp = client.emissions.query.get_unfulfilled_worker_nonces(
-            GetUnfulfilledWorkerNoncesRequest(topic_id=TOPIC_ID)
-        )
-        nonces = resp.nonces.nonces if resp.nonces is not None else []
-        if nonces:
-            nonce = nonces[0].block_height
-            break
-        print(f"No open submission window on topic {TOPIC_ID}, retrying in {POLL_SECONDS}s")
-        await asyncio.sleep(POLL_SECONDS)
-
-    # Find the inferers whose accuracy you are forecasting
-    latest = client.emissions.query.get_latest_network_inferences(
-        GetLatestNetworkInferencesRequest(topic_id=TOPIC_ID)
-    )
-    if latest.network_inferences is None or not latest.network_inferences.inferer_values:
-        raise SystemExit(f"Topic {TOPIC_ID} has no network inferences yet -- nothing to forecast")
-    inferers = [v.worker for v in latest.network_inferences.inferer_values]
-
-    # Run your model and submit the forecast alongside your own inference
-    losses = forecast_losses(inferers, nonce)
-    pending = await client.emissions.tx.insert_worker_payload(
+    worker = AlloraWorker.forecaster(
+        run=forecast_losses,
         topic_id=TOPIC_ID,
-        inference_value=str(my_inference(nonce)),
-        nonce=nonce,
-        forecast_elements=[
-            {"inferer": inferer, "value": str(loss)} for inferer, loss in losses.items()
-        ],
-        fee_tier=FeeTier.STANDARD,
+        network=AlloraNetworkConfig.testnet(),
+        api_key=os.environ["ALLORA_API_KEY"],
     )
-    result = await pending.wait()
-    if result.code != 0:
-        raise SystemExit(f"Submission failed (code {result.code}): {result.raw_log}")
-    print(f"Forecast for {len(losses)} inferers submitted in transaction {result.txhash}")
+    async for result in worker.run():
+        if isinstance(result, Exception):
+            print(f"Forecast worker error: {result}")
+        else:
+            print(f"Forecast for {len(result.submission)} inferers submitted in transaction {result.tx_result.txhash}")
 
 
 asyncio.run(main())
@@ -151,23 +90,32 @@ asyncio.run(main())
 ### 4. Run it
 
 ```bash
-export ALLORA_WALLET_MNEMONIC="<your wallet mnemonic>"
+export ALLORA_API_KEY="<your key from developer.allora.network>"
 python forecaster.py
 ```
 
-The script registers your address on the topic if needed, waits for the topic's next submission window, fetches the current inferers, and submits your forecasted losses alongside your own inference.
+On the first run, the worker walks you through onboarding exactly like the [inference worker](https://docs.allora.network/build/worker/sdk-py): it asks for a wallet mnemonic (press **Enter** to generate one; it is saved to `.allora_key` and reused), requests testnet ALLO from the faucet using your API key, and registers your address on the topic. It then listens for the topic's submission windows and calls `forecast_losses` each time one opens.
 
 ## Verify
 
-- The terminal prints `Forecast for N inferers submitted in transaction <hash>`.
-- Read the forecast back from the chain — add these lines to the end of `main()` in `forecaster.py`:
+- Each time a submission window opens, the terminal prints `Forecast for N inferers submitted in transaction <hash>`, and the log shows `✅ Successfully submitted: topic=69 nonce=...`.
+- Read the forecast back from the chain — run this separately, with the nonce (block height) from your submission log:
 
   ```python
-    forecasts = client.emissions.query.get_forecasts_at_block(
-        GetForecastsAtBlockRequest(topic_id=TOPIC_ID, block_height=nonce)
-    )
-    if forecasts.forecasts is not None:
-        print([f.forecaster for f in forecasts.forecasts.forecasts])
+  import asyncio
+
+  from allora_sdk import AlloraRPCClient
+  from allora_sdk.rpc_client.protos.emissions.v10 import GetForecastsAtBlockRequest
+
+  async def main():
+      client = AlloraRPCClient.testnet()
+      forecasts = await client.emissions.query.get_forecasts_at_block(
+          GetForecastsAtBlockRequest(topic_id=69, block_height=10353455)  # your nonce here
+      )
+      if forecasts.forecasts is not None:
+          print([f.forecaster for f in forecasts.forecasts.forecasts])
+
+  asyncio.run(main())
   ```
 
   Your `allo...` address should appear in the printed list of forecasters.
@@ -175,11 +123,11 @@ The script registers your address on the topic if needed, waits for the topic's 
 
 ## Troubleshoot
 
-- **gRPC `StatusCode.UNIMPLEMENTED` with `unknown service emissions.v9.QueryService`** — the network has been upgraded to a newer protobuf revision than the one bundled with your installed SDK release. Upgrade with `pip install --upgrade allora_sdk`; if the newest release still fails, the deployed network is ahead of the latest SDK release — check the [SDK issue tracker](https://github.com/allora-network/allora-sdk-py/issues).
-- **`... is not whitelisted on topic ...`** — the topic restricts who may submit worker payloads. Contact the topic creator to get your address whitelisted, or use the [sandbox topic (ID 69)](https://testnet.explorer.allora.network/topics/69).
-- **Submission fails with code 75 or 78** — you already submitted a worker payload for this nonce. Each address submits at most one payload per epoch; wait for the next submission window.
+- **gRPC `StatusCode.UNIMPLEMENTED` with `unknown service emissions.vN.QueryService`** — the network has been upgraded to a newer protobuf revision than the one bundled with your installed SDK release. Upgrade with `pip install --upgrade allora_sdk`; if the newest release still fails, the deployed network is ahead of the latest SDK release — check the [SDK issue tracker](https://github.com/allora-network/allora-sdk-py/issues).
+- **`The wallet ... is not whitelisted on topic ...`** — the topic restricts who may submit worker payloads and the worker stops. Contact the topic creator to get your address whitelisted, or use the [sandbox topic (ID 69)](https://testnet.explorer.allora.network/topics/69).
+- **Rejections with code 68, 75, or 78** — you already submitted a worker payload for this nonce. The worker recognizes these, logs a warning, and waits for the next submission window; each address submits at most one payload per epoch.
 - **`Topic ... has no network inferences yet`** — forecasting needs inferences to forecast against. Pick a topic with active inferers ([existing topics](https://docs.allora.network/build/forge/topics)), or wait until the topic completes an epoch with inference submissions.
-- **`insufficient funds` when registering or submitting** — the wallet needs ALLO for gas. On testnet, request funds at [faucet.testnet.allora.network](https://faucet.testnet.allora.network).
+- **`Too many faucet requests`** — the testnet faucet is rate-limited. Send ALLO to your worker's address from another wallet, or request funds manually at [faucet.testnet.allora.network](https://faucet.testnet.allora.network).
 
 ## Next
 

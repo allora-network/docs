@@ -1,10 +1,10 @@
 import asyncio
 import os
 
-from allora_sdk import AlloraNetworkConfig, AlloraWorker
+from allora_sdk import AlloraNetworkConfig, AlloraWorker, RunContext
 from allora_sdk.rpc_client.config import AlloraWalletConfig
 
-async def run_model(nonce: int) -> float:
+async def run_model(ctx: RunContext) -> float:
     # The prediction logic your inference server exposed over HTTP goes here
     return 123.45
 

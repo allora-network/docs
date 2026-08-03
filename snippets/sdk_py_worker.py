@@ -1,9 +1,9 @@
 import asyncio
 import os
 
-from allora_sdk import AlloraNetworkConfig, AlloraWorker
+from allora_sdk import AlloraNetworkConfig, AlloraWorker, RunContext
 
-async def run_model(nonce: int) -> float:
+async def run_model(ctx: RunContext) -> float:
     # Your ML model's prediction logic goes here
     return 123.45
 

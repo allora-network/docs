@@ -2,8 +2,8 @@
 title: Deploy a Worker with Docker
 description: Containerize an Allora Python SDK worker — build the image, mount the wallet key read-only, set a restart policy, and run it unattended.
 persona: ML builder productionizing a worker
-verified_against: allora_sdk 1.0.6 (latest release on PyPI)
-last_reviewed: 2026-07-30
+verified_against: allora_sdk 1.3.0 (PyPI)
+last_reviewed: 2026-08-03
 ---
 
 # Deploy a Worker with Docker
@@ -44,9 +44,9 @@ allora-worker/
 import asyncio
 import os
 
-from allora_sdk import AlloraNetworkConfig, AlloraWorker
+from allora_sdk import AlloraNetworkConfig, AlloraWorker, RunContext
 
-async def run_model(nonce: int) -> float:
+async def run_model(ctx: RunContext) -> float:
     # Your ML model's prediction logic goes here
     return 123.45
 
@@ -191,7 +191,7 @@ The same container runs on Kubernetes with three adjustments:
 - **Container exits immediately or restart-loops** — read `docker logs allora-worker`. The most common cause is a missing key mount: without `/app/.allora_key`, the worker falls back to its interactive mnemonic prompt, which fails in a detached container. Check the mount path and that `.allora_key` exists on the host.
 - **No log output** — Python buffers stdout by default when it is not a TTY. The Dockerfile above sets `PYTHONUNBUFFERED=1`; if you wrote your own, add it (or run `python -u worker.py`).
 - **`Too many faucet requests`** — the testnet faucet is rate-limited. Send ALLO to the worker's address from another wallet, or request funds manually at [faucet.testnet.allora.network](https://faucet.testnet.allora.network), then restart the container.
-- **gRPC `StatusCode.UNIMPLEMENTED` with `unknown service emissions.vN.QueryService`** — the image holds an SDK release older than the deployed network. Rebuild without cache to pick up the latest release: `docker build --no-cache -t allora-worker .`. For reproducible deploys, pin the version in `requirements.txt` (e.g. `allora_sdk==1.0.6`) and bump it deliberately.
+- **gRPC `StatusCode.UNIMPLEMENTED` with `unknown service emissions.vN.QueryService`** — the image holds an SDK release older than the deployed network. Rebuild without cache to pick up the latest release: `docker build --no-cache -t allora-worker .`. For reproducible deploys, pin the version in `requirements.txt` (e.g. `allora_sdk==1.3.0`) and bump it deliberately.
 - **Worker runs but never submits** — submission windows only open once per topic epoch, so quiet stretches are normal. Confirm the worker is registered and scored via [Monitor a Worker](https://docs.allora.network/build/worker/monitoring).
 
 ## Next

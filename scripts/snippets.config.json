@@ -79,8 +79,9 @@
     "forecaster.py": {
       "mode": "long-running",
       "timeoutSeconds": 600,
-      "requires": ["wallet"],
-      "expect": "submitted in transaction"
+      "requires": ["apiKey", "wallet"],
+      "expect": "Forecast for [0-9]+ inferers submitted in transaction",
+      "failOn": "Forecast worker error:"
     },
     "lcd_latest_inference.py": {
       "requires": [],
