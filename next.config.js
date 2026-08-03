@@ -22,6 +22,9 @@ const exactRedirects = {
   // ── Get Started landing moved from /get-started/overview to /get-started ──
   '/get-started/overview': '/get-started',
 
+  // ── Forecaster page moved into its own /build/forecaster sidebar folder ──
+  '/build/forecaster': '/build/forecaster/build-and-deploy-a-forecaster',
+
   // ── pre-restructure redirects, retargeted to avoid chains ──
   '/devs/consumers/consumer-contracts': '/consume/api',
   '/devs/consumers/consumer-contracts/dev-consumers': '/consume/api',
@@ -59,7 +62,7 @@ const exactRedirects = {
   '/devs/workers/deploy-worker/using-docker': '/build/worker/containerize',
   '/devs/workers/walkthroughs/walkthrough-price-prediction-worker': '/build/worker/sdk-py',
   '/devs/workers/migrate-from-offchain-node': '/build/migrate-from-offchain-node',
-  '/devs/workers/deploy-forecaster': '/build/forecaster',
+  '/devs/workers/deploy-forecaster': '/build/forecaster/build-and-deploy-a-forecaster',
   '/devs/workers/query-worker-data': '/build/worker/query-worker-data',
   '/devs/workers/query-ema-score': '/build/worker/monitoring',
 

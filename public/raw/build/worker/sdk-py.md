@@ -415,7 +415,7 @@ worker = AlloraWorker.inferer(
 
 - Productionize your worker: [deploy it with Docker](https://docs.allora.network/build/worker/containerize)
 - Watch it work: [monitor a worker](https://docs.allora.network/build/worker/monitoring) — dashboards, logs, and on-chain EMA scores
-- Run the other worker roles — `AlloraWorker.forecaster(...)` and `AlloraWorker.reputer(...)`: [Build and Deploy a Forecaster](https://docs.allora.network/build/forecaster) and [Build a Reputer](https://docs.allora.network/build/reputer/build-a-reputer)
+- Run the other worker roles — `AlloraWorker.forecaster(...)` and `AlloraWorker.reputer(...)`: [Build and Deploy a Forecaster](https://docs.allora.network/build/forecaster/build-and-deploy-a-forecaster) and [Build a Reputer](https://docs.allora.network/build/reputer/build-a-reputer)
 - Graduate from the sandbox: pick a real topic from [existing topics](https://docs.allora.network/build/forge/topics)
 - Explore the SDK's full surface — RPC queries, transactions, and the REST API client: [Allora Python SDK](https://docs.allora.network/consume/sdk-py)
 - Train and deploy a model end to end with the [Forge Builder Kit](https://github.com/allora-network/allora-forge-builder-kit)
