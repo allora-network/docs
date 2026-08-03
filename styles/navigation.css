@@ -21,7 +21,8 @@
  *     `nx-bg-primary-100` (its light-mode fill utility) in both modes;
  *   - folder titles render as <a>/<button> with `nx-justify-between`;
  *   - the TOC active heading gets `nx-text-primary-600` client-side;
- *   - the selected search result row gets `nx-bg-primary-500/10`.
+ *   - the selected search result <li> (not the <a>) gets
+ *     `nx-bg-primary-500/10`.
  *
  * Some `dark:`-variant theme utilities compile to
  * `:is(html[class~=dark] .foo)` — where a tie in specificity would leave the
@@ -42,24 +43,12 @@
 :root {
   /*
    * "Accent ink" = brand orange used as TEXT on the current background.
-   * Dark mode: pure accent #ff6200 on --allora-bg #101010 = 6.34:1 (AA ok).
+   * The mode-aware derivation now lives in tokens.css as
+   * --allora-accent-ink (dark: pure accent, 6.34:1 on neutral-1; light:
+   * 70% accent + 30% earth-1 ≈ #b84903, 4.85:1 on earth-975). This local
+   * name is kept as an alias so the selectors below stay unchanged.
    */
-  --allora-nav-accent-ink: var(--allora-accent);
-}
-
-html[class~='light'] {
-  /*
-   * DERIVED: pure accent on the warm cream bg measures only 2.75:1, which
-   * fails AA even for large text. The accent ramp only goes lighter, so the
-   * ink is darkened by mixing 30% earth-1 into the accent (tokens only):
-   * resolves to ~#b84903, 4.82:1 on --allora-bg (earth-975) — passes AA
-   * for normal-size text. Solid accent FILLS keep the pure token.
-   */
-  --allora-nav-accent-ink: color-mix(
-    in srgb,
-    var(--allora-accent) 70%,
-    var(--allora-earth-1)
-  );
+  --allora-nav-accent-ink: var(--allora-accent-ink);
 }
 
 /* ------------------------------------------------------------------ */
@@ -132,10 +121,13 @@ html[class~='light'] aside.nextra-sidebar-container {
 /* Sidebar item rows (all depths, desktop + mobile drawer)            */
 /* ------------------------------------------------------------------ */
 
-.nextra-sidebar-container .nextra-menu-desktop a,
-.nextra-sidebar-container .nextra-menu-desktop button,
-.nextra-sidebar-container .nextra-menu-mobile a,
-.nextra-sidebar-container .nextra-menu-mobile button {
+/* `li a` (not bare `a`): the theme's dark:nx-text-neutral-400 utility ties
+   a two-class selector at (0,2,1) and wins on bundle order; the extra type
+   selector lifts this to (0,2,2) so the muted token holds in dark mode. */
+.nextra-sidebar-container .nextra-menu-desktop li a,
+.nextra-sidebar-container .nextra-menu-desktop li button,
+.nextra-sidebar-container .nextra-menu-mobile li a,
+.nextra-sidebar-container .nextra-menu-mobile li button {
   border-radius: var(--allora-radius-sm);
   color: var(--allora-text-muted);
 }
@@ -372,8 +364,10 @@ html[class~='light'] .nextra-search input {
 html[class~='dark'] .nextra-search input[type='search']:focus,
 html[class~='light'] .nextra-search input[type='search']:focus {
   background-color: var(--allora-surface);
-  border-color: var(--allora-accent);
-  box-shadow: 0 0 0 1px var(--allora-accent);
+  /* accent-ink: the focus ring is a focus indicator and must clear 3:1
+     against the light plane (pure accent is ~2.7:1 there). */
+  border-color: var(--allora-accent-ink);
+  box-shadow: 0 0 0 1px var(--allora-accent-ink);
   outline: none;
 }
 
@@ -403,9 +397,12 @@ html[class~='light'] .nextra-search ul.nextra-scrollbar {
   border-radius: var(--allora-radius-md);
 }
 
-/* Selected result row (theme applies its primary-500/10 fill utility). */
-html[class~='dark'] .nextra-search ul.nextra-scrollbar a[class*='nx-bg-primary-500'],
-html[class~='light'] .nextra-search ul.nextra-scrollbar a[class*='nx-bg-primary-500'] {
+/* Selected result row. The theme puts its primary-500/10 fill utility on
+   the <li> (verified in the rendered DOM — not the <a>): solid accent fill,
+   dark text (6.34:1). Without this the row falls back to the theme's
+   primary-600 text, ~3.4:1 on the light panel. */
+html[class~='dark'] .nextra-search ul.nextra-scrollbar li[class*='nx-bg-primary-500'],
+html[class~='light'] .nextra-search ul.nextra-scrollbar li[class*='nx-bg-primary-500'] {
   background-color: var(--allora-accent);
   color: var(--allora-accent-contrast);
 }
@@ -417,8 +414,8 @@ html[class~='light'] .nextra-search ul.nextra-scrollbar .nx-text-primary-600 {
 }
 
 /* …but keep them readable on the solid orange selected row. */
-html[class~='dark'] .nextra-search ul.nextra-scrollbar a[class*='nx-bg-primary-500'] .nx-text-primary-600,
-html[class~='light'] .nextra-search ul.nextra-scrollbar a[class*='nx-bg-primary-500'] .nx-text-primary-600 {
+html[class~='dark'] .nextra-search ul.nextra-scrollbar li[class*='nx-bg-primary-500'] .nx-text-primary-600,
+html[class~='light'] .nextra-search ul.nextra-scrollbar li[class*='nx-bg-primary-500'] .nx-text-primary-600 {
   color: var(--allora-accent-contrast);
 }
 
@@ -477,13 +474,14 @@ html[class~='light'] .nextra-toc .nx-sticky.nx-bottom-0 a:hover {
 .nextra-sidebar-container a:focus-visible,
 .nextra-sidebar-container button:focus-visible,
 .nextra-toc a:focus-visible {
-  outline: 2px solid var(--allora-accent);
+  /* accent-ink: keeps the ring >= 3:1 on the light plane (see tokens.css) */
+  outline: 2px solid var(--allora-accent-ink);
   outline-offset: -2px;
 }
 
 .nextra-nav-container a:focus-visible,
 .nextra-nav-container button:focus-visible {
-  outline: 2px solid var(--allora-accent);
+  outline: 2px solid var(--allora-accent-ink);
   outline-offset: 2px;
   border-radius: var(--allora-radius-xs);
 }
