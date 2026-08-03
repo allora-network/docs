@@ -29,6 +29,7 @@
  * `networks` and `probe_errors` written as step outputs.
  */
 
+const dns = require('dns');
 const fs = require('fs');
 const path = require('path');
 
@@ -220,6 +221,26 @@ function isForbiddenIpv6(groups) {
   return false;
 }
 
+// The address half of the classifier, pulled out so the very same rules can be
+// applied twice: once to whatever the manifest wrote, and once to whatever DNS
+// answers for it. Two copies of these ranges would drift apart, and the copy
+// that drifted would be the one nobody was reading.
+//
+// Returns `null` -- "that was not an address at all" -- rather than a verdict,
+// because the two callers want opposite defaults for a name: a hostname is
+// allowed to be a hostname, and a resolver answer is not.
+function classifyAddress(host) {
+  const v6 = parseIpv6(host);
+  if (v6) {
+    if (isForbiddenIpv6(v6)) return true;
+    const embedded = embeddedIpv4(v6);
+    return embedded ? isForbiddenIpv4(embedded) : false;
+  }
+
+  const v4 = parseIpv4(host) || parseIpv4Loose(host);
+  return v4 ? isForbiddenIpv4(v4) : null;
+}
+
 function isForbiddenHost(hostname) {
   const host = canonicalHost(hostname);
   if (host === '') return true;
@@ -229,16 +250,46 @@ function isForbiddenHost(hostname) {
   if (host === 'internal' || host.endsWith('.internal')) return true;
   if (host === 'local' || host.endsWith('.local')) return true;
 
-  const v6 = parseIpv6(host);
-  if (v6) {
-    if (isForbiddenIpv6(v6)) return true;
-    const embedded = embeddedIpv4(v6);
-    return embedded ? isForbiddenIpv4(embedded) : false;
-  }
-
-  const v4 = parseIpv4(host) || parseIpv4Loose(host);
-  return v4 ? isForbiddenIpv4(v4) : false;
+  // A name that is not an address literal is allowed HERE and judged again
+  // once it has been resolved -- see assertResolvedAddressesAllowed below.
+  // This check alone cannot see where a name points.
+  const verdict = classifyAddress(host);
+  return verdict === null ? false : verdict;
 }
+
+// The same ranges, asked about an address a resolver handed back rather than
+// about a string a manifest wrote. The default is inverted: a hostname may be a
+// hostname, but there is no legitimate resolver answer that fails to parse as
+// an address here, so anything that does is either a bug or something being
+// smuggled through, and both get the same answer.
+function isForbiddenAddress(address) {
+  // A string, not something that stringifies into one. canonicalHost coerces,
+  // so `{ toString: () => '8.8.8.8' }` would otherwise be read as a public
+  // address and dialled. Nothing else here would catch it: it coerces to
+  // something that parses perfectly.
+  if (typeof address !== 'string') return true;
+  // `fe80::1%eth0`: a zone id is not part of the address, and the address is
+  // what decides. Stripped before parsing rather than after, so a zone id can
+  // never be the reason something fails to parse and gets waved through as
+  // "not an address".
+  const host = canonicalHost(address).split('%')[0];
+  // No explicit empty-string case: '' parses as nothing, and "parses as
+  // nothing" is already the refusal below. A second line saying so would be a
+  // line no test could ever fail on.
+  const verdict = classifyAddress(host);
+  return verdict === null ? true : verdict;
+}
+
+// Key names that mean something to the language rather than naming a chain. No
+// network is called any of these, and every layer that touches such a key
+// handles it differently -- JSON.parse makes `__proto__` an ordinary own
+// property, an object literal makes it the prototype, Object.assign fires a
+// setter -- so rather than reason about which spelling arrived, the name is
+// refused. scripts/hardenDriftManifest.js already refuses to carry these across
+// from the branch copy; refusing to derive an allowlist entry from one keeps the
+// two sides of the boundary agreeing on what a network name is, instead of
+// granting reach to a host no probeable network can name.
+const RESERVED_NETWORK_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 // The hosts the trusted manifest names. The workflow passes these as
 // --allowed-hosts, derived from the pre-merge copy, so "the endpoints come from
@@ -252,12 +303,16 @@ function hostsOf(manifest) {
       : null;
   if (!networks || typeof networks !== 'object') return hosts;
   for (const name of Object.keys(networks)) {
-    // hasOwnProperty, not bracket access: a key called `__proto__` resolves to
-    // Object.prototype otherwise, which is how the merge step was bypassed.
-    if (!Object.prototype.hasOwnProperty.call(networks, name)) continue;
+    if (RESERVED_NETWORK_KEYS.has(name)) continue;
     const entry = networks[name];
     if (!entry || typeof entry !== 'object') continue;
+    // hasOwnProperty, not a bare read: an entry whose PROTOTYPE carries an
+    // `rpc` would otherwise widen the allowlist with a host that appears
+    // nowhere in the manifest's own data.
     if (!Object.prototype.hasOwnProperty.call(entry, 'rpc')) continue;
+    // A string, not something that merely stringifies into one: `new URL()`
+    // coerces its argument, so an object with a toString would otherwise put
+    // whatever it returns on the allowlist.
     if (typeof entry.rpc !== 'string') continue;
     try {
       hosts.add(new URL(entry.rpc).hostname.toLowerCase());
@@ -300,6 +355,98 @@ function abciInfoUrl(rpc, allowedHosts) {
   return url.href;
 }
 
+// ---------------------------------------------------------------------------
+// Where the name actually points
+//
+// Everything above judges a string. A DNS name is not a string whose meaning
+// the manifest owns: `rpc.example.com` passes every check on this page and can
+// still answer `127.0.0.1`, which puts the request on the runner itself -- and
+// it walks past --allowed-hosts too, because that allowlist matches the NAME.
+// So the target is resolved before the request goes out and every address the
+// resolver returns is put through the same classifier the literal would have
+// been put through.
+//
+// `dns.lookup` deliberately, not `dns.resolve`: lookup is getaddrinfo, which is
+// the same resolver the connection underneath fetch will use, so this asks the
+// question the connection is about to ask. `dns.resolve` talks to the
+// nameservers directly and would miss /etc/hosts and nsswitch entirely -- and
+// an /etc/hosts entry pointing a public name at 127.0.0.1 is exactly one of the
+// things being refused here.
+//
+// What this does NOT close: the gap between this lookup and the one the
+// connection makes a moment later. Node 20's fetch resolves the name again
+// itself and offers no supported way to be told which address to use -- a
+// `lookup` hook passed in the request init is accepted and silently ignored,
+// and the dispatcher that would accept one belongs to undici, which is bundled
+// into the runtime but not requirable, so pinning the address would mean either
+// a new dependency or replacing fetch with http.request (which does honour
+// `lookup`, and would then also need `agent: false`, because a pooled
+// keep-alive socket skips the hook altogether). A name that answers a public
+// address to this lookup and a private one to the next is therefore still
+// possible. Reaching that window at all needs a hostname that is already in the
+// default branch's manifest -- a reviewed file -- so what remains sits behind a
+// code-review boundary rather than an open one.
+//
+// Split into a resolver half and a decision half so the decision can be tested
+// without a network, and without depending on somebody else's DNS zone still
+// pointing where a test expects it to.
+// ---------------------------------------------------------------------------
+
+// Marks a refusal that retrying cannot turn into an answer, so the retry loop
+// stops on it instead of spending its backoff re-asking a settled question and
+// burying the reason under two more failures.
+function forbiddenTarget(message) {
+  const error = new Error(message);
+  error.forbiddenTarget = true;
+  return error;
+}
+
+// Every address, not just the first one. A resolver that answers a public
+// address and a loopback address for the same name has still handed the
+// connection a loopback address to choose, and Happy Eyeballs will happily
+// choose it.
+function assertResolvedAddressesAllowed(url, hostname, records) {
+  if (!Array.isArray(records) || records.length === 0) {
+    throw forbiddenTarget(`refusing to probe ${url.href}: ${hostname} resolved to no address at all.`);
+  }
+  for (const record of records) {
+    const address = record && record.address;
+    if (isForbiddenAddress(address)) {
+      throw forbiddenTarget(
+        `refusing to probe ${url.href}: ${hostname} resolves to ${JSON.stringify(address)}, which ` +
+          `is a loopback, link-local, private or unclassifiable address. No published network RPC ` +
+          `is served from one, and a NAME that resolves into those ranges is how a request reaches ` +
+          `the runner past a host allowlist -- so the name is refused, not only the literal.`
+      );
+    }
+  }
+  return records.map(record => record.address);
+}
+
+// `lookup` is a parameter with a real default rather than a hard-wired call, so
+// the tests can drive the refusal path with a stub. A test that needed a real
+// name in somebody else's zone to resolve to 127.0.0.1 would be a test that
+// goes red the day that record moves.
+async function assertTargetResolves(url, lookup = dns.promises.lookup) {
+  const hostname = canonicalHost(url.hostname);
+  // An address literal was already classified directly by isForbiddenHost;
+  // resolving it would only hand the same address straight back.
+  if (classifyAddress(hostname) !== null) return [hostname];
+
+  let records;
+  try {
+    records = await lookup(hostname, { all: true, verbatim: true });
+  } catch (error) {
+    // Not a pass. A name that will not resolve is a network that cannot be
+    // probed, and it is reported as one -- loudly, and by name.
+    throw new Error(
+      `could not resolve ${hostname} to check where it points ` +
+        `(${(error && (error.code || error.message)) || 'unknown resolver error'})`
+    );
+  }
+  return assertResolvedAddressesAllowed(url, hostname, records);
+}
+
 // The request options every probe uses. Exported as one object so a test can
 // make the same request the script makes, rather than a lookalike.
 //
@@ -340,20 +487,31 @@ async function versionFromResponse(response) {
   return version;
 }
 
-async function fetchAbciVersion(rpc, allowedHosts) {
+async function fetchAbciVersion(rpc, allowedHosts, lookup = dns.promises.lookup) {
   // Throws before any request is made if the target is not somewhere this is
   // allowed to reach; the caller reports that as a probe error for the network.
   const url = abciInfoUrl(rpc, allowedHosts);
+  const target = new URL(url);
   let lastError = null;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
+      // Inside the loop rather than before it, for two reasons. The name is
+      // re-resolved and re-judged on every attempt, so a retry can never be the
+      // thing that carries a request to an address the first attempt would have
+      // refused. And a resolver that is briefly unreachable stays exactly as
+      // retryable as a connection that is briefly unreachable, which is what it
+      // is -- before this check existed, fetch was doing that lookup inside the
+      // same loop anyway.
+      await assertTargetResolves(target, lookup);
       const response = await fetch(url, {
         ...probeRequestOptions(),
         signal: AbortSignal.timeout(requestTimeoutMs),
       });
       return await versionFromResponse(response);
     } catch (error) {
+      // A refusal is an answer, not a failure to get one.
+      if (error && error.forbiddenTarget) throw error;
       lastError = error;
       if (attempt < maxAttempts) {
         await sleep(retryBackoffMs * attempt);
@@ -424,8 +582,10 @@ function buildPullRequestBody(drifted, probeErrors) {
 // require() from the tests probes no network and writes no manifest.
 module.exports = {
   isForbiddenHost,
+  isForbiddenAddress,
   canonicalHost,
   abciInfoUrl,
+  assertTargetResolves,
   hostsOf,
   fetchAbciVersion,
   probeRequestOptions,
