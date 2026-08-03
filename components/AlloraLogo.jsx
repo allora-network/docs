@@ -12,8 +12,9 @@ const LOCKUPS = {
   light: '/logo/allora-lockup-light.svg',
 }
 
-// Native asset aspect ratio is 249:48; explicit dimensions avoid layout shift.
-const WIDTH = 140
+// Native asset aspect ratio is 148:48 (content-trimmed viewBox); explicit
+// dimensions avoid layout shift.
+const WIDTH = 83
 const HEIGHT = 27
 
 export default function AlloraLogo() {
