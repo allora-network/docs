@@ -178,6 +178,9 @@ html[class~='dark'] {
   --allora-text-muted: var(--allora-neutral-500);
   --allora-accent: var(--allora-accent-1);           /* brand orange */
   --allora-accent-contrast: var(--allora-neutral-1); /* dark text on orange */
+  /* Accent used as TEXT/outline on the page plane. Dark: pure accent
+     (#ff6200 on neutral-1 = 6.34:1, AA). */
+  --allora-accent-ink: var(--allora-accent);
   --allora-border: var(--allora-neutral-50);
   --allora-border-strong: var(--allora-neutral-200);
   --allora-success: var(--allora-success-default);
@@ -198,6 +201,15 @@ html[class~='light'] {
   --allora-text-muted: var(--allora-earth-200);
   --allora-accent: var(--allora-accent-1);
   --allora-accent-contrast: var(--allora-neutral-1);
+  /* DERIVED: pure accent on the light plane is only ~2.7:1. Darkened by
+     mixing 30% earth-1 into the accent → resolves ~#b84903: 4.85:1 on
+     earth-975, 5.25:1 on white — AA for normal text and non-text marks.
+     Solid accent FILLS keep the pure token. */
+  --allora-accent-ink: color-mix(
+    in srgb,
+    var(--allora-accent) 70%,
+    var(--allora-earth-1)
+  );
   --allora-border: var(--allora-earth-800);
   --allora-border-strong: var(--allora-earth-400);
   --allora-success: var(--allora-success-default);
@@ -216,6 +228,17 @@ html[class~='light'] {
 }
 
 :focus-visible {
-  outline: 2px solid var(--allora-accent);
+  /* accent-ink, not accent: the pure orange ring is ~2.7:1 on the light
+     plane, below the 3:1 non-text minimum; the ink passes in both modes. */
+  outline: 2px solid var(--allora-accent-ink);
   outline-offset: 2px;
+}
+
+/* The page plane carries --allora-bg in both modes. The theme's own body
+   fills (white / #111) leave the light content column white while the
+   sidebar sits on warm cream — navigation.css relies on the rail being
+   flush with the page plane. Mode-scoped to beat the theme's dark: rule. */
+html[class~='dark'] body,
+html[class~='light'] body {
+  background-color: var(--allora-bg);
 }
