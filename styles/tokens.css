@@ -238,7 +238,11 @@ html[class~='light'] {
    fills (white / #111) leave the light content column white while the
    sidebar sits on warm cream — navigation.css relies on the rail being
    flush with the page plane. Mode-scoped to beat the theme's dark: rule. */
-html[class~='dark'] body,
-html[class~='light'] body {
+html[class~='dark'][class] body,
+html[class~='light'][class] body {
+  /* The doubled [class] lifts specificity to (0,2,2): the theme paints
+     body via `:is(html[class~=dark] body)` at (0,1,2), which ties a plain
+     mode-scoped rule and wins on bundle order, keeping the dark plane on
+     #111 instead of neutral-1. (body itself carries no class attribute.) */
   background-color: var(--allora-bg);
 }

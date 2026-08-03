@@ -302,7 +302,10 @@ html[class~='light'] .nextra-sidebar-container ul[role='listbox'] li[data-headle
    rule is `!important`, and its shadow utility would win a specificity
    race. color-mix keeps the theme's backdrop blur readable; solid fallback
    first for engines without color-mix. */
-.nextra-nav-container-blur {
+html[class~='dark'] div.nextra-nav-container-blur,
+html[class~='light'] div.nextra-nav-container-blur {
+  /* Mode-scoped + element type (0,2,2): the theme's own dark rule is
+     (0,2,1) !important and was still winning the dark mode tie. */
   background-color: var(--allora-bg) !important;
   background-color: color-mix(in srgb, var(--allora-bg) 88%, transparent) !important;
   box-shadow: 0 1px 0 0 var(--allora-border) !important;
