@@ -51,22 +51,25 @@ html[class~='dark'] {
 /*
  * Light: the accent ramp is too light to read on the warm cream surface
  * (#ff6200 on earth/950 is ~2.6:1), so the light palette re-maps to the
- * darker status *-overlay primitives from the token set. All roles measure
- * >= 4.5:1 except parameters/constants (warning-overlay, 3.9:1 — the
- * darkest warm orange the token set offers).
+ * darker status *-overlay primitives from the token set. Two of those
+ * still miss AA on earth/950 and are darkened with 15% earth-1
+ * (DERIVED, measured on the rendered surface):
+ *   warning-overlay #a46a00 3.87:1 → 85/15 mix ≈ #8e5c02, 4.90:1
+ *   success-overlay #517726 4.48:1 → 85/15 mix ≈ #486722, 5.55:1
+ * Every role now measures >= 4.5:1 on the light code surface.
  */
 html[class~='light'] {
   --shiki-color-text: var(--allora-earth-1);
   --shiki-color-background: transparent;
   --shiki-token-keyword: var(--allora-danger-overlay);
   --shiki-token-function: var(--allora-info-overlay);
-  --shiki-token-parameter: var(--allora-warning-overlay);
-  --shiki-token-constant: var(--allora-warning-overlay);
-  --shiki-token-string: var(--allora-success-overlay);
-  --shiki-token-string-expression: var(--allora-success-overlay);
+  --shiki-token-parameter: color-mix(in srgb, var(--allora-warning-overlay) 85%, var(--allora-earth-1));
+  --shiki-token-constant: color-mix(in srgb, var(--allora-warning-overlay) 85%, var(--allora-earth-1));
+  --shiki-token-string: color-mix(in srgb, var(--allora-success-overlay) 85%, var(--allora-earth-1));
+  --shiki-token-string-expression: color-mix(in srgb, var(--allora-success-overlay) 85%, var(--allora-earth-1));
   --shiki-token-comment: var(--allora-text-muted);
   --shiki-token-punctuation: var(--allora-earth-100);
-  --shiki-token-link: var(--allora-success-overlay);
+  --shiki-token-link: color-mix(in srgb, var(--allora-success-overlay) 85%, var(--allora-earth-1));
 }
 
 /* ------------------------------------------------------------------ */
@@ -83,16 +86,17 @@ html[class~='light'] article.nextra-content {
   color: var(--allora-text);
 }
 
-/* MDX body links (the theme's mapped anchors): exact brand accent. */
+/* MDX body links (the theme's mapped anchors): accent ink — pure accent in
+   dark, the darkened AA mix on the light plane (see tokens.css). */
 html[class~='dark'] article.nextra-content a.nx-text-primary-600,
 html[class~='light'] article.nextra-content a.nx-text-primary-600 {
-  color: var(--allora-accent);
-  text-decoration-color: color-mix(in srgb, var(--allora-accent) 40%, transparent);
+  color: var(--allora-accent-ink);
+  text-decoration-color: color-mix(in srgb, var(--allora-accent-ink) 40%, transparent);
 }
 
 html[class~='dark'] article.nextra-content a.nx-text-primary-600:hover,
 html[class~='light'] article.nextra-content a.nx-text-primary-600:hover {
-  text-decoration-color: var(--allora-accent);
+  text-decoration-color: var(--allora-accent-ink);
 }
 
 /* ------------------------------------------------------------------ */
@@ -213,9 +217,14 @@ html[class~='light'] .nextra-callout.nx-border-orange-100 {
   border-left-color: var(--allora-accent);
   color: var(--allora-text);
 }
-html[class~='dark'] .nextra-callout.nx-border-orange-100 > div:first-child,
-html[class~='light'] .nextra-callout.nx-border-orange-100 > div:first-child {
+/* Icon ink: dark keeps the vivid status color; light drops to the darker
+   ink/overlay primitive so currentColor icons clear 3:1 on the tinted bg
+   (the vivid values measure 1.6–2.5:1 there). */
+html[class~='dark'] .nextra-callout.nx-border-orange-100 > div:first-child {
   color: var(--allora-accent);
+}
+html[class~='light'] .nextra-callout.nx-border-orange-100 > div:first-child {
+  color: var(--allora-accent-ink);
 }
 
 /* info → --allora-info */
@@ -231,9 +240,11 @@ html[class~='light'] .nextra-callout.nx-border-blue-200 {
   border-left-color: var(--allora-info);
   color: var(--allora-text);
 }
-html[class~='dark'] .nextra-callout.nx-border-blue-200 > div:first-child,
-html[class~='light'] .nextra-callout.nx-border-blue-200 > div:first-child {
+html[class~='dark'] .nextra-callout.nx-border-blue-200 > div:first-child {
   color: var(--allora-info);
+}
+html[class~='light'] .nextra-callout.nx-border-blue-200 > div:first-child {
+  color: var(--allora-info-overlay);
 }
 
 /* warning → --allora-warn */
@@ -249,9 +260,11 @@ html[class~='light'] .nextra-callout.nx-border-yellow-100 {
   border-left-color: var(--allora-warn);
   color: var(--allora-text);
 }
-html[class~='dark'] .nextra-callout.nx-border-yellow-100 > div:first-child,
-html[class~='light'] .nextra-callout.nx-border-yellow-100 > div:first-child {
+html[class~='dark'] .nextra-callout.nx-border-yellow-100 > div:first-child {
   color: var(--allora-warn);
+}
+html[class~='light'] .nextra-callout.nx-border-yellow-100 > div:first-child {
+  color: var(--allora-warning-overlay);
 }
 
 /* error → --allora-error */
@@ -267,9 +280,11 @@ html[class~='light'] .nextra-callout.nx-border-red-200 {
   border-left-color: var(--allora-error);
   color: var(--allora-text);
 }
-html[class~='dark'] .nextra-callout.nx-border-red-200 > div:first-child,
-html[class~='light'] .nextra-callout.nx-border-red-200 > div:first-child {
+html[class~='dark'] .nextra-callout.nx-border-red-200 > div:first-child {
   color: var(--allora-error);
+}
+html[class~='light'] .nextra-callout.nx-border-red-200 > div:first-child {
+  color: var(--allora-danger-overlay);
 }
 
 /* ------------------------------------------------------------------ */
@@ -302,10 +317,10 @@ html[class~='light'] .nextra-cards .nextra-card:hover > span {
   font-weight: var(--allora-weight-medium);
 }
 
-/* Hover arrow → accent. */
+/* Hover arrow → accent ink (AA-safe on the light card surface). */
 html[class~='dark'] .nextra-cards .nextra-card span.nx-transition-transform,
 html[class~='light'] .nextra-cards .nextra-card span.nx-transition-transform {
-  color: var(--allora-accent);
+  color: var(--allora-accent-ink);
 }
 
 /* ------------------------------------------------------------------ */
@@ -413,7 +428,10 @@ html[class~='light'] article.nextra-content [role='tab']:hover {
 
 html[class~='dark'] article.nextra-content [role='tab'][aria-selected='true'],
 html[class~='light'] article.nextra-content [role='tab'][aria-selected='true'] {
-  color: var(--allora-accent);
+  /* accent-ink label (12px text must clear 4.5:1 on the light plane);
+     the underline keeps the pure accent — it sits next to, not under,
+     the label. */
+  color: var(--allora-accent-ink);
   border-bottom-color: var(--allora-accent);
 }
 
