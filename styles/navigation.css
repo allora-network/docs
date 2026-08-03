@@ -1,0 +1,495 @@
+/*
+ * Allora navigation restyle — sidebar, navbar, TOC, mobile drawer.
+ *
+ * Overrides nextra-theme-docs 2.13.4 chrome using the semantic tokens from
+ * styles/tokens.css. All selectors were derived from the actual rendered DOM
+ * and node_modules/nextra-theme-docs/{style.css,dist/index.js} of 2.13.4:
+ *
+ *   .nextra-nav-container / .nextra-nav-container-blur  navbar shell
+ *   .nextra-sidebar-container                            sidebar aside (also
+ *                                                        the mobile drawer)
+ *   .nextra-menu-desktop / .nextra-menu-mobile           sidebar root <ul>s
+ *   .nextra-toc                                          right rail
+ *   .nextra-search                                       search widget
+ *   .nextra-scrollbar / .nextra-hamburger                scroll areas, burger
+ *
+ * Structural facts this file relies on (nextra-theme-docs 2.13.4 sidebar):
+ *   - plain page <li> rows always carry the literal class `nx-flex`;
+ *     folder/separator <li> rows never do — so `li:not(.nx-flex)` at the
+ *     root <ul> level selects exactly the top-level section rows;
+ *   - the active link <a> always carries the literal class
+ *     `nx-bg-primary-100` (its light-mode fill utility) in both modes;
+ *   - folder titles render as <a>/<button> with `nx-justify-between`;
+ *   - the TOC active heading gets `nx-text-primary-600` client-side;
+ *   - the selected search result row gets `nx-bg-primary-500/10`.
+ *
+ * Some `dark:`-variant theme utilities compile to
+ * `:is(html[class~=dark] .foo)` — where a tie in specificity would leave the
+ * winner to bundle order, selectors below are written mode-scoped
+ * (`html[class~='dark'] …, html[class~='light'] …`) or given one extra
+ * class/element so they win on specificity regardless of CSS order.
+ * `!important` is used only where the theme itself uses it (navbar blur bg)
+ * or where a theme rule of equal specificity would otherwise race.
+ *
+ * Rule order inside each block matters: generic rows -> section headers ->
+ * active states (later same-specificity rules win).
+ */
+
+/* ------------------------------------------------------------------ */
+/* Derived locals                                                     */
+/* ------------------------------------------------------------------ */
+
+:root {
+  /*
+   * "Accent ink" = brand orange used as TEXT on the current background.
+   * Dark mode: pure accent #ff6200 on --allora-bg #101010 = 6.34:1 (AA ok).
+   */
+  --allora-nav-accent-ink: var(--allora-accent);
+}
+
+html[class~='light'] {
+  /*
+   * DERIVED: pure accent on the warm cream bg measures only 2.75:1, which
+   * fails AA even for large text. The accent ramp only goes lighter, so the
+   * ink is darkened by mixing 30% earth-1 into the accent (tokens only):
+   * resolves to ~#b84903, 4.82:1 on --allora-bg (earth-975) — passes AA
+   * for normal-size text. Solid accent FILLS keep the pure token.
+   */
+  --allora-nav-accent-ink: color-mix(
+    in srgb,
+    var(--allora-accent) 70%,
+    var(--allora-earth-1)
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Sidebar panel (desktop rail + mobile drawer share this aside)      */
+/* ------------------------------------------------------------------ */
+
+/* Panel bg: --allora-bg (not --allora-surface) so the rail sits flush with
+   the page plane, Forge-style; the hairline border provides separation.
+   `aside.` + mode scoping outbid the theme's own (0,2,1) dark bg rule. */
+html[class~='dark'] aside.nextra-sidebar-container,
+html[class~='light'] aside.nextra-sidebar-container {
+  background-color: var(--allora-bg);
+}
+
+@media (min-width: 768px) {
+  /* Desktop-only right hairline; site is LTR-only. */
+  aside.nextra-sidebar-container {
+    border-right: 1px solid var(--allora-border);
+  }
+}
+
+/* Sidebar + TOC scrollbars (Firefox). */
+.nextra-sidebar-container .nextra-scrollbar,
+.nextra-toc .nextra-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--allora-border-strong) transparent;
+}
+
+/* Sidebar + TOC scrollbars (WebKit). The theme paints the thumb only on
+   container hover via a --tw-shadow-color trick; mirror its geometry
+   (3px transparent border + content-box clip) with token colors. */
+.nextra-sidebar-container .nextra-scrollbar::-webkit-scrollbar-thumb,
+.nextra-toc .nextra-scrollbar::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: var(--allora-radius-md);
+  background-color: color-mix(in srgb, var(--allora-border-strong) 45%, transparent);
+}
+
+.nextra-sidebar-container .nextra-scrollbar:hover::-webkit-scrollbar-thumb,
+.nextra-toc .nextra-scrollbar:hover::-webkit-scrollbar-thumb {
+  background-color: var(--allora-border-strong);
+}
+
+/* Vertical guide line of nested item lists (the ul::before pseudo).
+   `li ul` (not bare `ul ul`) so specificity beats the dark: utility. */
+.nextra-sidebar-container .nextra-menu-desktop li ul::before,
+.nextra-sidebar-container .nextra-menu-mobile li ul::before {
+  background-color: var(--allora-border);
+}
+
+/* `type: separator` rules (none in the current _meta.json set; kept so
+   future separators inherit the system). */
+.nextra-sidebar-container .nextra-menu-desktop hr,
+.nextra-sidebar-container .nextra-menu-mobile hr {
+  border-top-color: var(--allora-border);
+  border-style: solid;
+}
+
+/* Hairline between top-level sections: a folder/separator row that is not
+   the first root-level entry opens a new section. */
+.nextra-menu-desktop > li:not(.nx-flex):not(:first-child),
+.nextra-menu-mobile > li:not(.nx-flex):not(:first-child) {
+  border-top: 1px solid var(--allora-border);
+  margin-top: var(--allora-space-xs);
+  padding-top: var(--allora-space-xs);
+}
+
+/* ------------------------------------------------------------------ */
+/* Sidebar item rows (all depths, desktop + mobile drawer)            */
+/* ------------------------------------------------------------------ */
+
+.nextra-sidebar-container .nextra-menu-desktop a,
+.nextra-sidebar-container .nextra-menu-desktop button,
+.nextra-sidebar-container .nextra-menu-mobile a,
+.nextra-sidebar-container .nextra-menu-mobile button {
+  border-radius: var(--allora-radius-sm);
+  color: var(--allora-text-muted);
+}
+
+/* Hover: subtle raised-surface fill + text brightening. `li a:hover` keeps
+   specificity above the theme's dark:hover utilities; `:not` skips the
+   active row, which has its own hover below. */
+.nextra-sidebar-container .nextra-menu-desktop li a:hover:not(.nx-bg-primary-100),
+.nextra-sidebar-container .nextra-menu-desktop li button:hover,
+.nextra-sidebar-container .nextra-menu-mobile li a:hover:not(.nx-bg-primary-100),
+.nextra-sidebar-container .nextra-menu-mobile li button:hover {
+  background-color: var(--allora-surface-raised);
+  color: var(--allora-text);
+}
+
+/* Collapse/expand carets: the theme's chevron <svg> inside folder title
+   rows (stroke = currentColor, so it follows each row's text color).
+   Soften at rest, full strength on row hover; keep its rotate transition. */
+.nextra-sidebar-container .nextra-menu-desktop a svg,
+.nextra-sidebar-container .nextra-menu-desktop button svg,
+.nextra-sidebar-container .nextra-menu-mobile a svg,
+.nextra-sidebar-container .nextra-menu-mobile button svg {
+  opacity: 0.65;
+  border-radius: var(--allora-radius-xs);
+}
+
+.nextra-sidebar-container .nextra-menu-desktop li a:hover svg,
+.nextra-sidebar-container .nextra-menu-desktop li button:hover svg,
+.nextra-sidebar-container .nextra-menu-mobile li a:hover svg,
+.nextra-sidebar-container .nextra-menu-mobile li button:hover svg {
+  opacity: 1;
+}
+
+/* ------------------------------------------------------------------ */
+/* Top-level section headers (Forge "ACCOUNT / EXPLORE" treatment)    */
+/* ------------------------------------------------------------------ */
+
+/* Root-level folder titles (and separator-title rows via the block after
+   this one): uppercase mono, small, open tracking, brand orange.
+   DERIVED: +0.08em letter-spacing — the Figma tracking tokens are negative
+   display values and unusable for small uppercase mono. */
+.nextra-menu-desktop > li:not(.nx-flex) > a,
+.nextra-menu-desktop > li:not(.nx-flex) > button,
+.nextra-menu-mobile > li:not(.nx-flex) > a,
+.nextra-menu-mobile > li:not(.nx-flex) > button {
+  font-family: var(--allora-font-mono);
+  font-size: var(--allora-text-2xs);
+  line-height: var(--allora-leading-2xs);
+  font-weight: var(--allora-weight-medium);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--allora-nav-accent-ink);
+}
+
+/* `type: separator` titles at any depth (li carrying the theme's nx-mt-5
+   separator-title utility) get the same header treatment. */
+.nextra-sidebar-container li[class*='nx-mt-5'] {
+  font-family: var(--allora-font-mono);
+  font-size: var(--allora-text-2xs);
+  line-height: var(--allora-leading-2xs);
+  font-weight: var(--allora-weight-medium);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--allora-nav-accent-ink);
+}
+
+/* Header hover: keep the orange ink (the theme's dark:hover utility would
+   otherwise flip it to gray) + the same subtle fill as item rows. */
+.nextra-menu-desktop > li:not(.nx-flex) > a:hover,
+.nextra-menu-desktop > li:not(.nx-flex) > button:hover,
+.nextra-menu-mobile > li:not(.nx-flex) > a:hover,
+.nextra-menu-mobile > li:not(.nx-flex) > button:hover {
+  color: var(--allora-nav-accent-ink);
+  background-color: var(--allora-surface-raised);
+}
+
+/* ------------------------------------------------------------------ */
+/* Active item: solid orange fill, dark text (6.34:1, AA)             */
+/* ------------------------------------------------------------------ */
+
+/* Placed after row/header rules: same-file order resolves the ties. */
+.nextra-sidebar-container li a.nx-bg-primary-100 {
+  background-color: var(--allora-accent);
+  color: var(--allora-accent-contrast);
+  border-radius: var(--allora-radius-sm);
+}
+
+.nextra-sidebar-container li a.nx-bg-primary-100:hover {
+  background-color: var(--allora-accent-5);
+  color: var(--allora-accent-contrast);
+}
+
+/* Caret on an active (solid-fill) folder row: full-strength dark glyph. */
+.nextra-sidebar-container li a.nx-bg-primary-100 svg {
+  opacity: 1;
+}
+
+/* Orange focus ring is invisible on the orange fill — flip ring color. */
+.nextra-sidebar-container li a.nx-bg-primary-100:focus-visible {
+  outline-color: var(--allora-accent-contrast);
+}
+
+/* ------------------------------------------------------------------ */
+/* Sidebar footer (theme toggle bar)                                  */
+/* ------------------------------------------------------------------ */
+
+/* The sticky bottom bar hardcodes white/#111 fills + glow shadows. */
+html[class~='dark'] .nextra-sidebar-container > div.nx-sticky,
+html[class~='light'] .nextra-sidebar-container > div.nx-sticky {
+  background-color: var(--allora-bg);
+  box-shadow: none;
+  border-top: 1px solid var(--allora-border);
+}
+
+/* Theme-toggle listbox button. */
+html[class~='dark'] .nextra-sidebar-container > div.nx-sticky button,
+html[class~='light'] .nextra-sidebar-container > div.nx-sticky button {
+  color: var(--allora-text-muted);
+  font-family: var(--allora-font-mono);
+  border-radius: var(--allora-radius-sm);
+}
+
+html[class~='dark'] .nextra-sidebar-container > div.nx-sticky button:hover,
+html[class~='light'] .nextra-sidebar-container > div.nx-sticky button:hover {
+  background-color: var(--allora-surface-raised);
+  color: var(--allora-text);
+}
+
+/* Theme-toggle dropdown (headlessui listbox). */
+html[class~='dark'] .nextra-sidebar-container ul[role='listbox'],
+html[class~='light'] .nextra-sidebar-container ul[role='listbox'] {
+  background-color: var(--allora-surface-raised);
+  border: 1px solid var(--allora-border);
+  border-radius: var(--allora-radius-sm);
+  box-shadow: none;
+  font-family: var(--allora-font-mono);
+}
+
+html[class~='dark'] .nextra-sidebar-container ul[role='listbox'] li,
+html[class~='light'] .nextra-sidebar-container ul[role='listbox'] li {
+  color: var(--allora-text-muted);
+}
+
+/* Hover/selected option (headlessui sets data-headlessui-state). */
+html[class~='dark'] .nextra-sidebar-container ul[role='listbox'] li[data-headlessui-state*='active'],
+html[class~='light'] .nextra-sidebar-container ul[role='listbox'] li[data-headlessui-state*='active'],
+html[class~='dark'] .nextra-sidebar-container ul[role='listbox'] li[data-headlessui-state*='selected'],
+html[class~='light'] .nextra-sidebar-container ul[role='listbox'] li[data-headlessui-state*='selected'] {
+  background-color: var(--allora-accent);
+  color: var(--allora-accent-contrast);
+}
+
+/* ------------------------------------------------------------------ */
+/* Navbar                                                             */
+/* ------------------------------------------------------------------ */
+
+/* Orange accent line across the very top of the viewport. The container is
+   sticky (positioned), so the absolute pseudo pins to it. */
+.nextra-nav-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--allora-accent);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Bar fill + bottom hairline. !important required: the theme's own dark bg
+   rule is `!important`, and its shadow utility would win a specificity
+   race. color-mix keeps the theme's backdrop blur readable; solid fallback
+   first for engines without color-mix. */
+.nextra-nav-container-blur {
+  background-color: var(--allora-bg) !important;
+  background-color: color-mix(in srgb, var(--allora-bg) 88%, transparent) !important;
+  box-shadow: 0 1px 0 0 var(--allora-border) !important;
+}
+
+/* Page tabs (only navbar links carrying aria-current). */
+html[class~='dark'] .nextra-nav-container nav a[aria-current='false'],
+html[class~='light'] .nextra-nav-container nav a[aria-current='false'] {
+  color: var(--allora-text-muted);
+}
+
+html[class~='dark'] .nextra-nav-container nav a[aria-current='false']:hover,
+html[class~='light'] .nextra-nav-container nav a[aria-current='false']:hover {
+  color: var(--allora-text);
+}
+
+html[class~='dark'] .nextra-nav-container nav a[aria-current='true'],
+html[class~='light'] .nextra-nav-container nav a[aria-current='true'] {
+  color: var(--allora-nav-accent-ink);
+}
+
+/* Icon links (GitHub/Discord) inherit the bar's text color. */
+html[class~='dark'] .nextra-nav-container nav > a[target='_blank'],
+html[class~='light'] .nextra-nav-container nav > a[target='_blank'] {
+  color: var(--allora-text-muted);
+}
+
+html[class~='dark'] .nextra-nav-container nav > a[target='_blank']:hover,
+html[class~='light'] .nextra-nav-container nav > a[target='_blank']:hover {
+  color: var(--allora-text);
+}
+
+/* Hamburger (mobile). */
+.nextra-nav-container .nextra-hamburger {
+  color: var(--allora-text);
+  border-radius: var(--allora-radius-sm);
+}
+
+.nextra-nav-container .nextra-hamburger:hover {
+  background-color: var(--allora-surface-raised);
+}
+
+/* ------------------------------------------------------------------ */
+/* Search (navbar widget, drawer widget, results overlay)             */
+/* ------------------------------------------------------------------ */
+
+/* Input: dark surface, hairline border, mode-scoped to beat the theme's
+   dark: bg/placeholder utilities. */
+html[class~='dark'] .nextra-search input,
+html[class~='light'] .nextra-search input {
+  background-color: var(--allora-surface);
+  border: 1px solid var(--allora-border);
+  border-radius: var(--allora-radius-sm);
+  color: var(--allora-text);
+}
+
+/* Orange focus ring (border + 1px spread ring). The [type] attribute lifts
+   specificity above the theme's dark:focus bg utility. */
+html[class~='dark'] .nextra-search input[type='search']:focus,
+html[class~='light'] .nextra-search input[type='search']:focus {
+  background-color: var(--allora-surface);
+  border-color: var(--allora-accent);
+  box-shadow: 0 0 0 1px var(--allora-accent);
+  outline: none;
+}
+
+html[class~='dark'] .nextra-search input::placeholder,
+html[class~='light'] .nextra-search input::placeholder {
+  color: var(--allora-text-muted);
+  font-family: var(--allora-font-mono);
+  font-size: var(--allora-text-2xs);
+  letter-spacing: 0.02em;
+}
+
+/* The ⌘K chip. */
+html[class~='dark'] .nextra-search kbd,
+html[class~='light'] .nextra-search kbd {
+  background-color: var(--allora-surface-raised);
+  border: 1px solid var(--allora-border);
+  color: var(--allora-text-muted);
+  font-family: var(--allora-font-mono);
+}
+
+/* Results overlay panel (ul.nextra-scrollbar dropped below the input). */
+html[class~='dark'] .nextra-search ul.nextra-scrollbar,
+html[class~='light'] .nextra-search ul.nextra-scrollbar {
+  background-color: var(--allora-surface-raised);
+  background-color: color-mix(in srgb, var(--allora-surface-raised) 92%, transparent);
+  border: 1px solid var(--allora-border);
+  border-radius: var(--allora-radius-md);
+}
+
+/* Selected result row (theme applies its primary-500/10 fill utility). */
+html[class~='dark'] .nextra-search ul.nextra-scrollbar a[class*='nx-bg-primary-500'],
+html[class~='light'] .nextra-search ul.nextra-scrollbar a[class*='nx-bg-primary-500'] {
+  background-color: var(--allora-accent);
+  color: var(--allora-accent-contrast);
+}
+
+/* Query-match highlights inside titles/excerpts. */
+html[class~='dark'] .nextra-search ul.nextra-scrollbar .nx-text-primary-600,
+html[class~='light'] .nextra-search ul.nextra-scrollbar .nx-text-primary-600 {
+  color: var(--allora-nav-accent-ink);
+}
+
+/* …but keep them readable on the solid orange selected row. */
+html[class~='dark'] .nextra-search ul.nextra-scrollbar a[class*='nx-bg-primary-500'] .nx-text-primary-600,
+html[class~='light'] .nextra-search ul.nextra-scrollbar a[class*='nx-bg-primary-500'] .nx-text-primary-600 {
+  color: var(--allora-accent-contrast);
+}
+
+/* ------------------------------------------------------------------ */
+/* TOC (right rail)                                                   */
+/* ------------------------------------------------------------------ */
+
+/* "On This Page": same header voice as sidebar sections. */
+.nextra-toc .nextra-scrollbar > p {
+  font-family: var(--allora-font-mono);
+  font-size: var(--allora-text-2xs);
+  line-height: var(--allora-leading-2xs);
+  font-weight: var(--allora-weight-medium);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--allora-nav-accent-ink);
+}
+
+/* Heading links: consistent muted type. */
+html[class~='dark'] .nextra-toc li a,
+html[class~='light'] .nextra-toc li a {
+  color: var(--allora-text-muted);
+}
+
+html[class~='dark'] .nextra-toc li a:hover,
+html[class~='light'] .nextra-toc li a:hover {
+  color: var(--allora-text);
+}
+
+/* Active heading: orange ink + 2px accent marker on the rail edge (inset
+   shadow: no layout shift). The theme adds nx-text-primary-600 client-side. */
+html[class~='dark'] .nextra-toc li a.nx-text-primary-600,
+html[class~='light'] .nextra-toc li a.nx-text-primary-600 {
+  color: var(--allora-nav-accent-ink);
+  box-shadow: inset 2px 0 0 0 var(--allora-accent);
+}
+
+/* Footer links ("Give us feedback", "Edit this page"). */
+html[class~='dark'] .nextra-toc .nx-sticky.nx-bottom-0 a,
+html[class~='light'] .nextra-toc .nx-sticky.nx-bottom-0 a {
+  color: var(--allora-text-muted);
+}
+
+html[class~='dark'] .nextra-toc .nx-sticky.nx-bottom-0 a:hover,
+html[class~='light'] .nextra-toc .nx-sticky.nx-bottom-0 a:hover {
+  color: var(--allora-text);
+}
+
+/* ------------------------------------------------------------------ */
+/* Keyboard focus                                                     */
+/* ------------------------------------------------------------------ */
+
+/* tokens.css provides the global :focus-visible outline. Inside the
+   sidebar/TOC scroll clips, an offset outline gets cut — pull it inward
+   (DERIVED: -2px offset) so it stays fully visible. */
+.nextra-sidebar-container a:focus-visible,
+.nextra-sidebar-container button:focus-visible,
+.nextra-toc a:focus-visible {
+  outline: 2px solid var(--allora-accent);
+  outline-offset: -2px;
+}
+
+.nextra-nav-container a:focus-visible,
+.nextra-nav-container button:focus-visible {
+  outline: 2px solid var(--allora-accent);
+  outline-offset: 2px;
+  border-radius: var(--allora-radius-xs);
+}
+
+/* Active row keeps its contrast-flipped ring (defined in the active block
+   above); re-assert here so the generic sidebar rule cannot out-order it. */
+.nextra-sidebar-container li a.nx-bg-primary-100:focus-visible {
+  outline-color: var(--allora-accent-contrast);
+}
