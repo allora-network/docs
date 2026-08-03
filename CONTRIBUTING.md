@@ -255,7 +255,6 @@ documentation contributions can be submitted directly to the
   discussions.
 - [Whitepaper](https://research.assets.allora.network/allora.0x10001.pdf)
 - [Docs](https://docs.allora.network/)
-- [Allora Points Program](https://app.allora.network/points/overview)
 - Videos:
   - [Archetype AI Day: Allora Network Walkthrough w/ CEO Nick Emmons](https://www.youtube.com/watch?v=xcqfTdmpfVE&t=127s)
   - [Workshop – "How to bring AI to your web3 apps with the Allora Edgenet" by Allora Labs](https://www.youtube.com/watch?v=aPCvTVFUynA)
