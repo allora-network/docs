@@ -18,7 +18,7 @@ Every page below is live at https://docs.allora.network/. The full text of all o
 
 ## Build on Allora
 
-- [Workers](https://docs.allora.network/build/overview): As a data scientist, your expertise in AI and ML is invaluable to this network, enabling you to contribute predictive models and insights that power a wide range of applications.
+- [Build on Allora](https://docs.allora.network/build/overview): Pick your role on the network — run a worker, forecaster, or reputer, compete in Forge, and pull training data from Atlas.
 - [System Requirements](https://docs.allora.network/build/worker/requirements): To participate in the Allora Network, ensure your system meets the following requirements.
 - [Build a Worker with the Python SDK](https://docs.allora.network/build/worker/sdk-py): Build and configure an Allora inference worker with the Python SDK — plug in a real price model, then set up wallets, networks, fee tiers, and error handling.
 - [Deploy a Worker with Docker](https://docs.allora.network/build/worker/containerize): Containerize an Allora Python SDK worker — build the image, mount the wallet key read-only, set a restart policy, and run it unattended.
