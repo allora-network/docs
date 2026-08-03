@@ -94,9 +94,6 @@ const config: DocsThemeConfig = {
           <a href="https://research.assets.allora.network/allora.0x10001.pdf" target="_blank" rel="noreferrer">
             Whitepaper
           </a>
-          <a href="https://app.allora.network/points/overview" target="_blank" rel="noreferrer">
-            Points Program
-          </a>
         </footer>
         <div
           style={{
