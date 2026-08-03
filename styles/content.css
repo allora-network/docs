@@ -1,0 +1,446 @@
+/*
+ * Allora docs — content-component styling.
+ *
+ * Restyles the pieces rendered inside the docs content column (code blocks,
+ * callouts, cards, tables, tabs, inline code, blockquotes, hr) on top of the
+ * design tokens defined in tokens.css. Navigation chrome (navbar, sidebar,
+ * TOC) is intentionally untouched.
+ *
+ * Selector contract (verified against nextra 2.13.4 / nextra-theme-docs
+ * 2.13.4 as installed):
+ *   - `article.nextra-content` is the content column; the TOC and sidebar
+ *     live outside it, so scoping typography here cannot leak into nav.
+ *   - Components ship stable hooks: .nextra-code-block, .nextra-callout,
+ *     .nextra-cards / .nextra-card, .nextra-steps, .nextra-button (code
+ *     copy / word-wrap buttons), plus ARIA roles for tabs.
+ *   - Callout variants carry no semantic type class; each type is uniquely
+ *     identified by its border utility (from nextra's callout.tsx):
+ *       default → .nx-border-orange-100   error → .nx-border-red-200
+ *       info    → .nx-border-blue-200    warning → .nx-border-yellow-100
+ *   - Code highlighting is themed through the --shiki-* custom properties
+ *     the theme defines on :root (light) and .dark. Overriding them on
+ *     html[class~='dark'] / html[class~='light'] (specificity 0-1-1) beats
+ *     both, including the theme's @supports lab() variants, regardless of
+ *     stylesheet order.
+ *
+ * Most rules are written twice under html[class~='dark'] and
+ * html[class~='light'] prefixes: the tokens already flip per mode, but the
+ * extra class keeps every rule ahead of the theme's `dark:`-variant
+ * utilities (max specificity ~0-3-1) without relying on import order.
+ */
+
+/* ------------------------------------------------------------------ */
+/* 1. Syntax palette (shiki custom properties)                        */
+/* ------------------------------------------------------------------ */
+
+/* Dark: brand accents on --allora-surface. */
+html[class~='dark'] {
+  --shiki-color-text: var(--allora-earth-950);
+  --shiki-color-background: transparent;
+  --shiki-token-keyword: var(--allora-accent-1);
+  --shiki-token-function: var(--allora-accent-30);
+  --shiki-token-parameter: var(--allora-accent-50);
+  --shiki-token-constant: var(--allora-info-default);
+  --shiki-token-string: var(--allora-success-default);
+  --shiki-token-string-expression: var(--allora-success-default);
+  --shiki-token-comment: var(--allora-text-muted);
+  --shiki-token-punctuation: var(--allora-earth-600);
+  --shiki-token-link: var(--allora-accent-10);
+}
+
+/*
+ * Light: the accent ramp is too light to read on the warm cream surface
+ * (#ff6200 on earth/950 is ~2.6:1), so the light palette re-maps to the
+ * darker status *-overlay primitives from the token set. All roles measure
+ * >= 4.5:1 except parameters/constants (warning-overlay, 3.9:1 — the
+ * darkest warm orange the token set offers).
+ */
+html[class~='light'] {
+  --shiki-color-text: var(--allora-earth-1);
+  --shiki-color-background: transparent;
+  --shiki-token-keyword: var(--allora-danger-overlay);
+  --shiki-token-function: var(--allora-info-overlay);
+  --shiki-token-parameter: var(--allora-warning-overlay);
+  --shiki-token-constant: var(--allora-warning-overlay);
+  --shiki-token-string: var(--allora-success-overlay);
+  --shiki-token-string-expression: var(--allora-success-overlay);
+  --shiki-token-comment: var(--allora-text-muted);
+  --shiki-token-punctuation: var(--allora-earth-100);
+  --shiki-token-link: var(--allora-success-overlay);
+}
+
+/* ------------------------------------------------------------------ */
+/* 2. Content-column typography                                       */
+/* ------------------------------------------------------------------ */
+
+/* Body font on the content column only — nav keeps its own treatment. */
+article.nextra-content {
+  font-family: var(--allora-font-body);
+}
+
+html[class~='dark'] article.nextra-content,
+html[class~='light'] article.nextra-content {
+  color: var(--allora-text);
+}
+
+/* MDX body links (the theme's mapped anchors): exact brand accent. */
+html[class~='dark'] article.nextra-content a.nx-text-primary-600,
+html[class~='light'] article.nextra-content a.nx-text-primary-600 {
+  color: var(--allora-accent);
+  text-decoration-color: color-mix(in srgb, var(--allora-accent) 40%, transparent);
+}
+
+html[class~='dark'] article.nextra-content a.nx-text-primary-600:hover,
+html[class~='light'] article.nextra-content a.nx-text-primary-600:hover {
+  text-decoration-color: var(--allora-accent);
+}
+
+/* ------------------------------------------------------------------ */
+/* 3. Code blocks                                                     */
+/* ------------------------------------------------------------------ */
+
+html[class~='dark'] article.nextra-content pre,
+html[class~='light'] article.nextra-content pre {
+  background: var(--allora-surface);
+  border: 1px solid var(--allora-border);
+  border-radius: var(--allora-radius-md);
+  font-family: var(--allora-font-mono);
+}
+
+/* The <code> inside a block keeps Code's inline-chip utilities; strip them. */
+html[class~='dark'] article.nextra-content pre code,
+html[class~='light'] article.nextra-content pre code {
+  background: transparent;
+  border: 0;
+  font-family: var(--allora-font-mono);
+}
+
+/* Filename tab bar (absolutely-positioned first child of the wrapper). */
+html[class~='dark'] .nextra-code-block > .nx-truncate,
+html[class~='light'] .nextra-code-block > .nx-truncate {
+  background: var(--allora-surface-raised);
+  color: var(--allora-text-muted);
+  font-family: var(--allora-font-mono);
+  font-size: var(--allora-text-2xs);
+  letter-spacing: 0.02em;
+  border: 1px solid var(--allora-border);
+  border-top-left-radius: var(--allora-radius-md);
+  border-top-right-radius: var(--allora-radius-md);
+}
+
+/* Copy / word-wrap buttons: visible at rest, full strength on interaction. */
+html[class~='dark'] .nextra-code-block > .nx-opacity-0,
+html[class~='light'] .nextra-code-block > .nx-opacity-0 {
+  opacity: 0.6;
+}
+
+html[class~='dark'] .nextra-code-block:hover > .nx-opacity-0,
+html[class~='light'] .nextra-code-block:hover > .nx-opacity-0,
+html[class~='dark'] .nextra-code-block > .nx-opacity-0:focus-within,
+html[class~='light'] .nextra-code-block > .nx-opacity-0:focus-within {
+  opacity: 1;
+}
+
+html[class~='dark'] article.nextra-content .nextra-button,
+html[class~='light'] article.nextra-content .nextra-button {
+  background: var(--allora-surface-raised);
+  border-color: var(--allora-border);
+  color: var(--allora-text-muted);
+}
+
+html[class~='dark'] article.nextra-content .nextra-button:hover,
+html[class~='light'] article.nextra-content .nextra-button:hover {
+  border-color: var(--allora-border-strong);
+  color: var(--allora-text);
+}
+
+/* Highlighted lines / words inside code blocks: accent marks. */
+html[class~='dark'] article.nextra-content code .line.highlighted,
+html[class~='light'] article.nextra-content code .line.highlighted {
+  background-color: color-mix(in srgb, var(--allora-accent) 12%, transparent);
+  color: inherit;
+  box-shadow: inset 2px 0 var(--allora-accent);
+}
+
+html[class~='dark'] article.nextra-content code .line .highlighted,
+html[class~='light'] article.nextra-content code .line .highlighted {
+  background-color: color-mix(in srgb, var(--allora-accent) 20%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--allora-accent) 20%, transparent);
+  border-radius: var(--allora-radius-hairline);
+}
+
+/* Line numbers. */
+html[class~='dark'] article.nextra-content code[data-line-numbers] > .line::before,
+html[class~='light'] article.nextra-content code[data-line-numbers] > .line::before {
+  color: var(--allora-text-muted);
+}
+
+/* ------------------------------------------------------------------ */
+/* 4. Inline code                                                     */
+/* ------------------------------------------------------------------ */
+
+html[class~='dark'] article.nextra-content :not(pre) > code,
+html[class~='light'] article.nextra-content :not(pre) > code {
+  background: var(--allora-surface);
+  border: 1px solid var(--allora-border);
+  border-radius: var(--allora-radius-xs);
+  font-family: var(--allora-font-mono);
+  color: inherit;
+}
+
+/* ------------------------------------------------------------------ */
+/* 5. Callouts                                                        */
+/* ------------------------------------------------------------------ */
+
+/* Shared shell: hairline border + 3px status rule on the leading edge. */
+html[class~='dark'] .nextra-callout,
+html[class~='light'] .nextra-callout {
+  border-radius: var(--allora-radius-sm);
+  border-left-width: 3px;
+  color: var(--allora-text);
+}
+
+/* default (💡) → brand accent */
+html[class~='dark'] .nextra-callout.nx-border-orange-100 {
+  background: color-mix(in srgb, var(--allora-accent) 10%, transparent);
+}
+html[class~='light'] .nextra-callout.nx-border-orange-100 {
+  background: color-mix(in srgb, var(--allora-accent) 12%, transparent);
+}
+html[class~='dark'] .nextra-callout.nx-border-orange-100,
+html[class~='light'] .nextra-callout.nx-border-orange-100 {
+  border-color: color-mix(in srgb, var(--allora-accent) 35%, transparent);
+  border-left-color: var(--allora-accent);
+  color: var(--allora-text);
+}
+html[class~='dark'] .nextra-callout.nx-border-orange-100 > div:first-child,
+html[class~='light'] .nextra-callout.nx-border-orange-100 > div:first-child {
+  color: var(--allora-accent);
+}
+
+/* info → --allora-info */
+html[class~='dark'] .nextra-callout.nx-border-blue-200 {
+  background: var(--allora-info-subtle);
+}
+html[class~='light'] .nextra-callout.nx-border-blue-200 {
+  background: color-mix(in srgb, var(--allora-info) 14%, transparent);
+}
+html[class~='dark'] .nextra-callout.nx-border-blue-200,
+html[class~='light'] .nextra-callout.nx-border-blue-200 {
+  border-color: color-mix(in srgb, var(--allora-info) 35%, transparent);
+  border-left-color: var(--allora-info);
+  color: var(--allora-text);
+}
+html[class~='dark'] .nextra-callout.nx-border-blue-200 > div:first-child,
+html[class~='light'] .nextra-callout.nx-border-blue-200 > div:first-child {
+  color: var(--allora-info);
+}
+
+/* warning → --allora-warn */
+html[class~='dark'] .nextra-callout.nx-border-yellow-100 {
+  background: var(--allora-warning-subtle);
+}
+html[class~='light'] .nextra-callout.nx-border-yellow-100 {
+  background: color-mix(in srgb, var(--allora-warn) 16%, transparent);
+}
+html[class~='dark'] .nextra-callout.nx-border-yellow-100,
+html[class~='light'] .nextra-callout.nx-border-yellow-100 {
+  border-color: color-mix(in srgb, var(--allora-warn) 35%, transparent);
+  border-left-color: var(--allora-warn);
+  color: var(--allora-text);
+}
+html[class~='dark'] .nextra-callout.nx-border-yellow-100 > div:first-child,
+html[class~='light'] .nextra-callout.nx-border-yellow-100 > div:first-child {
+  color: var(--allora-warn);
+}
+
+/* error → --allora-error */
+html[class~='dark'] .nextra-callout.nx-border-red-200 {
+  background: var(--allora-danger-subtle);
+}
+html[class~='light'] .nextra-callout.nx-border-red-200 {
+  background: color-mix(in srgb, var(--allora-error) 14%, transparent);
+}
+html[class~='dark'] .nextra-callout.nx-border-red-200,
+html[class~='light'] .nextra-callout.nx-border-red-200 {
+  border-color: color-mix(in srgb, var(--allora-error) 35%, transparent);
+  border-left-color: var(--allora-error);
+  color: var(--allora-text);
+}
+html[class~='dark'] .nextra-callout.nx-border-red-200 > div:first-child,
+html[class~='light'] .nextra-callout.nx-border-red-200 > div:first-child {
+  color: var(--allora-error);
+}
+
+/* ------------------------------------------------------------------ */
+/* 6. Cards — Forge tile treatment                                    */
+/* ------------------------------------------------------------------ */
+
+html[class~='dark'] .nextra-cards .nextra-card,
+html[class~='light'] .nextra-cards .nextra-card {
+  background: var(--allora-surface);
+  border: 1px solid var(--allora-border);
+  border-radius: var(--allora-radius-md);
+}
+
+html[class~='dark'] .nextra-cards .nextra-card:hover,
+html[class~='light'] .nextra-cards .nextra-card:hover {
+  background: var(--allora-surface);
+  border-color: var(--allora-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px -6px color-mix(in srgb, var(--allora-accent) 25%, transparent);
+}
+
+/* Card title: mono label, token text color in every state. */
+html[class~='dark'] .nextra-cards .nextra-card > span,
+html[class~='light'] .nextra-cards .nextra-card > span,
+html[class~='dark'] .nextra-cards .nextra-card:hover > span,
+html[class~='light'] .nextra-cards .nextra-card:hover > span {
+  color: var(--allora-text);
+  font-family: var(--allora-font-mono);
+  font-size: var(--allora-text-xs);
+  font-weight: var(--allora-weight-medium);
+}
+
+/* Hover arrow → accent. */
+html[class~='dark'] .nextra-cards .nextra-card span.nx-transition-transform,
+html[class~='light'] .nextra-cards .nextra-card span.nx-transition-transform {
+  color: var(--allora-accent);
+}
+
+/* ------------------------------------------------------------------ */
+/* 7. Tables                                                          */
+/* ------------------------------------------------------------------ */
+
+html[class~='dark'] article.nextra-content table,
+html[class~='light'] article.nextra-content table {
+  background: var(--allora-surface);
+  border: 1px solid var(--allora-border);
+  border-radius: var(--allora-radius-md);
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/*
+ * Header row: dark surface in BOTH modes (Forge tile), mono uppercase
+ * letterspaced labels (label treatment derived — the type-scale tracking
+ * tokens are all negative; +0.06em is chosen for small uppercase mono),
+ * accent rule underneath. Primitive colors are used on purpose so the
+ * header stays dark on the light theme.
+ */
+html[class~='dark'] article.nextra-content th,
+html[class~='light'] article.nextra-content th {
+  background: var(--allora-neutral-20);
+  color: var(--allora-earth-600);
+  font-family: var(--allora-font-mono);
+  font-size: var(--allora-text-2xs);
+  font-weight: var(--allora-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid var(--allora-accent);
+}
+
+html[class~='dark'] article.nextra-content thead th:first-child,
+html[class~='light'] article.nextra-content thead th:first-child {
+  border-top-left-radius: calc(var(--allora-radius-md) - 1px);
+}
+
+html[class~='dark'] article.nextra-content thead th:last-child,
+html[class~='light'] article.nextra-content thead th:last-child {
+  border-top-right-radius: calc(var(--allora-radius-md) - 1px);
+}
+
+/* Body cells: no vertical grid — hairline row separators only. */
+html[class~='dark'] article.nextra-content td,
+html[class~='light'] article.nextra-content td {
+  border: 0;
+  border-top: 1px solid var(--allora-border);
+}
+
+html[class~='dark'] article.nextra-content tbody tr:first-child td,
+html[class~='light'] article.nextra-content tbody tr:first-child td {
+  border-top: 0;
+}
+
+html[class~='dark'] article.nextra-content tbody tr:last-child td:first-child,
+html[class~='light'] article.nextra-content tbody tr:last-child td:first-child {
+  border-bottom-left-radius: calc(var(--allora-radius-md) - 1px);
+}
+
+html[class~='dark'] article.nextra-content tbody tr:last-child td:last-child,
+html[class~='light'] article.nextra-content tbody tr:last-child td:last-child {
+  border-bottom-right-radius: calc(var(--allora-radius-md) - 1px);
+}
+
+/* Kill the theme's even-row striping, then add a subtle row hover. */
+html[class~='dark'] article.nextra-content tbody tr:nth-child(2n),
+html[class~='light'] article.nextra-content tbody tr:nth-child(2n) {
+  background: transparent;
+}
+
+html[class~='dark'] article.nextra-content tbody tr:hover,
+html[class~='light'] article.nextra-content tbody tr:hover {
+  background: color-mix(in srgb, var(--allora-accent) 5%, transparent);
+}
+
+/* ------------------------------------------------------------------ */
+/* 8. Tabs                                                            */
+/* ------------------------------------------------------------------ */
+
+html[class~='dark'] article.nextra-content [role='tablist'],
+html[class~='light'] article.nextra-content [role='tablist'] {
+  border-bottom-color: var(--allora-border);
+}
+
+/* Same mono label treatment as table headers (derived, see above). */
+html[class~='dark'] article.nextra-content [role='tab'],
+html[class~='light'] article.nextra-content [role='tab'] {
+  color: var(--allora-text-muted);
+  font-family: var(--allora-font-mono);
+  font-size: var(--allora-text-2xs);
+  font-weight: var(--allora-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+html[class~='dark'] article.nextra-content [role='tab']:hover,
+html[class~='light'] article.nextra-content [role='tab']:hover {
+  color: var(--allora-text);
+  border-bottom-color: var(--allora-border-strong);
+}
+
+html[class~='dark'] article.nextra-content [role='tab'][aria-selected='true'],
+html[class~='light'] article.nextra-content [role='tab'][aria-selected='true'] {
+  color: var(--allora-accent);
+  border-bottom-color: var(--allora-accent);
+}
+
+/* ------------------------------------------------------------------ */
+/* 9. Blockquote, hr, steps                                           */
+/* ------------------------------------------------------------------ */
+
+html[class~='dark'] article.nextra-content blockquote,
+html[class~='light'] article.nextra-content blockquote {
+  border-color: var(--allora-accent);
+  color: var(--allora-text-muted);
+}
+
+html[class~='dark'] article.nextra-content hr,
+html[class~='light'] article.nextra-content hr {
+  border-color: var(--allora-border);
+}
+
+html[class~='dark'] article.nextra-content .nextra-steps,
+html[class~='light'] article.nextra-content .nextra-steps {
+  border-color: var(--allora-border);
+}
+
+html[class~='dark'] article.nextra-content .nextra-steps h3::before,
+html[class~='light'] article.nextra-content .nextra-steps h3::before {
+  background-color: var(--allora-surface-raised);
+  border-color: var(--allora-bg);
+  color: var(--allora-text-muted);
+  font-family: var(--allora-font-mono);
+}
