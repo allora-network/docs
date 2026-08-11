@@ -68,7 +68,7 @@ async function findAndUpdateLinks(files) {
         ? path.join(directoryPath, resolvedPath)
         : path.resolve(dir, resolvedPath);
 
-      targetFileMDX = targetFile.endsWith('.mdx') ? targetFile : `${targetFile}.mdx`;
+      let targetFileMDX = targetFile.endsWith('.mdx') ? targetFile : `${targetFile}.mdx`;
       if (!fs.existsSync(targetFileMDX)) {
         console.log(`Broken link found in ${file}: ${linkPath} does not exist.`);
         throw new Error('Broken link found');
