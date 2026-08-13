@@ -39,7 +39,7 @@ Allora uses confidence intervals because workers may have different numbers of s
 
 For mainnet promotion, a worker must pass every promotion metric on the topic:
 
-- **Effective sample size** — at least 20 raw effective observations
+- **Effective sample size** — `n_eff` must be at least 20 before any forecast-horizon adjustment
 - **Directional accuracy** — one-sided 95% lower CI greater than 50%
 - **Pearson correlation** — two-sided 95% lower CI greater than 0
 - **WRMSE improvement** — adaptive lower CI greater than 0%
