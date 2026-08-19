@@ -2,11 +2,25 @@
  * Detects drift between the versions recorded in public/api/networks.json and
  * the versions the live networks actually report over CometBFT RPC.
  *
- * Each network's `abci_version` field holds the raw `result.response.version`
- * string from `<rpc>abci_info`. allora-chain reports a build identifier there
- * (for example `HEAD-<commit sha>`) rather than a release tag, so that string is
- * the only value that can be compared automatically; `deployed_version` remains
- * the human-maintained release tag and is never rewritten by this script.
+ * Two facts are compared, because the build hash alone proved not to be enough.
+ *
+ * `abci_version` holds the raw `result.response.version` string from
+ * `<rpc>abci_info` — allora-chain reports a build identifier there (for example
+ * `HEAD-<commit sha>`) rather than a release tag.
+ *
+ * `emissions_namespace` holds the emissions module's REST namespace. The chain
+ * does not advertise it, so it is probed: `<lcd>/emissions/v<N>/params` is asked
+ * from the recorded namespace upward, and the highest routed one is what the
+ * network serves. This is the fact a reader actually feels — when mainnet
+ * upgraded to v0.17.0, `emissions/v9` stopped being routed, every documented
+ * mainnet LCD path began answering `501 Not Implemented`, and the nightly topics
+ * job started failing, while a build-hash-only check reported a tidy hash change
+ * and left the rest to a footnote.
+ *
+ * `deployed_version` remains the human-maintained release tag and is never
+ * rewritten by this script: no endpoint reports one. A namespace move is
+ * reported as the release upgrade it is, so the pull request asks for that
+ * field by name instead of mentioning it in passing.
  *
  * Networks are probed and judged independently: an unreachable RPC is reported
  * as a probe error for that network only, and never stops the other networks
@@ -38,6 +52,13 @@ const requestTimeoutMs = 20000;
 const maxAttempts = 3;
 const retryBackoffMs = 2000;
 const userAgent = 'allora-docs-network-drift/1.0 (+https://docs.allora.network)';
+
+// The emissions module's REST namespace, e.g. `emissions/v10`.
+const NAMESPACE_SHAPE = /^emissions\/v(\d+)$/;
+// How far above the recorded namespace to look for a newer one. An upgrade
+// moves it by one; three leaves room for a missed night without turning the
+// probe into a scan.
+const maxNamespaceLookahead = 3;
 
 function parseArgs(argv) {
   const args = { write: false, bodyFile: null, allowedHosts: null };
@@ -291,6 +312,12 @@ function isForbiddenAddress(address) {
 // granting reach to a host no probeable network can name.
 const RESERVED_NETWORK_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
+// The endpoint fields a probe is allowed to reach, and therefore the fields the
+// allowlist is derived from. `rpc` answers `abci_info`; `lcd` answers the
+// emissions-namespace check. A field that becomes a fetch target and is not
+// listed here would be refused at the point of use, so the two must agree.
+const PROBEABLE_ENDPOINT_KEYS = ['rpc', 'lcd'];
+
 // The hosts the trusted manifest names. The workflow passes these as
 // --allowed-hosts, derived from the pre-merge copy, so "the endpoints come from
 // the default branch" is enforced at the point of use and not only at the point
@@ -306,18 +333,20 @@ function hostsOf(manifest) {
     if (RESERVED_NETWORK_KEYS.has(name)) continue;
     const entry = networks[name];
     if (!entry || typeof entry !== 'object') continue;
-    // hasOwnProperty, not a bare read: an entry whose PROTOTYPE carries an
-    // `rpc` would otherwise widen the allowlist with a host that appears
-    // nowhere in the manifest's own data.
-    if (!Object.prototype.hasOwnProperty.call(entry, 'rpc')) continue;
-    // A string, not something that merely stringifies into one: `new URL()`
-    // coerces its argument, so an object with a toString would otherwise put
-    // whatever it returns on the allowlist.
-    if (typeof entry.rpc !== 'string') continue;
-    try {
-      hosts.add(new URL(entry.rpc).hostname.toLowerCase());
-    } catch {
-      /* a trusted entry that does not parse contributes no host */
+    for (const field of PROBEABLE_ENDPOINT_KEYS) {
+      // hasOwnProperty, not a bare read: an entry whose PROTOTYPE carries an
+      // `rpc` would otherwise widen the allowlist with a host that appears
+      // nowhere in the manifest's own data.
+      if (!Object.prototype.hasOwnProperty.call(entry, field)) continue;
+      // A string, not something that merely stringifies into one: `new URL()`
+      // coerces its argument, so an object with a toString would otherwise put
+      // whatever it returns on the allowlist.
+      if (typeof entry[field] !== 'string') continue;
+      try {
+        hosts.add(new URL(entry[field]).hostname.toLowerCase());
+      } catch {
+        /* a trusted entry that does not parse contributes no host */
+      }
     }
   }
   return hosts;
@@ -326,18 +355,25 @@ function hostsOf(manifest) {
 // `rpc` values in the manifest carry a trailing slash; new URL() handles both.
 // Resolving is also where the target is vetted, so there is no path to a fetch
 // that skips the check.
-function abciInfoUrl(rpc, allowedHosts) {
+// One vetting path, parameterised by the manifest field the endpoint came from,
+// rather than one per probe. A second copy of these checks is precisely the
+// hazard this file already names for the address ranges: the copy that drifted
+// would be the one nobody was reading, and here it would be a copy of the SSRF
+// guard. The field name only shapes the wording of the three parse errors.
+function vettedProbeUrl(endpoint, relativePath, field, allowedHosts) {
   let url;
   try {
-    url = new URL('abci_info', rpc);
+    url = new URL(relativePath, endpoint);
   } catch {
-    throw new Error(`rpc endpoint ${JSON.stringify(rpc)} is not a usable URL`);
+    throw new Error(`${field} endpoint ${JSON.stringify(endpoint)} is not a usable URL`);
   }
   if (url.protocol !== 'https:' && url.protocol !== 'http:') {
-    throw new Error(`rpc endpoint ${JSON.stringify(rpc)} is not http(s) (got "${url.protocol}")`);
+    throw new Error(
+      `${field} endpoint ${JSON.stringify(endpoint)} is not http(s) (got "${url.protocol}")`
+    );
   }
   if (!url.hostname) {
-    throw new Error(`rpc endpoint ${JSON.stringify(rpc)} names no host`);
+    throw new Error(`${field} endpoint ${JSON.stringify(endpoint)} names no host`);
   }
   if (isForbiddenHost(url.hostname)) {
     throw new Error(
@@ -353,6 +389,21 @@ function abciInfoUrl(rpc, allowedHosts) {
     );
   }
   return url.href;
+}
+
+function abciInfoUrl(rpc, allowedHosts) {
+  return vettedProbeUrl(rpc, 'abci_info', 'rpc', allowedHosts);
+}
+
+// `<lcd>/emissions/v<N>/params` — the cheapest query every emissions version
+// serves, used only to ask whether that namespace is routed at all.
+function emissionsParamsUrl(lcd, namespace, allowedHosts) {
+  if (!NAMESPACE_SHAPE.test(String(namespace))) {
+    throw new Error(
+      `emissions_namespace ${JSON.stringify(namespace)} is not of the form "emissions/v<N>"`
+    );
+  }
+  return vettedProbeUrl(lcd, `${namespace}/params`, 'lcd', allowedHosts);
 }
 
 // ---------------------------------------------------------------------------
@@ -522,6 +573,109 @@ async function fetchAbciVersion(rpc, allowedHosts, lookup = dns.promises.lookup)
   throw new Error(`${url}: ${lastError && lastError.message ? lastError.message : 'unknown error'}`);
 }
 
+// ---------------------------------------------------------------------------
+// Which emissions namespace the chain actually serves
+//
+// `abci_version` is a build identifier, so comparing it catches that a network
+// changed and nothing more. The consequence a reader feels is the namespace:
+// when mainnet upgraded to v0.17.0, `emissions/v9` stopped being routed and
+// every documented mainnet LCD path began answering `501 Not Implemented`,
+// while this check reported a tidy hash change and left a footnote asking a
+// human to consider the rest. The namespace is queryable, so it is queried.
+//
+// Unlike the build hash it cannot simply be read off an endpoint: the chain
+// does not advertise its emissions version, it either routes a namespace or it
+// does not. So it is probed — the recorded one first, then upward until a
+// namespace is not routed, and the highest routed one is what the network
+// serves.
+// ---------------------------------------------------------------------------
+
+// An HTTP answer is an answer. A namespace the gateway does not route replies
+// 501 (or 404), and re-asking twice more on a two-second backoff would only
+// spend thirty seconds confirming it. Only a transport failure or a 5xx that is
+// not 501 is worth a retry.
+async function namespaceRoutedFromResponse(response) {
+  if (response.status >= 300 && response.status < 400) {
+    throw new Error(
+      `HTTP ${response.status} redirect to ${JSON.stringify(response.headers.get('location'))} ` +
+        `-- the LCD must answer directly; redirects are not followed`
+    );
+  }
+  if (response.ok) return true;
+  if (response.status === 501 || response.status === 404) return false;
+  throw new Error(`HTTP ${response.status}`);
+}
+
+async function probeNamespaceRouted(lcd, namespace, allowedHosts, lookup = dns.promises.lookup) {
+  const url = emissionsParamsUrl(lcd, namespace, allowedHosts);
+  const target = new URL(url);
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      await assertTargetResolves(target, lookup);
+      const response = await fetch(url, {
+        ...probeRequestOptions(),
+        signal: AbortSignal.timeout(requestTimeoutMs),
+      });
+      return await namespaceRoutedFromResponse(response);
+    } catch (error) {
+      if (error && error.forbiddenTarget) throw error;
+      lastError = error;
+      if (attempt < maxAttempts) {
+        await sleep(retryBackoffMs * attempt);
+      }
+    }
+  }
+
+  throw new Error(`${url}: ${lastError && lastError.message ? lastError.message : 'unknown error'}`);
+}
+
+// Walks up from the recorded namespace and returns the highest one the network
+// routes. In the steady state that is two requests: the recorded namespace
+// answers and the one above it does not.
+// `probe` is a parameter with a real default, the way `lookup` is above it, so
+// the walk can be tested without a network — the part worth testing here is
+// which namespaces get asked and which answer is believed, not fetch.
+async function fetchServedNamespace(
+  lcd,
+  recorded,
+  allowedHosts,
+  lookup = dns.promises.lookup,
+  probe = probeNamespaceRouted
+) {
+  const shape = NAMESPACE_SHAPE.exec(String(recorded || ''));
+  if (!shape) {
+    throw new Error(
+      `emissions_namespace ${JSON.stringify(recorded)} is not of the form "emissions/v<N>", ` +
+        `so there is no namespace to probe from`
+    );
+  }
+
+  const from = Number(shape[1]);
+  let served = null;
+
+  for (let version = from; version <= from + maxNamespaceLookahead; version++) {
+    const namespace = `emissions/v${version}`;
+    const routed = await probe(lcd, namespace, allowedHosts, lookup);
+    if (routed) served = namespace;
+    // The first unrouted namespace above a routed one is the ceiling. Below the
+    // first routed one it proves nothing yet -- that is the upgrade case, where
+    // the recorded namespace is the one that stopped being served.
+    else if (served !== null) break;
+  }
+
+  if (served === null) {
+    throw new Error(
+      `no emissions namespace is routed at ${lcd} between ${recorded} and ` +
+        `emissions/v${from + maxNamespaceLookahead}; the recorded namespace is not served and no ` +
+        `newer one answered either`
+    );
+  }
+
+  return served;
+}
+
 function emitGithubOutputs(outputs) {
   const file = process.env.GITHUB_OUTPUT;
   if (!file) {
@@ -531,29 +685,79 @@ function emitGithubOutputs(outputs) {
   fs.appendFileSync(file, `${lines.join('\n')}\n`);
 }
 
-function buildPullRequestBody(drifted, probeErrors) {
+function buildPullRequestBody(drifted, namespaceDrifted, probeErrors) {
   const lines = [
     'The scheduled network drift check found that at least one Allora network is',
-    'reporting a different build over RPC than `public/api/networks.json` records.',
-    '',
-    '| Network | RPC | Recorded `abci_version` | Reported by `abci_info` |',
-    '|---|---|---|---|',
+    'reporting a different build or serving a different emissions namespace than',
+    '`public/api/networks.json` records.',
   ];
 
-  for (const { network, rpc, recorded, reported } of drifted) {
-    lines.push(`| ${network} | \`${abciInfoUrl(rpc)}\` | \`${recorded || '(unset)'}\` | \`${reported}\` |`);
+  if (drifted.length > 0) {
+    lines.push(
+      '',
+      '### Build',
+      '',
+      '| Network | RPC | Recorded `abci_version` | Reported by `abci_info` |',
+      '|---|---|---|---|'
+    );
+    for (const { network, rpc, recorded, reported } of drifted) {
+      lines.push(
+        `| ${network} | \`${abciInfoUrl(rpc)}\` | \`${recorded || '(unset)'}\` | \`${reported}\` |`
+      );
+    }
+  }
+
+  // The namespace section is deliberately not a footnote. The version of this
+  // body that only mentioned `emissions_namespace` in a paragraph of follow-up
+  // advice shipped a PR that updated two hashes while mainnet's recorded
+  // namespace stayed at `emissions/v9` -- by then unrouted, so every documented
+  // mainnet LCD path in the docs answered 501, and the nightly topics job had
+  // started failing on the same call. A namespace move is a module upgrade, and
+  // it is the signal that the hand-maintained half of the manifest is stale.
+  if (namespaceDrifted.length > 0) {
+    lines.push(
+      '',
+      '### Emissions namespace — this was a module upgrade',
+      '',
+      '| Network | LCD | Recorded `emissions_namespace` | Actually routed |',
+      '|---|---|---|---|'
+    );
+    for (const { network, lcd, recorded, served } of namespaceDrifted) {
+      lines.push(`| ${network} | \`${lcd}\` | \`${recorded || '(unset)'}\` | \`${served}\` |`);
+    }
+    lines.push(
+      '',
+      '> [!IMPORTANT]',
+      '> The recorded namespace is no longer routed on the network(s) above, so every',
+      '> documented LCD path using it now answers `501 Not Implemented`. This PR',
+      '> updates `emissions_namespace`, which also fixes the nightly topics job —',
+      '> `scripts/generateTopics.js` reads the namespace from this manifest.',
+      '>',
+      '> **A namespace move means the chain took a release upgrade, so the',
+      '> hand-maintained fields are almost certainly stale too.** Before merging,',
+      '> confirm which release each network below is running and update',
+      '> `deployed_version` here and the matching `chain_<network>` key in',
+      '> `public/api/versions.json` in the same commit.',
+      '>'
+    );
+    for (const { network, deployed_version: deployed } of namespaceDrifted) {
+      lines.push(`> - \`${network}\` still records \`deployed_version: ${deployed || '(unset)'}\``);
+    }
+    lines.push(
+      '>',
+      '> The applied upgrade plan is the authority on which release actually ran:',
+      '> `<lcd>/cosmos/upgrade/v1beta1/applied_plan/<tag>` returns a non-zero height',
+      '> only for a plan that executed.'
+    );
   }
 
   lines.push(
     '',
-    'This PR updates `abci_version` for the networks above.',
-    '',
     'The `deployed_version` release tag is **not** changed automatically: `abci_info`',
     'reports a build identifier rather than a release tag. Check the',
     '[allora-chain releases](https://github.com/allora-network/allora-chain/releases)',
-    'and, if a new release is live, update `deployed_version` (and the',
-    '`emissions_namespace` if the upgrade bumped the emissions module) in this PR',
-    'before merging.',
+    'and, if a new release is live, update `deployed_version` in this PR before',
+    'merging.',
     '',
     'If you do change `deployed_version`, change the matching `chain_<network>` key',
     'in `public/api/versions.json` in the same commit — `yarn checkversions` fails',
@@ -590,6 +794,9 @@ module.exports = {
   fetchAbciVersion,
   probeRequestOptions,
   versionFromResponse,
+  emissionsParamsUrl,
+  namespaceRoutedFromResponse,
+  fetchServedNamespace,
 };
 
 const main = async () => {
@@ -659,6 +866,7 @@ const main = async () => {
   // never suppresses a healthy network's comparison: one permanently unreachable
   // RPC must not hide real drift on the other chain forever.
   const drifted = [];
+  const namespaceDrifted = [];
   const probeErrors = [];
 
   for (const [network, entry] of networks) {
@@ -683,21 +891,62 @@ const main = async () => {
       console.log(`DRIFT ${network}: recorded ${recorded || '(unset)'} -> reported ${reported}`);
       drifted.push({ network, rpc: entry.rpc, recorded, reported });
     }
+
+    // Judged separately from the build hash, and reported separately: a
+    // namespace move is a module upgrade, which is the case where the rest of
+    // the manifest -- deployed_version, and versions.json with it -- needs a
+    // human. A build hash that moved on its own does not imply that.
+    if (!entry.lcd) {
+      console.error(`ERROR ${network}: no lcd endpoint in the manifest`);
+      probeErrors.push({ network, message: 'no lcd endpoint in the manifest' });
+      continue;
+    }
+    let servedNamespace;
+    try {
+      servedNamespace = await fetchServedNamespace(entry.lcd, entry.emissions_namespace, args.allowedHosts);
+    } catch (error) {
+      console.error(`ERROR ${network}: ${error.message}`);
+      probeErrors.push({ network, message: error.message });
+      continue;
+    }
+
+    if (entry.emissions_namespace === servedNamespace) {
+      console.log(`ok    ${network}: serves ${servedNamespace}`);
+    } else {
+      console.log(
+        `DRIFT ${network}: recorded ${entry.emissions_namespace || '(unset)'} -> serves ${servedNamespace}`
+      );
+      namespaceDrifted.push({
+        network,
+        lcd: entry.lcd,
+        recorded: entry.emissions_namespace,
+        served: servedNamespace,
+        deployed_version: entry.deployed_version,
+      });
+    }
   }
 
-  if (drifted.length > 0 && args.write) {
+  if ((drifted.length > 0 || namespaceDrifted.length > 0) && args.write) {
     for (const { network, reported } of drifted) {
       manifest.networks[network].abci_version = reported;
+    }
+    for (const { network, served } of namespaceDrifted) {
+      manifest.networks[network].emissions_namespace = served;
     }
     manifest.updated = new Date().toISOString().slice(0, 10);
 
     // Match the file's existing formatting: two-space indent, trailing newline.
     fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
     console.log('');
-    console.log(`Updated ${manifestPath} for: ${drifted.map(d => d.network).join(', ')}`);
+    const touched = [...new Set([...drifted, ...namespaceDrifted].map(d => d.network))];
+    console.log(`Updated ${manifestPath} for: ${touched.join(', ')}`);
 
     if (args.bodyFile) {
-      fs.writeFileSync(args.bodyFile, buildPullRequestBody(drifted, probeErrors), 'utf8');
+      fs.writeFileSync(
+        args.bodyFile,
+        buildPullRequestBody(drifted, namespaceDrifted, probeErrors),
+        'utf8'
+      );
       console.log(`Wrote pull-request body to ${args.bodyFile}`);
     }
   }
@@ -707,15 +956,19 @@ const main = async () => {
   // earlier failure leaves every output unset; the workflow therefore gates its
   // failure step on this step's outcome rather than on these values.
   emitGithubOutputs({
-    drift: drifted.length > 0 ? 'true' : 'false',
-    networks: drifted.map(d => d.network).join(','),
+    drift: drifted.length > 0 || namespaceDrifted.length > 0 ? 'true' : 'false',
+    networks: [...new Set([...drifted, ...namespaceDrifted].map(d => d.network))].join(','),
+    namespace_drift: namespaceDrifted.map(d => d.network).join(','),
     probe_errors: probeErrors.map(p => p.network).join(','),
   });
 
   console.log('');
-  if (drifted.length === 0) {
+  if (drifted.length === 0 && namespaceDrifted.length === 0) {
     const checked = networks.length - probeErrors.length;
-    console.log(`No drift: ${checked}/${networks.length} networks report the version recorded in the manifest.`);
+    console.log(
+      `No drift: ${checked}/${networks.length} networks report the build and serve the emissions ` +
+        `namespace recorded in the manifest.`
+    );
   }
 
   if (probeErrors.length > 0) {
@@ -726,7 +979,7 @@ const main = async () => {
     return;
   }
 
-  if (drifted.length > 0 && !args.write) {
+  if ((drifted.length > 0 || namespaceDrifted.length > 0) && !args.write) {
     console.error('Run with --write to update public/api/networks.json.');
     process.exitCode = 1;
   }
