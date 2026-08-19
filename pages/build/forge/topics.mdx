@@ -2,8 +2,8 @@
 title: Existing Allora Network Topics
 description: Live topic tables for Allora testnet and mainnet — topic IDs, metadata, epoch lengths, loss methods, and categories — plus how to verify a topic's status.
 persona: ML builder
-verified_against: public/api/topics.json, regenerated from live chain state via Cosmos LCD (testnet allora-testnet-1 emissions/v10, mainnet allora-mainnet-1 emissions/v9)
-last_reviewed: 2026-07-30
+verified_against: public/api/topics.json, regenerated from live chain state via the Cosmos LCD namespace public/api/networks.json records for each network
+last_reviewed: 2026-08-19
 ---
 
 import { Callout } from 'nextra/components'
@@ -19,8 +19,8 @@ volatility). Each [Forge competition](/build/forge/competitions) targets one of 
 
 <Callout type="info">
 These tables are generated from live chain state, not maintained by hand. A scheduled job queries the
-[Cosmos LCD (REST) API](/reference/networks) of each network (testnet `allora-testnet-1` via
-`emissions/v10`, mainnet `allora-mainnet-1` via `emissions/v9`), keeps only topics whose
+[Cosmos LCD (REST) API](/reference/networks) of each network, at the emissions namespace
+`/api/networks.json` records for it, keeps only topics whose
 `is_topic_active` query returns `true`, and publishes the result at `/api/topics.json` — the same
 data this page renders. The data below last changed
 on **<TopicsGeneratedOn />**. Topics activate and deactivate over time, so
@@ -63,13 +63,13 @@ Query the live chain to confirm a topic's current definition and active status. 
 `emissions` API version segment differs by network (see [Networks](/reference/networks)):
 
 ```bash
-# Testnet (emissions/v10)
+# Testnet
 curl -s https://allora-api.testnet.allora.network/emissions/v10/topics/69
 curl -s https://allora-api.testnet.allora.network/emissions/v10/is_topic_active/69
 
-# Mainnet (emissions/v9)
-curl -s https://allora-api.mainnet.allora.network/emissions/v9/topics/1
-curl -s https://allora-api.mainnet.allora.network/emissions/v9/is_topic_active/1
+# Mainnet
+curl -s https://allora-api.mainnet.allora.network/emissions/v10/topics/1
+curl -s https://allora-api.mainnet.allora.network/emissions/v10/is_topic_active/1
 ```
 
 To consume the same list programmatically, fetch the published JSON instead of scraping this page:

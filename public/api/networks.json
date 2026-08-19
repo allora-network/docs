@@ -33,8 +33,8 @@
     "mainnet": {
       "name": "Mainnet",
       "chain_id": "allora-mainnet-1",
-      "deployed_version": "v0.16.0",
-      "emissions_namespace": "emissions/v9",
+      "deployed_version": "v0.17.0",
+      "emissions_namespace": "emissions/v10",
       "rpc": "https://allora-rpc.mainnet.allora.network/",
       "grpc": "https://allora-grpc.mainnet.allora.network/",
       "lcd": "https://allora-api.mainnet.allora.network/",

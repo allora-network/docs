@@ -2,8 +2,8 @@
 title: Networks
 description: Chain IDs, endpoints, and the currently deployed allora-chain version for each Allora network.
 persona: Builder or operator
-verified_against: docs content as of 2026-07-30
-last_reviewed: 2026-07-30
+verified_against: live abci_info and cosmos/upgrade applied_plan on both networks, 2026-08-19
+last_reviewed: 2026-08-19
 ---
 
 # Networks
@@ -12,14 +12,15 @@ last_reviewed: 2026-07-30
 
 The Allora Network runs as two public networks: a **testnet** for development and integration, and
 the production **mainnet**. Each may run a different `allora-chain` version, which also determines the
-`emissions` REST/gRPC API version (for example, mainnet's v0.16.0 serves `emissions/v9`
-while testnet's v0.17.0 serves `emissions/v10`).
+`emissions` REST/gRPC API version: testnet runs v0.17.0 and serves
+`emissions/v10`, mainnet runs v0.17.0 and
+serves `emissions/v10`.
 
 |  | Testnet | Mainnet |
 | --- | --- | --- |
 | **Chain ID** | `allora-testnet-1` | `allora-mainnet-1` |
-| **Deployed version** | v0.17.0 | v0.16.0 |
-| **Emissions API namespace** | `emissions/v10` | `emissions/v9` |
+| **Deployed version** | v0.17.0 | v0.17.0 |
+| **Emissions API namespace** | `emissions/v10` | `emissions/v10` |
 | **RPC JSON** | `https://allora-rpc.testnet.allora.network/` | `https://allora-rpc.mainnet.allora.network/` |
 | **gRPC** | `https://allora-grpc.testnet.allora.network/` | `https://allora-grpc.mainnet.allora.network/` |
 | **API (Cosmos LCD - REST)** | `https://allora-api.testnet.allora.network/` | `https://allora-api.mainnet.allora.network/` |
@@ -54,8 +55,8 @@ before they ship to mainnet. For wallet creation and faucet funding, see
 ## Mainnet
 
 - **Chain ID**: `allora-mainnet-1`
-- **Deployed version**: v0.16.0
-- **Emissions API namespace**: `emissions/v9`
+- **Deployed version**: v0.17.0
+- **Emissions API namespace**: `emissions/v10`
 - **RPC JSON**: `https://allora-rpc.mainnet.allora.network/`
 - **gRPC**: `https://allora-grpc.mainnet.allora.network/`
 - **API (Cosmos LCD - REST)**: `https://allora-api.mainnet.allora.network/`
@@ -64,11 +65,11 @@ before they ship to mainnet. For wallet creation and faucet funding, see
 
 Mainnet has no faucet — fund addresses with ALLO yourself.
 
-The `emissions` API version differs by network. On mainnet (v0.16.0) network-inference
-endpoints live under `emissions/v9` and return a single (unlabeled) value; on testnet
-(v0.17.0) they live under `emissions/v10` and return
-[labeled network-inference bundles](https://docs.allora.network/consume/api).
-Pick the version segment that matches the network you are querying.
+The `emissions` API version segment is per-network — always pick the one matching the network you are
+querying: `emissions/v10` on testnet and
+`emissions/v10` on mainnet. Since v0.17.0 these
+network-inference endpoints return [labeled network-inference bundles](https://docs.allora.network/consume/api) rather than a
+single unlabeled value.
 
 ## Related
 

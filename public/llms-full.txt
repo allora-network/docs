@@ -1271,7 +1271,7 @@ To install Go, follow one of the recommended methods below or consult the [offic
 
 ### Installation
 
-The command below installs v0.17.0, the version currently deployed on the testnet. If you are targeting mainnet, pass v0.16.0 instead — see [Networks](https://docs.allora.network/reference/networks) for the version deployed on each network.
+The command below installs v0.17.0, the version currently deployed on the testnet. If you are targeting mainnet, pass v0.17.0 instead — see [Networks](https://docs.allora.network/reference/networks) for the version deployed on each network.
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/allora-network/allora-chain/dev/install.sh | bash -s -- v0.17.0
@@ -3359,8 +3359,8 @@ on-chain metadata (name), epoch length (in blocks), loss method, and category (p
 volatility). Each [Forge competition](https://docs.allora.network/build/forge/competitions) targets one of these live topics.
 
 These tables are generated from live chain state, not maintained by hand. A scheduled job queries the
-[Cosmos LCD (REST) API](https://docs.allora.network/reference/networks) of each network (testnet `allora-testnet-1` via
-`emissions/v10`, mainnet `allora-mainnet-1` via `emissions/v9`), keeps only topics whose
+[Cosmos LCD (REST) API](https://docs.allora.network/reference/networks) of each network, at the emissions namespace
+`/api/networks.json` records for it, keeps only topics whose
 `is_topic_active` query returns `true`, and publishes the result at `/api/topics.json` — the same
 data this page renders. The data below last changed
 on **2026-07-31**. Topics activate and deactivate over time, so
@@ -3457,13 +3457,13 @@ Query the live chain to confirm a topic's current definition and active status. 
 `emissions` API version segment differs by network (see [Networks](https://docs.allora.network/reference/networks)):
 
 ```bash
-# Testnet (emissions/v10)
+# Testnet
 curl -s https://allora-api.testnet.allora.network/emissions/v10/topics/69
 curl -s https://allora-api.testnet.allora.network/emissions/v10/is_topic_active/69
 
-# Mainnet (emissions/v9)
-curl -s https://allora-api.mainnet.allora.network/emissions/v9/topics/1
-curl -s https://allora-api.mainnet.allora.network/emissions/v9/is_topic_active/1
+# Mainnet
+curl -s https://allora-api.mainnet.allora.network/emissions/v10/topics/1
+curl -s https://allora-api.mainnet.allora.network/emissions/v10/is_topic_active/1
 ```
 
 To consume the same list programmatically, fetch the published JSON instead of scraping this page:
@@ -5305,8 +5305,9 @@ The `combined_value` field is a list of labeled values representing the optimize
 The CometBFT `abci_query` method takes **protobuf-encoded** request bytes and returns protobuf-encoded response bytes — it does not accept or return JSON. Calling it from a plain HTTP client therefore requires generated protobuf stubs for the emissions module. For everything below, the Cosmos SDK **LCD (REST)** endpoints expose the same queries as JSON over `GET`, which is what a typical application should use.
 
 Every `allorad q emissions` query has a matching LCD path. The one used below is
-`/<emissions-namespace>/latest_network_inferences/{topic_id}`, where the namespace is `emissions/v10`
-on testnet and `emissions/v9` on mainnet.
+`/<emissions-namespace>/latest_network_inferences/{topic_id}`, where the namespace is
+`emissions/v10` on testnet and
+`emissions/v10` on mainnet.
 
 ### JavaScript/TypeScript Example
 
@@ -7649,14 +7650,15 @@ Chain IDs, endpoints, and the currently deployed allora-chain version for each A
 
 The Allora Network runs as two public networks: a **testnet** for development and integration, and
 the production **mainnet**. Each may run a different `allora-chain` version, which also determines the
-`emissions` REST/gRPC API version (for example, mainnet's v0.16.0 serves `emissions/v9`
-while testnet's v0.17.0 serves `emissions/v10`).
+`emissions` REST/gRPC API version: testnet runs v0.17.0 and serves
+`emissions/v10`, mainnet runs v0.17.0 and
+serves `emissions/v10`.
 
 |  | Testnet | Mainnet |
 | --- | --- | --- |
 | **Chain ID** | `allora-testnet-1` | `allora-mainnet-1` |
-| **Deployed version** | v0.17.0 | v0.16.0 |
-| **Emissions API namespace** | `emissions/v10` | `emissions/v9` |
+| **Deployed version** | v0.17.0 | v0.17.0 |
+| **Emissions API namespace** | `emissions/v10` | `emissions/v10` |
 | **RPC JSON** | `https://allora-rpc.testnet.allora.network/` | `https://allora-rpc.mainnet.allora.network/` |
 | **gRPC** | `https://allora-grpc.testnet.allora.network/` | `https://allora-grpc.mainnet.allora.network/` |
 | **API (Cosmos LCD - REST)** | `https://allora-api.testnet.allora.network/` | `https://allora-api.mainnet.allora.network/` |
@@ -7691,8 +7693,8 @@ before they ship to mainnet. For wallet creation and faucet funding, see
 ## Mainnet
 
 - **Chain ID**: `allora-mainnet-1`
-- **Deployed version**: v0.16.0
-- **Emissions API namespace**: `emissions/v9`
+- **Deployed version**: v0.17.0
+- **Emissions API namespace**: `emissions/v10`
 - **RPC JSON**: `https://allora-rpc.mainnet.allora.network/`
 - **gRPC**: `https://allora-grpc.mainnet.allora.network/`
 - **API (Cosmos LCD - REST)**: `https://allora-api.mainnet.allora.network/`
@@ -7701,11 +7703,11 @@ before they ship to mainnet. For wallet creation and faucet funding, see
 
 Mainnet has no faucet — fund addresses with ALLO yourself.
 
-The `emissions` API version differs by network. On mainnet (v0.16.0) network-inference
-endpoints live under `emissions/v9` and return a single (unlabeled) value; on testnet
-(v0.17.0) they live under `emissions/v10` and return
-[labeled network-inference bundles](https://docs.allora.network/consume/api).
-Pick the version segment that matches the network you are querying.
+The `emissions` API version segment is per-network — always pick the one matching the network you are
+querying: `emissions/v10` on testnet and
+`emissions/v10` on mainnet. Since v0.17.0 these
+network-inference endpoints return [labeled network-inference bundles](https://docs.allora.network/consume/api) rather than a
+single unlabeled value.
 
 ## Related
 

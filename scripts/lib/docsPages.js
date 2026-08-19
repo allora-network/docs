@@ -880,6 +880,33 @@ function renderTopicsTable(attributes) {
   );
 }
 
+/**
+ * Mirrors <NetworkValue/> in components/NetworkValue.tsx — one field of one
+ * network, read from the same manifest the component reads. The corpus carries
+ * the value rather than the tag, so an agent reading llms-full.txt gets the
+ * namespace it should actually call.
+ */
+function renderNetworkValue(attributes) {
+  const entries = networks();
+  const name = attributes.network;
+  if (!name || !entries[name]) {
+    throw new Error(
+      `<NetworkValue network="${name || ''}"/> — ${path.relative(ROOT, NETWORKS_MANIFEST)} ` +
+        `defines: ${Object.keys(entries).join(', ')}`
+    );
+  }
+  const field = attributes.field;
+  const value = entries[name][field];
+  if (typeof value !== 'string' || value === '') {
+    throw new Error(
+      `<NetworkValue network="${name}" field="${field || ''}"/> — ` +
+        `${path.relative(ROOT, NETWORKS_MANIFEST)} has no non-empty string at ` +
+        `networks.${name}.${field}. That entry defines: ${Object.keys(entries[name]).join(', ')}`
+    );
+  }
+  return value;
+}
+
 function renderTopicsCount(attributes) {
   return String(topicsFor(requireNetworkAttribute('<TopicsCount/>', attributes)).length);
 }
@@ -939,6 +966,7 @@ const DATA_COMPONENTS = {
   SandboxTopics: { block: renderSandboxTopics },
   TopicsCount: { inline: renderTopicsCount },
   TopicsGeneratedOn: { inline: renderTopicsGeneratedOn },
+  NetworkValue: { inline: renderNetworkValue },
   SandboxTopicIds: { inline: renderSandboxTopicIds },
 };
 
