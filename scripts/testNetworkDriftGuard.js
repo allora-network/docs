@@ -710,7 +710,19 @@ namespaceTests.push(
 
 namespaceTests.push(
   test('a 200 whose JSON carries no params object is not proof either', async () => {
-    for (const body of [{}, { code: 12, message: 'Not Implemented' }, { params: 'yes' }, [1], null]) {
+    // `params: []` is the one that got through the first version of this
+    // check: an array is typeof "object" and a non-empty one is truthy, so
+    // only an explicit Array.isArray test excludes it.
+    for (const body of [
+      {},
+      { code: 12, message: 'Not Implemented' },
+      { params: 'yes' },
+      { params: [] },
+      { params: [1, 2] },
+      { params: null },
+      [1],
+      null,
+    ]) {
       await assert.rejects(
         () => namespaceRoutedFromResponse({ status: 200, ok: true, json: async () => body }),
         /without an emissions params object|not JSON/,
@@ -826,6 +838,42 @@ namespaceTests.push(
       /too large to walk from/
     );
     assert.deepStrictEqual(asked, [], 'the unsafe number reached the walk');
+  })
+);
+
+// The starting value is safe here; the ceiling is not. This is the case the
+// first version of the guard let through -- it checked only `from`, so
+// `from + maxNamespaceLookahead` lost precision and `version++` stopped
+// advancing, which is the same non-terminating walk one step further along.
+for (const [label, start] of [
+  ['at MAX_SAFE_INTEGER', String(Number.MAX_SAFE_INTEGER)],
+  ['one below MAX_SAFE_INTEGER', String(Number.MAX_SAFE_INTEGER - 1)],
+  ['inside the lookahead of MAX_SAFE_INTEGER', String(Number.MAX_SAFE_INTEGER - 2)],
+]) {
+  namespaceTests.push(
+    test(`a start ${label} is rejected before the walk, because its lookahead is not safe`, async () => {
+      const { probe, asked } = stubProbe([]);
+      await assert.rejects(
+        () => fetchServedNamespace(TRUSTED_LCD, `emissions/v${start}`, null, null, probe),
+        /too large to walk from/,
+        `emissions/v${start} entered the walk`
+      );
+      assert.deepStrictEqual(asked, [], `emissions/v${start} reached the probe`);
+    })
+  );
+}
+
+namespaceTests.push(
+  test('a walk that starts safely below the boundary still terminates', async () => {
+    // The complement of the cases above: proves the guard rejects on the
+    // ceiling rather than simply refusing every large number.
+    const safeStart = Number.MAX_SAFE_INTEGER - 10;
+    const { probe, asked } = stubProbe([`emissions/v${safeStart}`]);
+    const served = await fetchServedNamespace(
+      TRUSTED_LCD, `emissions/v${safeStart}`, null, null, probe
+    );
+    assert.strictEqual(served, `emissions/v${safeStart}`);
+    assert.strictEqual(asked.length, 2, `walked ${asked.length} probes instead of stopping at the ceiling`);
   })
 );
 

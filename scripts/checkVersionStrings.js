@@ -281,19 +281,23 @@ function checkManifestsAgree(entries) {
     const network = networks[name];
 
     if (!network) {
-      problems.push(
-        `versions.json has "${key}", but networks.json defines no network "${name}" ` +
-          `(it defines: ${Object.keys(networks).join(', ') || 'none'}).`
-      );
+      problems.push({
+        kind: 'version',
+        text:
+          `versions.json has "${key}", but networks.json defines no network "${name}" ` +
+          `(it defines: ${Object.keys(networks).join(', ') || 'none'}).`,
+      });
       return;
     }
 
     compared++;
     if (network.deployed_version !== value) {
-      problems.push(
-        `versions.json "${key}" is ${JSON.stringify(value)}, but networks.json ` +
-          `networks.${name}.deployed_version is ${JSON.stringify(network.deployed_version)}.`
-      );
+      problems.push({
+        kind: 'version',
+        text:
+          `versions.json "${key}" is ${JSON.stringify(value)}, but networks.json ` +
+          `networks.${name}.deployed_version is ${JSON.stringify(network.deployed_version)}.`,
+      });
     }
   });
 
@@ -307,18 +311,22 @@ function checkManifestsAgree(entries) {
     // is trusted. scripts/generateTopics.js already refuses the same shape at
     // its point of use; the two must agree on what a namespace is.
     if (!NAMESPACE_SHAPE.test(String(network.emissions_namespace || ''))) {
-      problems.push(
-        `networks.json network "${name}" records emissions_namespace ` +
+      problems.push({
+        kind: 'namespace',
+        text:
+          `networks.json network "${name}" records emissions_namespace ` +
           `${JSON.stringify(network.emissions_namespace)}, which is not of the form "emissions/v<N>". ` +
-          `The stale-namespace gate derives its rules from this field and cannot run without it.`
-      );
+          `The stale-namespace gate derives its rules from this field and cannot run without it.`,
+      });
     }
     if (network.deployed_version === undefined) return;
     if (keys.has(`chain_${name}`)) return;
-    problems.push(
-      `networks.json network "${name}" records deployed_version ` +
-        `${JSON.stringify(network.deployed_version)}, but versions.json has no "chain_${name}" key.`
-    );
+    problems.push({
+      kind: 'version',
+      text:
+        `networks.json network "${name}" records deployed_version ` +
+        `${JSON.stringify(network.deployed_version)}, but versions.json has no "chain_${name}" key.`,
+    });
   });
 
   return { problems, compared };
@@ -330,18 +338,42 @@ function reportManifestProblems(problems) {
       `public/api/versions.json / public/api/networks.json ${problems.length === 1 ? 'is' : 'are'} ` +
       `inconsistent or malformed.`
   );
-  console.error(
-    'Both files record the allora-chain release each network is running, and ' +
-      'nothing updates them for you: the version-bump job never writes the ' +
-      'chain_* keys, and the network-drift job only rewrites abci_version. ' +
-      'pages/reference/networks.mdx renders its prose from versions.json and its ' +
-      'table from networks.json, so the two must be updated together.\n'
-  );
-  problems.forEach(problem => console.error(`  ${problem}`));
-  console.error(
-    '\nUpdate both files in the same commit: set versions.json "chain_<network>" ' +
-      'and networks.json networks.<network>.deployed_version to the same value.'
-  );
+  // Two different problems with two different fixes. One block of guidance for
+  // both told a reader hitting a malformed namespace to go and edit
+  // deployed_version in a second file, which is the wrong field and the wrong
+  // file.
+  const versionProblems = problems.filter(problem => problem.kind === 'version');
+  const namespaceProblems = problems.filter(problem => problem.kind === 'namespace');
+
+  if (versionProblems.length > 0) {
+    console.error(
+      '\nBoth files record the allora-chain release each network is running, and ' +
+        'nothing updates them for you: the version-bump job never writes the ' +
+        'chain_* keys, and the network-drift job only rewrites abci_version. ' +
+        'pages/reference/networks.mdx renders its prose from versions.json and its ' +
+        'table from networks.json, so the two must be updated together.\n'
+    );
+    versionProblems.forEach(problem => console.error(`  ${problem.text}`));
+    console.error(
+      '\nUpdate both files in the same commit: set versions.json "chain_<network>" ' +
+        'and networks.json networks.<network>.deployed_version to the same value.'
+    );
+  }
+
+  if (namespaceProblems.length > 0) {
+    console.error(
+      '\nThe emissions namespace is recorded only in public/api/networks.json. The ' +
+        'stale-namespace gate derives its floor and its per-network host map from ' +
+        'that field, so a malformed value does not make the gate fail -- it makes ' +
+        'it match nothing.\n'
+    );
+    namespaceProblems.forEach(problem => console.error(`  ${problem.text}`));
+    console.error(
+      '\nSet networks.<network>.emissions_namespace to the namespace that network ' +
+        'serves, in the form "emissions/v<N>". `node scripts/checkNetworkDrift.js` ' +
+        'reports the namespace each network actually routes.'
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -395,9 +427,19 @@ function enclosingToken(line, index) {
 
 // The host of the URL a match sits inside, lowercased, or null when the match
 // is not in a URL at all.
+// Parsed rather than pattern-matched, so this returns the same spelling the
+// manifest map is keyed on: `new URL().hostname` drops the port, where a
+// `([^/]+)` capture keeps it. With the two disagreeing, an LCD on a non-default
+// port matched nothing in the map and its own URLs were skipped as foreign --
+// the per-network judgment silently off for exactly the endpoints it describes.
 function urlHostAt(line, index) {
-  const url = /^https?:\/\/([^/]+)/i.exec(enclosingToken(line, index));
-  return url ? url[1].toLowerCase() : null;
+  const token = enclosingToken(line, index);
+  if (!/^https?:\/\//i.test(token)) return null;
+  try {
+    return new URL(token).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
 }
 
 function insideForeignUrl(line, index) {

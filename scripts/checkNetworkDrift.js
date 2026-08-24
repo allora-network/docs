@@ -625,7 +625,7 @@ async function namespaceRoutedFromResponse(response) {
       throw new Error('HTTP 200 with a body that is not JSON -- not accepted as a routed namespace');
     }
     if (!payload || typeof payload !== 'object' || Array.isArray(payload) ||
-        !payload.params || typeof payload.params !== 'object') {
+        !payload.params || typeof payload.params !== 'object' || Array.isArray(payload.params)) {
       throw new Error(
         'HTTP 200 without an emissions params object -- not accepted as a routed namespace'
       );
@@ -686,8 +686,11 @@ async function fetchServedNamespace(
   // Past Number.MAX_SAFE_INTEGER, `version++` stops changing the value and the
   // walk below never terminates. The manifest can arrive from the machine-owned
   // drift branch, so a hostile or corrupted namespace number must be an error,
-  // not a hang in the nightly.
-  if (!Number.isSafeInteger(from)) {
+  // not a hang in the nightly. The ceiling is checked as well as the start: a
+  // `from` that is itself safe can still have `from + maxNamespaceLookahead`
+  // land outside the range, which reintroduces the same non-terminating walk
+  // one step further along.
+  if (!Number.isSafeInteger(from) || !Number.isSafeInteger(from + maxNamespaceLookahead)) {
     throw new Error(
       `emissions_namespace ${JSON.stringify(recorded)} carries a version number too large ` +
         `to walk from`
