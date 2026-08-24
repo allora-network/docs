@@ -281,30 +281,52 @@ function checkManifestsAgree(entries) {
     const network = networks[name];
 
     if (!network) {
-      problems.push(
-        `versions.json has "${key}", but networks.json defines no network "${name}" ` +
-          `(it defines: ${Object.keys(networks).join(', ') || 'none'}).`
-      );
+      problems.push({
+        kind: 'version',
+        text:
+          `versions.json has "${key}", but networks.json defines no network "${name}" ` +
+          `(it defines: ${Object.keys(networks).join(', ') || 'none'}).`,
+      });
       return;
     }
 
     compared++;
     if (network.deployed_version !== value) {
-      problems.push(
-        `versions.json "${key}" is ${JSON.stringify(value)}, but networks.json ` +
-          `networks.${name}.deployed_version is ${JSON.stringify(network.deployed_version)}.`
-      );
+      problems.push({
+        kind: 'version',
+        text:
+          `versions.json "${key}" is ${JSON.stringify(value)}, but networks.json ` +
+          `networks.${name}.deployed_version is ${JSON.stringify(network.deployed_version)}.`,
+      });
     }
   });
 
   const keys = new Set(entries.map(([key]) => key));
   Object.entries(networks).forEach(([name, network]) => {
+    // The stale-namespace matcher derives its floor and its host map from
+    // `emissions_namespace`. A missing or malformed value would not make it
+    // fail — it would make it match nothing, which is the gate silently off at
+    // exactly the moment the manifest is broken. So the shape is enforced
+    // here, where a violation is a loud manifest problem, before any matcher
+    // is trusted. scripts/generateTopics.js already refuses the same shape at
+    // its point of use; the two must agree on what a namespace is.
+    if (!NAMESPACE_SHAPE.test(String(network.emissions_namespace || ''))) {
+      problems.push({
+        kind: 'namespace',
+        text:
+          `networks.json network "${name}" records emissions_namespace ` +
+          `${JSON.stringify(network.emissions_namespace)}, which is not of the form "emissions/v<N>". ` +
+          `The stale-namespace gate derives its rules from this field and cannot run without it.`,
+      });
+    }
     if (network.deployed_version === undefined) return;
     if (keys.has(`chain_${name}`)) return;
-    problems.push(
-      `networks.json network "${name}" records deployed_version ` +
-        `${JSON.stringify(network.deployed_version)}, but versions.json has no "chain_${name}" key.`
-    );
+    problems.push({
+      kind: 'version',
+      text:
+        `networks.json network "${name}" records deployed_version ` +
+        `${JSON.stringify(network.deployed_version)}, but versions.json has no "chain_${name}" key.`,
+    });
   });
 
   return { problems, compared };
@@ -312,21 +334,179 @@ function checkManifestsAgree(entries) {
 
 function reportManifestProblems(problems) {
   console.error(
-    `Version check failed: public/api/versions.json and public/api/networks.json ` +
-      `disagree about ${problems.length === 1 ? 'a deployed network version' : 'deployed network versions'}.`
+    `Version check failed: ${problems.length === 1 ? 'a network record' : 'network records'} in ` +
+      `public/api/versions.json / public/api/networks.json ${problems.length === 1 ? 'is' : 'are'} ` +
+      `inconsistent or malformed.`
   );
-  console.error(
-    'Both files record the allora-chain release each network is running, and ' +
-      'nothing updates them for you: the version-bump job never writes the ' +
-      'chain_* keys, and the network-drift job only rewrites abci_version. ' +
-      'pages/reference/networks.mdx renders its prose from versions.json and its ' +
-      'table from networks.json, so the two must be updated together.\n'
-  );
-  problems.forEach(problem => console.error(`  ${problem}`));
-  console.error(
-    '\nUpdate both files in the same commit: set versions.json "chain_<network>" ' +
-      'and networks.json networks.<network>.deployed_version to the same value.'
-  );
+  // Two different problems with two different fixes. One block of guidance for
+  // both told a reader hitting a malformed namespace to go and edit
+  // deployed_version in a second file, which is the wrong field and the wrong
+  // file.
+  const versionProblems = problems.filter(problem => problem.kind === 'version');
+  const namespaceProblems = problems.filter(problem => problem.kind === 'namespace');
+
+  if (versionProblems.length > 0) {
+    console.error(
+      '\nBoth files record the allora-chain release each network is running, and ' +
+        'nothing updates them for you: the version-bump job never writes the ' +
+        'chain_* keys, and the network-drift job only rewrites abci_version. ' +
+        'pages/reference/networks.mdx renders its prose from versions.json and its ' +
+        'table from networks.json, so the two must be updated together.\n'
+    );
+    versionProblems.forEach(problem => console.error(`  ${problem.text}`));
+    console.error(
+      '\nUpdate both files in the same commit: set versions.json "chain_<network>" ' +
+        'and networks.json networks.<network>.deployed_version to the same value.'
+    );
+  }
+
+  if (namespaceProblems.length > 0) {
+    console.error(
+      '\nThe emissions namespace is recorded only in public/api/networks.json. The ' +
+        'stale-namespace gate derives its floor and its per-network host map from ' +
+        'that field, so a malformed value does not make the gate fail -- it makes ' +
+        'it match nothing.\n'
+    );
+    namespaceProblems.forEach(problem => console.error(`  ${problem.text}`));
+    console.error(
+      '\nSet networks.<network>.emissions_namespace to the namespace that network ' +
+        'serves, in the form "emissions/v<N>". `node scripts/checkNetworkDrift.js` ' +
+        'reports the namespace each network actually routes.'
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Emissions namespaces the networks have moved past
+//
+// `emissions_namespace` is the second fact networks.json owns that the docs
+// state as current, and until this check it was the one nobody guarded. The
+// release tag has `<Version of="chain-mainnet"/>` behind it and the check
+// above; the namespace had nothing, so pages hand-typed it. When mainnet
+// upgraded to v0.17.0 and its namespace moved v9 -> v10, `emissions/v9`
+// survived in four pages and in two runnable curl examples that had by then
+// started returning `501 Not Implemented`, and every gate in the repo passed.
+//
+// The banned set is derived, not declared. A namespace below the lowest one any
+// network currently serves is stale by construction, so there is no list to
+// maintain and nothing to forget on the next upgrade: the moment a manifest
+// namespace moves, every hand-typed copy of the old one fails this check. That
+// is deliberately the same insight the `superseded` inventory encodes for
+// versions.json — knowing only today's value would let a literal through at
+// exactly the moment it went stale.
+//
+// Namespaces at or above the floor are left alone. `emissions/v10` is correct
+// on both networks today, and failing the ~15 legitimate mentions of it would
+// buy nothing but churn and a wall of escape hatches.
+const NAMESPACE_SHAPE = /^emissions\/v(\d+)$/;
+
+function currentNamespaceFloor(networks) {
+  const versions = Object.values(networks)
+    .map(network => NAMESPACE_SHAPE.exec(String(network.emissions_namespace || '')))
+    .filter(Boolean)
+    .map(match => Number(match[1]));
+
+  return versions.length > 0 ? Math.min(...versions) : null;
+}
+
+// The namespace shape also names a directory in the chain's own source tree:
+// `.../x/emissions/proto/emissions/v1/reputer.proto`, reached through a GitHub
+// permalink pinned to a commit, is a protobuf package path and not a REST
+// namespace. Rewriting it would break a deliberate link to a historical commit.
+// So a match inside a URL counts only when the URL is an Allora endpoint; a
+// match with no URL around it is prose, and prose is always judged.
+const TOKEN_DELIMITER = /[\s()<>`"']/;
+
+function enclosingToken(line, index) {
+  let start = index;
+  while (start > 0 && !TOKEN_DELIMITER.test(line[start - 1])) start--;
+  let end = index;
+  while (end < line.length && !TOKEN_DELIMITER.test(line[end])) end++;
+  return line.slice(start, end);
+}
+
+// The host of the URL a match sits inside, lowercased, or null when the match
+// is not in a URL at all.
+// Parsed rather than pattern-matched, so this returns the same spelling the
+// manifest map is keyed on: `new URL().hostname` drops the port, where a
+// `([^/]+)` capture keeps it. With the two disagreeing, an LCD on a non-default
+// port matched nothing in the map and its own URLs were skipped as foreign --
+// the per-network judgment silently off for exactly the endpoints it describes.
+function urlHostAt(line, index) {
+  const token = enclosingToken(line, index);
+  if (!/^https?:\/\//i.test(token)) return null;
+  try {
+    return new URL(token).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+function insideForeignUrl(line, index) {
+  const host = urlHostAt(line, index);
+  if (host === null) return false;
+  return !/(^|\.)allora\.network$/i.test(host);
+}
+
+// Bounded like the version matcher is: a trailing digit would make `emissions/v1`
+// match inside `emissions/v10`, which would condemn the current namespace.
+function buildStaleNamespaceMatchers(networks) {
+  const floor = currentNamespaceFloor(networks);
+  if (floor === null) return [];
+
+  // Which network an LCD host belongs to, so a namespace inside an endpoint URL
+  // can be judged against that network rather than against the floor. This is
+  // what closes the window the floor rule leaves open: while testnet is a
+  // release ahead, every namespace testnet has moved past is still current on
+  // mainnet, so the floor cannot condemn it — but a URL that says
+  // `allora-api.testnet.allora.network` has named the network it is talking
+  // about, and can be held to that network's namespace exactly.
+  const byHost = new Map();
+  for (const [name, network] of Object.entries(networks)) {
+    if (typeof network.lcd !== 'string') continue;
+    if (!NAMESPACE_SHAPE.test(String(network.emissions_namespace || ''))) continue;
+    try {
+      byHost.set(new URL(network.lcd).hostname.toLowerCase(), {
+        network: name,
+        namespace: network.emissions_namespace,
+      });
+    } catch {
+      /* a manifest entry that does not parse names no host */
+    }
+  }
+
+  return [
+    {
+      key: 'emissions_namespace',
+      kind: 'stale-namespace',
+      current: `emissions/v${floor}`,
+      // Bounded so `emissions/v1` cannot match inside `emissions/v10`.
+      pattern: /emissions\/v\d+(?!\d)/g,
+      // A URL is foreign only if its host is neither a manifest endpoint nor
+      // under allora.network. The manifest test runs first: if an LCD ever
+      // moves to a host outside allora.network, its URLs must keep being
+      // judged against that network rather than skipped as foreign.
+      skip: (line, index) => !byHost.has(urlHostAt(line, index)) && insideForeignUrl(line, index),
+      judge: (line, index, literal) => {
+        const host = urlHostAt(line, index);
+        const named = host ? byHost.get(host) : null;
+
+        // The line named a network. Judge it against that network's namespace,
+        // whichever direction it is wrong in — a URL one release behind and a
+        // URL one release ahead are both endpoints that will not answer.
+        if (named) {
+          if (literal === named.namespace) return null;
+          return { current: named.namespace, scope: named.network };
+        }
+
+        // No network named: prose. Only a namespace every network has moved
+        // past is certainly stale; one that is still current somewhere may be
+        // describing that network correctly.
+        const version = Number(NAMESPACE_SHAPE.exec(literal)[1]);
+        return version < floor ? { current: `emissions/v${floor}`, scope: null } : null;
+      },
+    },
+  ];
 }
 
 // One matcher for one version value: the value with an optional leading "v",
@@ -445,12 +625,20 @@ function checkFile(relativePath, matchers) {
       while ((match = matcher.pattern.exec(line)) !== null) {
         const before = line.slice(0, match.index);
         if (isHistorical(before) || HEADING_PREFIX.test(before)) continue;
+        if (matcher.skip && matcher.skip(line, match.index)) continue;
+        // A matcher that needs the surrounding line to decide — the namespace
+        // rule reads the host in the URL a match sits in — answers here.
+        // Returning null means "this one is fine", which a pattern alone
+        // cannot express.
+        const judged = matcher.judge ? matcher.judge(line, match.index, match[0]) : {};
+        if (!judged) continue;
         violations.push({
           file: relativePath,
           line: index + 1,
           key: matcher.key,
           kind: matcher.kind,
-          current: matcher.current,
+          current: judged.current !== undefined ? judged.current : matcher.current,
+          scope: judged.scope,
           literal: match[0],
           text: line.trim(),
         });
@@ -482,7 +670,12 @@ function reportViolations(violations, headline, explanation, describe) {
 
 function main() {
   const { entries, superseded } = readVersions();
-  const matchers = [...buildMatchers(entries), ...buildSupersededMatchers(entries, superseded)];
+  const staleNamespaces = buildStaleNamespaceMatchers(readNetworks());
+  const matchers = [
+    ...buildMatchers(entries),
+    ...buildSupersededMatchers(entries, superseded),
+    ...staleNamespaces,
+  ];
 
   const files = SCAN.reduce(
     (collected, { dir, extensions }) => listFiles(dir, extensions, collected),
@@ -494,6 +687,7 @@ function main() {
   const violations = files.flatMap(file => checkFile(file, matchers));
   const hardcoded = violations.filter(violation => violation.kind === 'current');
   const stale = violations.filter(violation => violation.kind === 'superseded');
+  const staleNamespace = violations.filter(violation => violation.kind === 'stale-namespace');
 
   // Every class of problem is reported in one run, so a maintainer fixing the
   // manifests is not sent back for a hand-typed literal on the next build.
@@ -532,6 +726,25 @@ function main() {
     );
   }
 
+  if (staleNamespace.length > 0) {
+    sections.push(() =>
+      reportViolations(
+        staleNamespace,
+        'stale emissions-namespace string(s)',
+        'These name an emissions namespace every network has already upgraded ' +
+          'past, so the endpoint they describe now answers 501 Not Implemented. ' +
+          'The namespace lives in public/api/networks.json; render it with ' +
+          '<NetworkValue network="mainnet" field="emissions_namespace"/> ' +
+          '(components/NetworkValue.tsx), or networkValueOf(...) inside a ' +
+          'template literal, so it follows the next upgrade on its own.',
+        ({ literal, current, scope }) =>
+          scope
+            ? `"${literal}" is in a ${scope} endpoint URL, but ${scope} serves ${current}`
+            : `"${literal}" is below the namespace every network now serves (${current})`
+      )
+    );
+  }
+
   sections.forEach((report, index) => {
     if (index > 0) console.error('');
     report();
@@ -545,6 +758,10 @@ function main() {
     `Version check OK: ${files.length} files carry no hand-typed copy of ` +
       `${entries.map(([key]) => key).join(', ')}` +
       (supersededCount > 0 ? `, nor any of the ${supersededCount} superseded value(s)` : '') +
+      (staleNamespaces.length > 0
+        ? `, nor an emissions namespace any network has moved past (floor ` +
+          `${staleNamespaces[0].current}, endpoint URLs judged per network)`
+        : '') +
       `; versions.json and networks.json agree on ${compared} deployed network version(s).`
   );
 }

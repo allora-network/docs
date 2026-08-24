@@ -3,7 +3,7 @@ title: Accessing Allora Data Through RPC
 description: In addition to the Allora API, you can also access Allora network data directly through RPC (Remote Procedure Call) endpoints.
 persona: App developer
 verified_against: docs content as of 2026-07-16; examples live in snippets/ and are executed against the live testnet LCD (emissions/v10) by the nightly snippet run, last locally on 2026-08-02
-last_reviewed: 2026-08-02
+last_reviewed: 2026-08-19
 ---
 
 # Accessing Allora Data Through RPC
@@ -87,8 +87,9 @@ The `combined_value` field is a list of labeled values representing the optimize
 The CometBFT `abci_query` method takes **protobuf-encoded** request bytes and returns protobuf-encoded response bytes — it does not accept or return JSON. Calling it from a plain HTTP client therefore requires generated protobuf stubs for the emissions module. For everything below, the Cosmos SDK **LCD (REST)** endpoints expose the same queries as JSON over `GET`, which is what a typical application should use.
 
 Every `allorad q emissions` query has a matching LCD path. The one used below is
-`/<emissions-namespace>/latest_network_inferences/{topic_id}`, where the namespace is `emissions/v10`
-on testnet and `emissions/v9` on mainnet.
+`/<emissions-namespace>/latest_network_inferences/{topic_id}`, where the namespace is
+`emissions/v10` on testnet and
+`emissions/v10` on mainnet.
 
 ### JavaScript/TypeScript Example
 

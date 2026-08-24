@@ -2,13 +2,14 @@
 title: Networks
 description: Chain IDs, endpoints, and the currently deployed allora-chain version for each Allora network.
 persona: Builder or operator
-verified_against: docs content as of 2026-07-30
-last_reviewed: 2026-07-30
+verified_against: live abci_info and cosmos/upgrade applied_plan on both networks, 2026-08-19
+last_reviewed: 2026-08-19
 ---
 
-import { Callout } from 'nextra/components'
+import { Callout, Code } from 'nextra/components'
 import { CHAIN_VERSION_MAINNET, CHAIN_VERSION_TESTNET } from '../../components/versions'
 import NetworksTable, { NetworkDetails } from '../../components/NetworksTable'
+import { NetworkValue } from '../../components/NetworkValue'
 
 # Networks
 
@@ -16,8 +17,9 @@ import NetworksTable, { NetworkDetails } from '../../components/NetworksTable'
 
 The Allora Network runs as two public networks: a **testnet** for development and integration, and
 the production **mainnet**. Each may run a different `allora-chain` version, which also determines the
-`emissions` REST/gRPC API version (for example, mainnet's {CHAIN_VERSION_MAINNET} serves `emissions/v9`
-while testnet's {CHAIN_VERSION_TESTNET} serves `emissions/v10`).
+`emissions` REST/gRPC API version: testnet runs {CHAIN_VERSION_TESTNET} and serves
+<Code><NetworkValue network="testnet" field="emissions_namespace"/></Code>, mainnet runs {CHAIN_VERSION_MAINNET} and
+serves <Code><NetworkValue network="mainnet" field="emissions_namespace"/></Code>.
 
 <NetworksTable />
 
@@ -48,11 +50,11 @@ before they ship to mainnet. For wallet creation and faucet funding, see
 Mainnet has no faucet — fund addresses with ALLO yourself.
 
 <Callout type="info">
-The `emissions` API version differs by network. On mainnet ({CHAIN_VERSION_MAINNET}) network-inference
-endpoints live under `emissions/v9` and return a single (unlabeled) value; on testnet
-({CHAIN_VERSION_TESTNET}) they live under `emissions/v10` and return
-[labeled network-inference bundles](/consume/api).
-Pick the version segment that matches the network you are querying.
+The `emissions` API version segment is per-network — always pick the one matching the network you are
+querying: <Code><NetworkValue network="testnet" field="emissions_namespace"/></Code> on testnet and
+<Code><NetworkValue network="mainnet" field="emissions_namespace"/></Code> on mainnet. Since v0.17.0 these
+network-inference endpoints return [labeled network-inference bundles](/consume/api) rather than a
+single unlabeled value.
 </Callout>
 
 ## Related

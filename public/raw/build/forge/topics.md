@@ -2,8 +2,8 @@
 title: Existing Allora Network Topics
 description: Live topic tables for Allora testnet and mainnet — topic IDs, metadata, epoch lengths, loss methods, and categories — plus how to verify a topic's status.
 persona: ML builder
-verified_against: public/api/topics.json, regenerated from live chain state via Cosmos LCD (testnet allora-testnet-1 emissions/v10, mainnet allora-mainnet-1 emissions/v9)
-last_reviewed: 2026-07-30
+verified_against: public/api/topics.json, regenerated from live chain state via the Cosmos LCD namespace public/api/networks.json records for each network
+last_reviewed: 2026-08-19
 ---
 
 # Existing Allora Network Topics
@@ -15,8 +15,8 @@ on-chain metadata (name), epoch length (in blocks), loss method, and category (p
 volatility). Each [Forge competition](https://docs.allora.network/build/forge/competitions) targets one of these live topics.
 
 These tables are generated from live chain state, not maintained by hand. A scheduled job queries the
-[Cosmos LCD (REST) API](https://docs.allora.network/reference/networks) of each network (testnet `allora-testnet-1` via
-`emissions/v10`, mainnet `allora-mainnet-1` via `emissions/v9`), keeps only topics whose
+[Cosmos LCD (REST) API](https://docs.allora.network/reference/networks) of each network, using the emissions namespace
+recorded for that network in `/api/networks.json`, and keeps only topics whose
 `is_topic_active` query returns `true`, and publishes the result at `/api/topics.json` — the same
 data this page renders. The data below last changed
 on **2026-07-31**. Topics activate and deactivate over time, so
@@ -109,17 +109,18 @@ The same prediction task can have different topic IDs on testnet and mainnet (fo
 
 ## Verify a topic's status
 
-Query the live chain to confirm a topic's current definition and active status. Note that the
-`emissions` API version segment differs by network (see [Networks](https://docs.allora.network/reference/networks)):
+Query the live chain to confirm a topic's current definition and active status. The `emissions`
+API version segment is per-network and moves with each chain upgrade; [Networks](https://docs.allora.network/reference/networks)
+records the segment each network currently serves:
 
 ```bash
-# Testnet (emissions/v10)
+# Testnet
 curl -s https://allora-api.testnet.allora.network/emissions/v10/topics/69
 curl -s https://allora-api.testnet.allora.network/emissions/v10/is_topic_active/69
 
-# Mainnet (emissions/v9)
-curl -s https://allora-api.mainnet.allora.network/emissions/v9/topics/1
-curl -s https://allora-api.mainnet.allora.network/emissions/v9/is_topic_active/1
+# Mainnet
+curl -s https://allora-api.mainnet.allora.network/emissions/v10/topics/1
+curl -s https://allora-api.mainnet.allora.network/emissions/v10/is_topic_active/1
 ```
 
 To consume the same list programmatically, fetch the published JSON instead of scraping this page:

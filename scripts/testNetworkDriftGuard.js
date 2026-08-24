@@ -42,6 +42,9 @@ const {
   hostsOf,
   probeRequestOptions,
   versionFromResponse,
+  emissionsParamsUrl,
+  namespaceRoutedFromResponse,
+  fetchServedNamespace,
 } = require('./checkNetworkDrift.js');
 
 let failures = 0;
@@ -620,7 +623,318 @@ redirectTests.push(
 
 // ---------------------------------------------------------------------------
 
-Promise.all([...resolutionTests, ...redirectTests]).then(() => {
+
+// ---------------------------------------------------------------------------
+// The emissions-namespace probe.
+//
+// Added after a mainnet upgrade moved the namespace from v9 to v10 and the
+// build-hash-only check reported the hash and nothing else: the recorded
+// namespace was left unrouted, every documented mainnet LCD path answered 501,
+// and the nightly topics job failed on the same call for a full day. These
+// cases cover the two halves the file separates everywhere else -- the target
+// that gets vetted, and the answer that gets believed -- plus the walk that
+// decides which namespace the network actually serves.
+// ---------------------------------------------------------------------------
+
+const TRUSTED_LCD = 'https://allora-api.testnet.allora.network/';
+const TRUSTED_LCD_HOSTS = new Set(['allora-api.testnet.allora.network']);
+
+test('emissionsParamsUrl builds the params path under the recorded namespace', () => {
+  assert.strictEqual(
+    emissionsParamsUrl(TRUSTED_LCD, 'emissions/v10', TRUSTED_LCD_HOSTS),
+    'https://allora-api.testnet.allora.network/emissions/v10/params'
+  );
+});
+
+test('emissionsParamsUrl refuses a namespace that is not emissions/v<N>', () => {
+  // The namespace reaches a URL path, so a manifest value like `../../` or an
+  // absolute URL must not be able to steer the request. Rejecting on shape
+  // first means the path is only ever built from a digit.
+  for (const hostile of ['../../secrets', 'https://evil.example/', 'emissions/v10/../..', 'v10', '']) {
+    assert.throws(
+      () => emissionsParamsUrl(TRUSTED_LCD, hostile, TRUSTED_LCD_HOSTS),
+      /is not of the form/,
+      `${JSON.stringify(hostile)} was accepted as a namespace`
+    );
+  }
+});
+
+test('emissionsParamsUrl is behind the same allowlist the RPC probe is', () => {
+  assert.throws(
+    () => emissionsParamsUrl('https://evil.example/', 'emissions/v10', TRUSTED_LCD_HOSTS),
+    /is not one of the hosts the trusted manifest names/
+  );
+});
+
+test('emissionsParamsUrl is behind the same private-address refusal', () => {
+  assert.throws(
+    () => emissionsParamsUrl('http://169.254.169.254/', 'emissions/v10', null),
+    /loopback, link-local or private/
+  );
+});
+
+const namespaceTests = [];
+
+// The body every emissions version answers on its params query; a routed
+// verdict requires it, so these stubs carry it.
+const paramsBody = { json: async () => ({ params: {} }) };
+
+namespaceTests.push(
+  test('a 200 carrying a params object means the namespace is routed', async () => {
+    assert.strictEqual(
+      await namespaceRoutedFromResponse({ status: 200, ok: true, ...paramsBody }),
+      true
+    );
+  })
+);
+
+namespaceTests.push(
+  test('a 200 whose body is not JSON is not proof -- a catch-all gateway answers 200 to everything', async () => {
+    // The exact failure the body check exists for: an nginx fallback or
+    // catch-all REST route that 200s an HTML page for every path would
+    // otherwise walk the probe to the top of its lookahead and have --write
+    // record a namespace nothing serves.
+    await assert.rejects(
+      () =>
+        namespaceRoutedFromResponse({
+          status: 200,
+          ok: true,
+          json: async () => {
+            throw new SyntaxError('Unexpected token <');
+          },
+        }),
+      /not JSON/
+    );
+  })
+);
+
+namespaceTests.push(
+  test('a 200 whose JSON carries no params object is not proof either', async () => {
+    // `params: []` is the one that got through the first version of this
+    // check: an array is typeof "object" and a non-empty one is truthy, so
+    // only an explicit Array.isArray test excludes it.
+    for (const body of [
+      {},
+      { code: 12, message: 'Not Implemented' },
+      { params: 'yes' },
+      { params: [] },
+      { params: [1, 2] },
+      { params: null },
+      [1],
+      null,
+    ]) {
+      await assert.rejects(
+        () => namespaceRoutedFromResponse({ status: 200, ok: true, json: async () => body }),
+        /without an emissions params object|not JSON/,
+        `${JSON.stringify(body)} was accepted as a routed namespace`
+      );
+    }
+  })
+);
+
+// 501 is what grpc-gateway answers for a namespace it no longer routes, and it
+// is the exact status mainnet returned for emissions/v9 while the docs still
+// published it. Treating it as an error rather than an answer would have made
+// the upgrade look like an outage.
+for (const status of [501, 404]) {
+  namespaceTests.push(
+    test(`a ${status} means the namespace is not routed, and is not a probe failure`, async () => {
+      assert.strictEqual(await namespaceRoutedFromResponse({ status, ok: false }), false);
+    })
+  );
+}
+
+for (const status of [500, 502, 503]) {
+  namespaceTests.push(
+    test(`a ${status} is a failure to get an answer, not a "not routed"`, async () => {
+      await assert.rejects(
+        () => namespaceRoutedFromResponse({ status, ok: false }),
+        new RegExp(`HTTP ${status}`)
+      );
+    })
+  );
+}
+
+namespaceTests.push(
+  test('a redirect is refused rather than followed, and marked settled so the loop cannot retry it', async () => {
+    // The loop rethrows a deterministic error the way it does a forbidden
+    // target; a gateway that redirects tonight will redirect on the retry too.
+    let thrown = null;
+    try {
+      await namespaceRoutedFromResponse({
+        status: 302,
+        ok: false,
+        headers: { get: () => 'http://169.254.169.254/' },
+      });
+    } catch (error) {
+      thrown = error;
+    }
+    assert.ok(thrown, 'the redirect was accepted as an answer');
+    assert.match(thrown.message, /redirects are not followed/);
+    assert.strictEqual(thrown.deterministic, true, 'the refusal is not marked settled, so it will be retried');
+  })
+);
+
+// The walk. `asked` records the order, because "which namespaces did it ask"
+// is the behaviour -- a walk that probed every namespace every night, or one
+// that stopped before finding the new one, would both still return an answer.
+function stubProbe(routed) {
+  const asked = [];
+  const probe = async (lcd, namespace) => {
+    asked.push(namespace);
+    return routed.includes(namespace);
+  };
+  return { probe, asked };
+}
+
+namespaceTests.push(
+  test('steady state: the recorded namespace is served, and the walk stops one above it', async () => {
+    const { probe, asked } = stubProbe(['emissions/v10']);
+    const served = await fetchServedNamespace(TRUSTED_LCD, 'emissions/v10', null, null, probe);
+    assert.strictEqual(served, 'emissions/v10');
+    assert.deepStrictEqual(asked, ['emissions/v10', 'emissions/v11']);
+  })
+);
+
+namespaceTests.push(
+  test('the upgrade case: the recorded namespace stopped being routed and the next one answers', async () => {
+    // Precisely the mainnet v9 -> v10 move this probe exists for.
+    const { probe, asked } = stubProbe(['emissions/v10']);
+    const served = await fetchServedNamespace(TRUSTED_LCD, 'emissions/v9', null, null, probe);
+    assert.strictEqual(served, 'emissions/v10');
+    assert.deepStrictEqual(asked, ['emissions/v9', 'emissions/v10', 'emissions/v11']);
+  })
+);
+
+namespaceTests.push(
+  test('the highest routed namespace wins when more than one answers', async () => {
+    const { probe } = stubProbe(['emissions/v9', 'emissions/v10']);
+    assert.strictEqual(
+      await fetchServedNamespace(TRUSTED_LCD, 'emissions/v9', null, null, probe),
+      'emissions/v10'
+    );
+  })
+);
+
+namespaceTests.push(
+  test('a two-release jump is still found within the lookahead', async () => {
+    const { probe } = stubProbe(['emissions/v11']);
+    assert.strictEqual(
+      await fetchServedNamespace(TRUSTED_LCD, 'emissions/v9', null, null, probe),
+      'emissions/v11'
+    );
+  })
+);
+
+namespaceTests.push(
+  test('a version number past the safe-integer range is rejected before the walk, not walked forever', async () => {
+    // Past MAX_SAFE_INTEGER, version++ stops changing the value and the walk
+    // never terminates -- a hang in the nightly, from a manifest the
+    // machine-owned drift branch can influence. Zero probes proves the guard
+    // sits before the loop rather than inside it.
+    const { probe, asked } = stubProbe(['emissions/v10']);
+    await assert.rejects(
+      () => fetchServedNamespace(TRUSTED_LCD, 'emissions/v99999999999999999999', null, null, probe),
+      /too large to walk from/
+    );
+    assert.deepStrictEqual(asked, [], 'the unsafe number reached the walk');
+  })
+);
+
+// The starting value is safe here; the ceiling is not. This is the case the
+// first version of the guard let through -- it checked only `from`, so
+// `from + maxNamespaceLookahead` lost precision and `version++` stopped
+// advancing, which is the same non-terminating walk one step further along.
+for (const [label, start] of [
+  ['at MAX_SAFE_INTEGER', String(Number.MAX_SAFE_INTEGER)],
+  ['one below MAX_SAFE_INTEGER', String(Number.MAX_SAFE_INTEGER - 1)],
+  ['inside the lookahead of MAX_SAFE_INTEGER', String(Number.MAX_SAFE_INTEGER - 2)],
+]) {
+  namespaceTests.push(
+    test(`a start ${label} is rejected before the walk, because its lookahead is not safe`, async () => {
+      const { probe, asked } = stubProbe([]);
+      await assert.rejects(
+        () => fetchServedNamespace(TRUSTED_LCD, `emissions/v${start}`, null, null, probe),
+        /too large to walk from/,
+        `emissions/v${start} entered the walk`
+      );
+      assert.deepStrictEqual(asked, [], `emissions/v${start} reached the probe`);
+    })
+  );
+}
+
+namespaceTests.push(
+  test('a walk that starts safely below the boundary still terminates', async () => {
+    // The complement of the cases above: proves the guard rejects on the
+    // ceiling rather than simply refusing every large number.
+    const safeStart = Number.MAX_SAFE_INTEGER - 10;
+    const { probe, asked } = stubProbe([`emissions/v${safeStart}`]);
+    const served = await fetchServedNamespace(
+      TRUSTED_LCD, `emissions/v${safeStart}`, null, null, probe
+    );
+    assert.strictEqual(served, `emissions/v${safeStart}`);
+    assert.strictEqual(asked.length, 2, `walked ${asked.length} probes instead of stopping at the ceiling`);
+  })
+);
+
+namespaceTests.push(
+  test('a manifest recorded past the chain is found by walking down, and reported as drift', async () => {
+    // The rollback / hand-bump-overshot case: every upward probe answers
+    // unrouted, and the namespace actually served sits below the recorded one.
+    // Found there, --write repairs the manifest; before the downward walk this
+    // surfaced as a probe error claiming the network routed nothing.
+    const { probe, asked } = stubProbe(['emissions/v10']);
+    const served = await fetchServedNamespace(TRUSTED_LCD, 'emissions/v12', null, null, probe);
+    assert.strictEqual(served, 'emissions/v10');
+    assert.deepStrictEqual(asked, [
+      'emissions/v12',
+      'emissions/v13',
+      'emissions/v14',
+      'emissions/v15',
+      'emissions/v11',
+      'emissions/v10',
+    ]);
+  })
+);
+
+namespaceTests.push(
+  test('the downward walk never asks below emissions/v1', async () => {
+    const { probe, asked } = stubProbe([]);
+    await assert.rejects(() => fetchServedNamespace(TRUSTED_LCD, 'emissions/v2', null, null, probe));
+    assert.ok(
+      asked.every(namespace => Number(namespace.slice('emissions/v'.length)) >= 1),
+      `asked ${asked.join(', ')}`
+    );
+  })
+);
+
+namespaceTests.push(
+  test('no routed namespace at all is a probe error, not a silent rewrite', async () => {
+    // An LCD that answers 501 to everything is an endpoint problem. Guessing a
+    // namespace from it would write a wrong value into the manifest and open a
+    // pull request asserting it.
+    const { probe } = stubProbe([]);
+    await assert.rejects(
+      () => fetchServedNamespace(TRUSTED_LCD, 'emissions/v9', null, null, probe),
+      /no emissions namespace is routed/
+    );
+  })
+);
+
+namespaceTests.push(
+  test('a malformed recorded namespace is reported, not probed around', async () => {
+    const { probe, asked } = stubProbe(['emissions/v10']);
+    await assert.rejects(
+      () => fetchServedNamespace(TRUSTED_LCD, 'v10', null, null, probe),
+      /is not of the form/
+    );
+    assert.deepStrictEqual(asked, [], 'it probed despite having no namespace to start from');
+  })
+);
+
+// ---------------------------------------------------------------------------
+
+Promise.all([...resolutionTests, ...redirectTests, ...namespaceTests]).then(() => {
   console.log(
     `\n${ran - failures}/${ran} passed ` +
       `(${forbiddenCount} hostile hosts, ${ALLOWED.length} legitimate hosts, ` +
