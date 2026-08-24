@@ -11,7 +11,9 @@
  * `emissions_namespace` holds the emissions module's REST namespace. The chain
  * does not advertise it, so it is probed: `<lcd>/emissions/v<N>/params` is asked
  * from the recorded namespace upward, and the highest routed one is what the
- * network serves. This is the fact a reader actually feels — when mainnet
+ * network serves; when nothing at or above the recorded namespace answers, the
+ * walk looks below it, so a manifest recorded past the chain reports as drift
+ * rather than as an unreachable network. This is the fact a reader actually feels — when mainnet
  * upgraded to v0.17.0, `emissions/v9` stopped being routed, every documented
  * mainnet LCD path began answering `501 Not Implemented`, and the nightly topics
  * job started failing, while a build-hash-only check reported a tidy hash change
@@ -587,21 +589,49 @@ async function fetchAbciVersion(rpc, allowedHosts, lookup = dns.promises.lookup)
 // does not advertise its emissions version, it either routes a namespace or it
 // does not. So it is probed — the recorded one first, then upward until a
 // namespace is not routed, and the highest routed one is what the network
-// serves.
+// serves; if nothing at or above the recorded one answers, the walk looks
+// below it before giving up.
 // ---------------------------------------------------------------------------
 
 // An HTTP answer is an answer. A namespace the gateway does not route replies
 // 501 (or 404), and re-asking twice more on a two-second backoff would only
-// spend thirty seconds confirming it. Only a transport failure or a 5xx that is
-// not 501 is worth a retry.
+// spend thirty seconds confirming it. A redirect is a deterministic refusal:
+// the LCD must answer directly, and a gateway that redirects tonight will
+// redirect on the retry too, so it is thrown with `deterministic` set and the
+// retry loop rethrows it the way it does a forbidden target. What remains
+// retryable is a transport failure, a non-501 5xx, and a 2xx whose body does
+// not hold up -- a proxy can 200 an error page transiently, and if it does so
+// three times the run reports a probe error rather than believing it.
+//
+// A 2xx alone is NOT proof the namespace is routed. A catch-all gateway that
+// answers 200 to every path would otherwise walk the probe to the top of its
+// lookahead and have --write record a namespace nothing serves. The params
+// query this probe uses returns `{"params":{...}}` on every emissions version,
+// so that is the shape a routed answer must produce.
 async function namespaceRoutedFromResponse(response) {
   if (response.status >= 300 && response.status < 400) {
-    throw new Error(
+    const error = new Error(
       `HTTP ${response.status} redirect to ${JSON.stringify(response.headers.get('location'))} ` +
         `-- the LCD must answer directly; redirects are not followed`
     );
+    error.deterministic = true;
+    throw error;
   }
-  if (response.ok) return true;
+  if (response.ok) {
+    let payload;
+    try {
+      payload = await response.json();
+    } catch {
+      throw new Error('HTTP 200 with a body that is not JSON -- not accepted as a routed namespace');
+    }
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload) ||
+        !payload.params || typeof payload.params !== 'object') {
+      throw new Error(
+        'HTTP 200 without an emissions params object -- not accepted as a routed namespace'
+      );
+    }
+    return true;
+  }
   if (response.status === 501 || response.status === 404) return false;
   throw new Error(`HTTP ${response.status}`);
 }
@@ -620,7 +650,7 @@ async function probeNamespaceRouted(lcd, namespace, allowedHosts, lookup = dns.p
       });
       return await namespaceRoutedFromResponse(response);
     } catch (error) {
-      if (error && error.forbiddenTarget) throw error;
+      if (error && (error.forbiddenTarget || error.deterministic)) throw error;
       lastError = error;
       if (attempt < maxAttempts) {
         await sleep(retryBackoffMs * attempt);
@@ -653,6 +683,16 @@ async function fetchServedNamespace(
   }
 
   const from = Number(shape[1]);
+  // Past Number.MAX_SAFE_INTEGER, `version++` stops changing the value and the
+  // walk below never terminates. The manifest can arrive from the machine-owned
+  // drift branch, so a hostile or corrupted namespace number must be an error,
+  // not a hang in the nightly.
+  if (!Number.isSafeInteger(from)) {
+    throw new Error(
+      `emissions_namespace ${JSON.stringify(recorded)} carries a version number too large ` +
+        `to walk from`
+    );
+  }
   let served = null;
 
   for (let version = from; version <= from + maxNamespaceLookahead; version++) {
@@ -665,11 +705,30 @@ async function fetchServedNamespace(
     else if (served !== null) break;
   }
 
+  // Nothing at or above the recorded namespace answered. Before calling the
+  // network unreachable, look below: a manifest recorded past what the chain
+  // serves -- a hand-bump that overshot, or a rollback -- has every upward
+  // probe answer 501, and the namespace actually routed sits just under the
+  // recorded one. Found there, it is reported as ordinary drift and --write
+  // repairs the manifest; only a network routing nothing in either direction
+  // is a probe error.
   if (served === null) {
+    for (let version = from - 1; version >= Math.max(1, from - maxNamespaceLookahead); version--) {
+      const namespace = `emissions/v${version}`;
+      const routed = await probe(lcd, namespace, allowedHosts, lookup);
+      if (routed) {
+        served = namespace;
+        break;
+      }
+    }
+  }
+
+  if (served === null) {
+    const lowest = Math.max(1, from - maxNamespaceLookahead);
     throw new Error(
-      `no emissions namespace is routed at ${lcd} between ${recorded} and ` +
-        `emissions/v${from + maxNamespaceLookahead}; the recorded namespace is not served and no ` +
-        `newer one answered either`
+      `no emissions namespace is routed at ${lcd} between emissions/v${lowest} and ` +
+        `emissions/v${from + maxNamespaceLookahead}; the recorded ${recorded} is not served and ` +
+        `no nearby version answered either`
     );
   }
 

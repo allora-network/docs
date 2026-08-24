@@ -299,6 +299,20 @@ function checkManifestsAgree(entries) {
 
   const keys = new Set(entries.map(([key]) => key));
   Object.entries(networks).forEach(([name, network]) => {
+    // The stale-namespace matcher derives its floor and its host map from
+    // `emissions_namespace`. A missing or malformed value would not make it
+    // fail — it would make it match nothing, which is the gate silently off at
+    // exactly the moment the manifest is broken. So the shape is enforced
+    // here, where a violation is a loud manifest problem, before any matcher
+    // is trusted. scripts/generateTopics.js already refuses the same shape at
+    // its point of use; the two must agree on what a namespace is.
+    if (!NAMESPACE_SHAPE.test(String(network.emissions_namespace || ''))) {
+      problems.push(
+        `networks.json network "${name}" records emissions_namespace ` +
+          `${JSON.stringify(network.emissions_namespace)}, which is not of the form "emissions/v<N>". ` +
+          `The stale-namespace gate derives its rules from this field and cannot run without it.`
+      );
+    }
     if (network.deployed_version === undefined) return;
     if (keys.has(`chain_${name}`)) return;
     problems.push(
@@ -312,8 +326,9 @@ function checkManifestsAgree(entries) {
 
 function reportManifestProblems(problems) {
   console.error(
-    `Version check failed: public/api/versions.json and public/api/networks.json ` +
-      `disagree about ${problems.length === 1 ? 'a deployed network version' : 'deployed network versions'}.`
+    `Version check failed: ${problems.length === 1 ? 'a network record' : 'network records'} in ` +
+      `public/api/versions.json / public/api/networks.json ${problems.length === 1 ? 'is' : 'are'} ` +
+      `inconsistent or malformed.`
   );
   console.error(
     'Both files record the allora-chain release each network is running, and ' +
@@ -425,7 +440,11 @@ function buildStaleNamespaceMatchers(networks) {
       current: `emissions/v${floor}`,
       // Bounded so `emissions/v1` cannot match inside `emissions/v10`.
       pattern: /emissions\/v\d+(?!\d)/g,
-      skip: insideForeignUrl,
+      // A URL is foreign only if its host is neither a manifest endpoint nor
+      // under allora.network. The manifest test runs first: if an LCD ever
+      // moves to a host outside allora.network, its URLs must keep being
+      // judged against that network rather than skipped as foreign.
+      skip: (line, index) => !byHost.has(urlHostAt(line, index)) && insideForeignUrl(line, index),
       judge: (line, index, literal) => {
         const host = urlHostAt(line, index);
         const named = host ? byHost.get(host) : null;
