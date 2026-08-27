@@ -1,0 +1,55 @@
+# Example Usage
+
+This example will show you how to use the Allora Network plugin for Eliza OS by interacting with .
+
+## Prerequisites
+
+- Node 23.3
+- [Python 2.7+](https://www.python.org/downloads/)
+- [`pnpm`](https://pnpm.io/installation)
+- [Allora API Key](https://developer.upshot.xyz)
+
+## Download and Install Eliza OS
+
+Download the [Eliza OS](https://github.com/elizaOS) and cd into the directory.
+
+```bash
+git clone https://github.com/elizaOS/eliza.git
+cd eliza
+```
+
+### Copy the `.env.example` file
+
+```bash
+cp .env.example .env
+```
+
+### Change Allora API Key and Chain ID
+
+In your `.env` file, change the `ALLORA_API_KEY` and `CHAIN_ID` to your Allora API Key and Chain ID (Chain ID is the Allora Network chain you want to interact with, e.g. `testnet` or `mainnet`).
+
+<Callout type="info">
+You can get your Allora API Key from the [Allora Developer Dashboard](https://developer.upshot.xyz).
+</Callout>
+
+```bash
+# Allora API Key
+ALLORA_API_KEY=
+
+# Chain ID
+CHAIN_ID=
+```
+
+### Run the Eliza OS
+
+```bash
+run scripts/start.sh
+```
+
+### Converse with Eliza
+
+```plaintext
+User: "What is the predicted ETH price in 5 minutes?"
+Agent: "I'll get the inference now..."
+Agent: "Inference provided by Allora Network on topic ETH 5min Prediction (ID: 13): 3393.364326646801085508"
+```
