@@ -1,5 +1,5 @@
 {
-  "updated": "2026-08-19",
+  "updated": "2026-09-02",
   "docs": "https://docs.allora.network/reference/networks",
   "field_notes": {
     "chain_id": "Cosmos SDK chain ID to pass to allorad and wallet software.",
@@ -28,7 +28,7 @@
         69,
         77
       ],
-      "abci_version": "HEAD-b6104eda6b2b009ea0714d2f724d53f4f0365fc0"
+      "abci_version": "HEAD-9d13dd266262124f648e31da127df2638b91aa8b"
     },
     "mainnet": {
       "name": "Mainnet",
@@ -40,7 +40,7 @@
       "lcd": "https://allora-api.mainnet.allora.network/",
       "explorer": "https://explorer.allora.network/",
       "sandbox_topic_ids": [],
-      "abci_version": "HEAD-b6104eda6b2b009ea0714d2f724d53f4f0365fc0"
+      "abci_version": "HEAD-9d13dd266262124f648e31da127df2638b91aa8b"
     }
   }
 }
