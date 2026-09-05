@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-31T14:57:07Z",
+  "generated_at": "2026-09-05T04:13:29Z",
   "source": "Cosmos LCD (REST) emissions API: next_topic_id, is_topic_active, topics",
   "networks": [
     {
@@ -7,12 +7,12 @@
       "chain_id": "allora-testnet-1",
       "emissions_api": "v10",
       "lcd": "https://allora-api.testnet.allora.network",
-      "active_topic_count": 39
+      "active_topic_count": 43
     },
     {
       "network": "mainnet",
       "chain_id": "allora-mainnet-1",
-      "emissions_api": "v9",
+      "emissions_api": "v10",
       "lcd": "https://allora-api.mainnet.allora.network",
       "active_topic_count": 15
     }
@@ -116,6 +116,16 @@
       "epoch_length": 35,
       "loss_method": "mse",
       "category": "price",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 39,
+      "metadata": "SOL/USD - 5min Volatility Prediction",
+      "epoch_length": 35,
+      "loss_method": "mse",
+      "category": "volatility",
       "sandbox": false
     },
     {
@@ -406,6 +416,36 @@
       "epoch_length": 60,
       "loss_method": "mse",
       "category": "volatility",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 87,
+      "metadata": "24 hour xyz:GOLD (Hyperliquid) Triple-Barrier Classification",
+      "epoch_length": 60,
+      "loss_method": "focal",
+      "category": "price",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 88,
+      "metadata": "24 hour XAG/USD (Hyperliquid) Triple-Barrier Classification",
+      "epoch_length": 60,
+      "loss_method": "focal",
+      "category": "price",
+      "sandbox": false
+    },
+    {
+      "network": "testnet",
+      "chain_id": "allora-testnet-1",
+      "id": 89,
+      "metadata": "24 hour WTI/USD (Hyperliquid) Triple-Barrier Classification",
+      "epoch_length": 60,
+      "loss_method": "focal",
+      "category": "price",
       "sandbox": false
     },
     {
