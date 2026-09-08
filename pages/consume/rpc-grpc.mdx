@@ -2,7 +2,7 @@
 title: Accessing Allora Data Through RPC
 description: In addition to the Allora API, you can also access Allora network data directly through RPC (Remote Procedure Call) endpoints.
 persona: App developer
-verified_against: docs content as of 2026-07-16; examples live in snippets/ and are executed against the live testnet LCD (emissions/v10) by the nightly snippet run, last locally on 2026-08-02
+verified_against: docs content as of 2026-07-16; examples live in snippets/ and are executed against the live testnet LCD (emissions/v10) by the nightly snippet run, last locally on 2026-08-02; mainnet archive endpoints probed live on 2026-09-08
 last_reviewed: 2026-08-19
 ---
 
@@ -30,6 +30,51 @@ Each network uses a different RPC URL and Chain ID which are needed to specify w
 - **Chain ID**: `allora-testnet-1`
 
 See [Networks](/reference/networks) for the current endpoints of every network, including the versioned `emissions` namespace each one serves.
+
+### Mainnet archive (full history)
+
+Mainnet also has a set of **archive** endpoints that serve the complete chain history from block 1, for integrators that need to look up an old block or transaction rather than follow the tip of the chain. The Chain ID is the same as the rest of mainnet: `allora-mainnet-1`.
+
+| Surface | URL |
+|---------|-----|
+| **RPC** (CometBFT) | <Code><NetworkValue network="mainnet" field="archive_rpc"/></Code> |
+| **LCD** (Cosmos SDK REST) | <Code><NetworkValue network="mainnet" field="archive_lcd"/></Code> |
+| **gRPC** | <Code><NetworkValue network="mainnet" field="archive_grpc"/></Code> |
+
+All three are HTTPS on port 443, gRPC included (TLS with SNI) — there are no backend ports to connect to. The hostnames `rpc.archive.mainnet.allora.network`, `api.archive.mainnet.allora.network` and `grpc.archive.mainnet.allora.network` are aliases of the same three endpoints; either form works.
+
+These endpoints are **query-only**. Everything that writes to the chain, plus the indexer-backed search methods, is refused:
+
+- **RPC**: `broadcast_tx_*`, `check_tx`, `tx_search`, `block_search`, `dial_*`, `unsafe_*`, `/websocket` and `subscribe*`
+- **LCD**: `POST`, which covers broadcast and simulate
+- **gRPC**: write methods such as `BroadcastTx`
+
+To broadcast a transaction, or to search for one by event, use the regular mainnet endpoints in [Networks](/reference/networks) instead.
+
+**Examples.** Read the first block over RPC, and a transaction by hash over the LCD:
+
+```bash
+curl 'https://rpc.archive.allora.network/block?height=1'
+curl https://api.archive.allora.network/cosmos/tx/v1beta1/txs/<TX_HASH>
+```
+
+The first request returns the genesis block of `allora-mainnet-1`, hash `3F3F8473FD7AE262A3D085D7F4D88F9F4295944A1432A9FFF88D9DAFC2E081C3` — a cheap way to confirm you are talking to a full archive rather than a pruned node, which answers `height 1 is not available` instead.
+
+Requests are rate limited per source IP; retry with backoff when you are limited:
+
+| Surface | Paths or methods | Rate | Burst |
+|---------|------------------|------|-------|
+| **RPC** | `/`, `/status`, `/health`, `/abci_info` | 50/s | 100 |
+| **RPC** | `/block`, `/block_results`, `/commit`, `/header` | 20/s | 40 |
+| **RPC** | `/tx`, `/block_by_hash`, `/header_by_hash` | 20/s | 40 |
+| **RPC** | `/validators`, `/consensus_params` | 10/s | 20 |
+| **RPC** | `/genesis`, `/genesis_chunked` | 5/s | 10 |
+| **LCD** | `/cosmos/tx/v1beta1/txs/**` and the module query prefixes | 20/s | 40 |
+| **gRPC** | allow-listed `Query`/`Get*` methods | no limit | — |
+
+<Callout type="info">
+There is no public archive endpoint on testnet yet. When one lands, its history will begin at block 600,001 rather than at genesis, so it will not answer for earlier testnet blocks.
+</Callout>
 
 ## RPC Endpoints for Consumers
 

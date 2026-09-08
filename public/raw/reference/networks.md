@@ -2,7 +2,7 @@
 title: Networks
 description: Chain IDs, endpoints, and the currently deployed allora-chain version for each Allora network.
 persona: Builder or operator
-verified_against: live abci_info and cosmos/upgrade applied_plan on both networks, 2026-08-19
+verified_against: live abci_info and cosmos/upgrade applied_plan on both networks, 2026-08-19; mainnet archive rpc/api/grpc probed live 2026-09-08
 last_reviewed: 2026-08-19
 ---
 
@@ -26,6 +26,9 @@ serves `emissions/v10`.
 | **API (Cosmos LCD - REST)** | `https://allora-api.testnet.allora.network/` | `https://allora-api.mainnet.allora.network/` |
 | **Explorer** | `https://explorer.testnet.allora.network/allora-testnet-1` | `https://explorer.allora.network/` |
 | **Faucet** | `https://faucet.testnet.allora.network/` | — |
+| **Archive RPC (full history)** | — | `https://rpc.archive.allora.network/` |
+| **Archive API (Cosmos LCD - REST)** | — | `https://api.archive.allora.network/` |
+| **Archive gRPC** | — | `https://grpc.archive.allora.network/` |
 
 The tables on this page are rendered from a machine-readable manifest served at `/api/networks.json`.
 Agents and scripts can read the same chain IDs, endpoints, and versions from there instead of scraping
@@ -47,6 +50,9 @@ and the [Release Notes](https://docs.allora.network/reference/release-notes).
 - **API (Cosmos LCD - REST)**: `https://allora-api.testnet.allora.network/`
 - **Explorer**: `https://explorer.testnet.allora.network/allora-testnet-1`
 - **Faucet**: `https://faucet.testnet.allora.network/`
+- **Archive RPC (full history)**: —
+- **Archive API (Cosmos LCD - REST)**: —
+- **Archive gRPC**: —
 
 Use the testnet for building and testing integrations, running workers/reputers, and trying features
 before they ship to mainnet. For wallet creation and faucet funding, see
@@ -62,8 +68,22 @@ before they ship to mainnet. For wallet creation and faucet funding, see
 - **API (Cosmos LCD - REST)**: `https://allora-api.mainnet.allora.network/`
 - **Explorer**: `https://explorer.allora.network/`
 - **Faucet**: —
+- **Archive RPC (full history)**: `https://rpc.archive.allora.network/`
+- **Archive API (Cosmos LCD - REST)**: `https://api.archive.allora.network/`
+- **Archive gRPC**: `https://grpc.archive.allora.network/`
 
 Mainnet has no faucet — fund addresses with ALLO yourself.
+
+The **archive** endpoints serve the complete chain history from block 1 and are **query-only**: no
+transaction broadcast, and no `tx_search` or `block_search`. They exist for historical lookups by
+exchanges and integrators — for tip-of-chain reads and for submitting transactions, use the regular
+mainnet endpoints above. The `rpc.archive.mainnet.allora.network`,
+`api.archive.mainnet.allora.network` and `grpc.archive.mainnet.allora.network` hostnames are aliases of
+the same endpoints; see [RPC JSON Data Access](https://docs.allora.network/consume/rpc-grpc) for the deny list and rate limits.
+
+Testnet has no public archive endpoint yet, which is why the testnet column has no archive rows filled
+in. When one lands, its history will begin at **block 600,001** rather than at genesis — it will not
+answer for earlier testnet blocks.
 
 The `emissions` API version segment is per-network — always pick the one matching the network you are
 querying: `emissions/v10` on testnet and
