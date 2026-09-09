@@ -52,9 +52,13 @@ Mainnet has no faucet — fund addresses with ALLO yourself.
 The **archive** endpoints serve the complete chain history from block 1 and are **query-only**: no
 transaction broadcast, and no `tx_search` or `block_search`. They exist for historical lookups by
 exchanges and integrators — for tip-of-chain reads and for submitting transactions, use the regular
-mainnet endpoints above. The `rpc.archive.mainnet.allora.network`,
-`api.archive.mainnet.allora.network` and `grpc.archive.mainnet.allora.network` hostnames are aliases of
-the same endpoints; see [RPC JSON Data Access](/consume/rpc-grpc) for the deny list and rate limits.
+mainnet endpoints above. See [RPC JSON Data Access](/consume/rpc-grpc) for the deny list and rate
+limits.
+
+The hostnames `rpc.allora.network`, `api.allora.network` and `grpc.allora.network` are extra aliases
+of the live (tip) mainnet endpoints — no chain in the name means mainnet. On testnet,
+`rpc.testnet.allora.network`, `api.testnet.allora.network` and `grpc.testnet.allora.network` alias
+the live testnet endpoints. They are not archive hosts.
 
 <Callout type="info">
 Testnet has no public archive endpoint yet, which is why the testnet column has no archive rows filled

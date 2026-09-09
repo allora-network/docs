@@ -5245,7 +5245,13 @@ Each network uses a different RPC URL and Chain ID which are needed to specify w
 - **LCD URL** (Cosmos SDK REST): `https://allora-api.testnet.allora.network/`
 - **Chain ID**: `allora-testnet-1`
 
+The hostnames `rpc.testnet.allora.network`, `api.testnet.allora.network` and `grpc.testnet.allora.network` are extra aliases of these live (tip) endpoints.
+
 See [Networks](https://docs.allora.network/reference/networks) for the current endpoints of every network, including the versioned `emissions` namespace each one serves.
+
+### Mainnet
+
+The live (tip) mainnet endpoints are `allora-rpc.mainnet.allora.network`, `allora-api.mainnet.allora.network` and `allora-grpc.mainnet.allora.network`. The hostnames `rpc.allora.network`, `api.allora.network` and `grpc.allora.network` are extra aliases of the same live endpoints — no chain in the name means mainnet.
 
 ### Mainnet archive (full history)
 
@@ -5257,7 +5263,7 @@ Mainnet also has a set of **archive** endpoints that serve the complete chain hi
 | **LCD** (Cosmos SDK REST) | `https://api.archive.allora.network/` |
 | **gRPC** | `https://grpc.archive.allora.network/` |
 
-All three are HTTPS on port 443, gRPC included (TLS with SNI) — there are no backend ports to connect to. The hostnames `rpc.archive.mainnet.allora.network`, `api.archive.mainnet.allora.network` and `grpc.archive.mainnet.allora.network` are aliases of the same three endpoints; either form works.
+All three are HTTPS on port 443, gRPC included (TLS with SNI) — there are no backend ports to connect to.
 
 These endpoints are **query-only**. Everything that writes to the chain, plus the indexer-backed search methods, is refused:
 
@@ -7759,9 +7765,13 @@ Mainnet has no faucet — fund addresses with ALLO yourself.
 The **archive** endpoints serve the complete chain history from block 1 and are **query-only**: no
 transaction broadcast, and no `tx_search` or `block_search`. They exist for historical lookups by
 exchanges and integrators — for tip-of-chain reads and for submitting transactions, use the regular
-mainnet endpoints above. The `rpc.archive.mainnet.allora.network`,
-`api.archive.mainnet.allora.network` and `grpc.archive.mainnet.allora.network` hostnames are aliases of
-the same endpoints; see [RPC JSON Data Access](https://docs.allora.network/consume/rpc-grpc) for the deny list and rate limits.
+mainnet endpoints above. See [RPC JSON Data Access](https://docs.allora.network/consume/rpc-grpc) for the deny list and rate
+limits.
+
+The hostnames `rpc.allora.network`, `api.allora.network` and `grpc.allora.network` are extra aliases
+of the live (tip) mainnet endpoints — no chain in the name means mainnet. On testnet,
+`rpc.testnet.allora.network`, `api.testnet.allora.network` and `grpc.testnet.allora.network` alias
+the live testnet endpoints. They are not archive hosts.
 
 Testnet has no public archive endpoint yet, which is why the testnet column has no archive rows filled
 in. When one lands, its history will begin at **block 600,001** rather than at genesis — it will not
