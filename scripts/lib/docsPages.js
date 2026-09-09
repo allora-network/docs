@@ -759,6 +759,9 @@ const NETWORK_FIELDS = [
   { key: 'lcd', label: 'API (Cosmos LCD - REST)', code: true },
   { key: 'explorer', label: 'Explorer', code: true },
   { key: 'faucet', label: 'Faucet', code: true },
+  { key: 'archive_rpc', label: 'Archive RPC (full history)', code: true },
+  { key: 'archive_lcd', label: 'Archive API (Cosmos LCD - REST)', code: true },
+  { key: 'archive_grpc', label: 'Archive gRPC', code: true },
 ];
 
 function networks() {
