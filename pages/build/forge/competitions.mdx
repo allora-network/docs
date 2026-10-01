@@ -2,8 +2,8 @@
 title: Allora Forge Competitions
 description: How Allora Forge competitions work — compete on live topics, build a testnet track record, and graduate to mainnet where top performers earn ALLO rewards.
 persona: ML builder
-verified_against: forge.allora.network (live site + public API, 2026-07-30), allora-forge-builder-kit README (main @ 8ef3200), Allora Research promotion/relegation post (2026-08-06)
-last_reviewed: 2026-08-12
+verified_against: forge.allora.network (live site + public API, 2026-07-30), allora-forge-builder-kit README (main @ 8ef3200), Allora Research promotion/relegation post (2026-08-06); triple-barrier reputer SQL and six-criterion contract supplied for ENGN-9552, builder kit cb63774 (SDK 1.4.0rc4)
+last_reviewed: 2026-10-01
 ---
 
 import { Callout } from 'nextra/components'
@@ -38,9 +38,9 @@ The key dashboard detail is that some eligibility rows use a **confidence interv
 
 the top-level value is the worker's point estimate for that metric. The values in parentheses are the confidence interval around that estimate. For promotion checks that say the **lower CI** must exceed a threshold, the relevant number is the **first value inside the parentheses**, not the top-level point estimate. For example, if directional accuracy appears as `72.3% (44.7%, 100%)`, the lower CI is `44.7%`; this would not pass a `> 50%` lower-bound threshold even though the point estimate is above 50%.
 
-Allora uses confidence intervals because workers may have different numbers of submissions. More submissions generally give more evidence and a tighter interval; fewer submissions leave more uncertainty. Where adjacent epochs share overlapping ground-truth windows, Allora corrects the interval calculation using an effective sample size so repeated, correlated observations do not overstate confidence.
+Allora uses confidence intervals because workers may have different numbers of submissions. More submissions generally give more evidence and a tighter interval; fewer submissions leave more uncertainty. Adjacent epochs can share overlapping ground-truth windows. Return/volatility criteria use effective-sample-size adjustments; triple-barrier criteria use paired block bootstrap resampling as specified below.
 
-For mainnet promotion, a worker must pass every promotion metric on the topic:
+For price/log-return and volatility topics, the promotion criteria are listed below. Triple-barrier topics instead use the [six classification criteria](#classification-evaluation) in their own section.
 
 - **Effective sample size** — at least 20 raw effective observations
 - **Directional accuracy** — one-sided 95% lower CI greater than 50%
@@ -50,9 +50,9 @@ For mainnet promotion, a worker must pass every promotion metric on the topic:
 - **Log aspect ratio** — confidence interval overlaps `[-0.5, +0.5]`, meaning forecast variation is not clearly too small or too large
 - **Participation** — strictly greater than 90%
 
-Long-horizon topics accumulate independent evidence more slowly, so the promotion system applies a forecast-horizon adjustment to directional accuracy, WRMSE improvement, and WCZAR improvement. This relaxes the effective confidence requirement for long horizons after the minimum effective-sample-size gate has already been met. Pearson correlation and log aspect ratio do not use this horizon adjustment.
+For these return/volatility criteria, long-horizon topics accumulate independent evidence more slowly, so the promotion system applies a forecast-horizon adjustment to directional accuracy, WRMSE improvement, and WCZAR improvement. This relaxes the effective confidence requirement for long horizons after the minimum effective-sample-size gate has already been met. Pearson correlation and log aspect ratio do not use this horizon adjustment.
 
-The [Forge Builder Kit](https://github.com/allora-network/allora-forge-builder-kit) mirrors this methodology off-chain: its `PerformanceEvaluator` grades your model against Allora's scoring methodology *before* you deploy, including directional accuracy, Pearson correlation, weighted-RMSE improvement, CZAR improvement, and related confidence checks. A higher grade means better generalization and a higher expected score on the network.
+The [Forge Builder Kit](https://github.com/allora-network/allora-forge-builder-kit) provides offline evaluation tools. Its example reports help assess models before deployment; they do not replace observed network participation or Forge promotion decisions. Evaluation and report formats depend on the topic type.
 
 For the full policy, including relegation criteria, see the Allora Research forum post on [inference worker promotion and relegation](https://research.allora.network/t/inference-worker-promotion-and-relegation/157).
 
@@ -72,11 +72,182 @@ Volatility topics are evaluated on the change in volatility, not the raw volatil
 
 Volatility naturally tends to mean-revert, which can inflate directional accuracy if it is not accounted for. Allora therefore estimates a causal trailing mean-reversion baseline from information available at forecast time and subtracts that expectation from both the worker prediction and the actual log-volatility change before calculating the evaluation metrics. Workers are evaluated on skill beyond that volatility baseline.
 
+### Triple-barrier topics
+
+Testnet topics **87–89** share a 24-hour, three-class prediction task. Predict
+which price barrier is touched first: `down`, `neutral`, or `up`.
+
+| Testnet topic ID | Asset | Atlas minute dataset |
+| --- | --- | --- |
+| 87 | Gold | `hl_xyzgold_1min` |
+| 88 | Silver | `hl_xyzsilver_1min` |
+| 89 | WTI oil | `hl_xyzcl_1min` |
+
+These IDs refer to `allora-testnet-1`; they are not mainnet mappings. Check the
+[topic listing](/build/forge/topics) for active status. The prediction horizon
+is distinct from the topic's submission cadence: successive targets can overlap.
+
+#### Ground-truth construction
+
+Let `T` be the prediction/nonce **timestamp**, in UTC (not a block height).
+Candle timestamps denote opening times. These topics use:
+
+| Parameter | Value |
+| --- | --- |
+| Prediction horizon | 24 hours |
+| Historical averaging window | 2,400 hours (100 horizons) |
+| Volatility candles | 1 hour |
+| Barrier-testing candles | 1 minute |
+| Barrier multiplier `k` | 0.25 |
+
+1. Aggregate minute candles into hourly OHLC candles, taking the maximum minute
+   high and minimum minute low for each hour.
+2. Select hourly candles whose opening timestamps fall in the half-open interval
+   `[T − 2401h, T − 1h)`. For an hourly-aligned `T`, this selects 2,400 samples;
+   the latest opens at `T − 2h` and closes at `T − 1h`.
+3. For each selected sample at `t`, compute the high–low log range using selected
+   candles with opening timestamps in **`[t − 24h, t]`, inclusive**. Average these
+   ranges over the selected samples to obtain `ATR`.
+
+```text
+S = hourly candle openings in [T − 2401h, T − 1h)
+W(t) = openings s in S such that t − 24h ≤ s ≤ t
+range(t) = ln(max(high(s) for s in W(t)))
+         − ln(min(low(s) for s in W(t)))
+ATR = mean(range(t) for t in S)
+```
+
+This follows the reputer SQL's `RANGE ... PRECEDING AND CURRENT ROW` semantics:
+a full range contains **25 hourly candle openings**, not 24. The query filters
+history to `S` before calculating its rolling windows. Consequently, the initial
+ranges contain 1, 2, …, 24 candles before reaching the full 25-candle window;
+there is no additional historical warmup outside `S`. Despite its name, `ATR`
+is an average rolling high–low **log range**, not conventional true range.
+
+4. Set the base to the close of the minute candle opening at `T − 1m`, and fix
+   the barriers for this prediction:
+
+```text
+base  = close(T − 1m)
+upper = base × exp(0.25 × ATR)
+lower = base × exp(−0.25 × ATR)
+```
+
+The barriers are symmetric in log-price distance, not absolute price distance.
+They do not move during the prediction horizon.
+
+5. Examine minute candles chronologically over **`[T − 1m, T + 24h − 1m)`**.
+   Use their full high and low, including those of the first tested candle:
+   a lower hit means `low ≤ lower`; an upper hit means `high ≥ upper`.
+6. Assign the first-touch outcome:
+
+| Outcome | Target | One-hot vector in `[down, neutral, up]` order |
+| --- | --- | --- |
+| Lower barrier first | `down` | `[1, 0, 0]` |
+| Neither barrier before expiration | `neutral` | `[0, 1, 0]` |
+| Upper barrier first | `up` | `[0, 0, 1]` |
+| Both barriers in the same minute | `down` (`down_first`) | `[1, 0, 0]` |
+
+Missing candles in the required historical or testing interval must not be
+interpreted as neutral: leave the target unresolved until complete coverage is
+available. The intentionally shorter initial rolling ranges above are not
+missing-data gaps.
+
+#### Worker predictions
+
+Submit **labeled probabilities**, not the winning class or a signed trade signal.
+For example, a valid model output is:
+
+```json
+{"down": 0.2, "neutral": 0.3, "up": 0.5}
+```
+
+All three probabilities must be finite, nonnegative, and sum to one. Whenever
+arrays are used for evaluation, their declared order is `[down, neutral, up]`.
+The hard prediction used for accuracy is `argmax` in that order; an exact tie
+selects the earliest tied class. This is separate from the target's same-minute
+`down_first` rule. Probability-based losses use the probabilities themselves.
+
+#### Classification evaluation
+
+Compare workers against a **causal baseline**: class frequencies from the previous
+100 resolved targets available at the prediction time. Use all available prior
+resolved targets when fewer than 100 exist, or `[1/3, 1/3, 1/3]` when none exist.
+Future outcomes must not contribute to a prediction's baseline.
+
+These topics have **six ratified criteria**, with strict `>` comparisons:
+
+| Criterion | Definition / passing threshold |
+| --- | --- |
+| Accuracy improvement | Worker accuracy minus baseline accuracy **> 0.02** |
+| Accuracy-improvement lower bound | Bootstrap 5th percentile **> 0** |
+| Quadratic weighted kappa lower bound | Bootstrap 5th percentile **> 0**, using ordinal classes `down < neutral < up` |
+| Brier skill lower bound | Bootstrap 5th percentile **> 0** |
+| Focal skill lower bound | Bootstrap 5th percentile **> 0** |
+| Participation | Submitted opportunities / available opportunities **> 0.90** |
+
+Quadratic weighted kappa penalizes confusing `down` with `up` more than confusing
+either with `neutral`. The probability losses and skills are:
+
+```text
+Brier loss = mean(sum((probabilities − one_hot_truth)²))
+Brier skill = 1 − worker Brier loss / baseline Brier loss
+
+p_true = clip(probability assigned to the realized class, 1e-15, 1)
+focal loss = mean(−(1 − p_true)² × ln(p_true))
+focal skill = 1 − worker focal loss / baseline focal loss
+```
+
+Focal loss uses gamma 2 and no class weighting. Clip only the realized-class
+probability for its logarithm, not the entire vector.
+
+All uncertainty bounds use **paired circular block bootstrap**: block length 10,
+1,000 replicates, and identical sampled rows for worker predictions, baseline
+predictions, and truth. Report the 5th and 95th percentiles (one-sided 95% bounds).
+Exclude non-finite replicates separately for each statistic; if none remain,
+report that statistic's estimate/interval as `null` and fail its criterion.
+
+Report raw metrics, baseline values, intervals, participation, `nvalid`, and
+`n_eff` with its calculation stated. Metrics can be calculated for any nonempty
+aligned sample; there is no additional ratified minimum-sample gate. A
+“provisional” label before 100 resolved observations does not change eligibility.
+An `eligible` flag means all six criteria passed; do not assign an A–F grade.
+Offline sample coverage does not establish live network participation.
+
+#### Optional directional-payoff diagnostic
+
+For this diagnostic only, map `down` to −1, `neutral` to 0, and `up` to +1.
+A correct directional hard prediction earns +1; an opposite directional
+prediction earns −1; any combination involving neutral earns 0. Subtract a
+cost `c` whenever the prediction is directional:
+
+```text
+net payoff = payoff − c × 1[prediction is directional]
+```
+
+Report the sum or mean (the mean is easier to compare across sample counts),
+and always declare `c`: there is no formally fixed transaction-cost value.
+This is not a seventh eligibility criterion and is not realized trading PnL.
+An actual trade illustration must also account for barrier prices, the expiry
+exit price, position sizing, and trading costs.
+
+#### Build and submit a model
+
+The [Builder Kit walkthrough](https://github.com/allora-network/allora-forge-builder-kit/blob/cb63774/notebooks/example_triple_barrier_walkthrough.py)
+loads Atlas data, constructs targets, selects a classifier on earlier walk-forward
+folds, evaluates it on the final held-out fold, and saves a deployable probability
+artifact plus charts. The [README](https://github.com/allora-network/allora-forge-builder-kit/blob/cb63774/README.md#quick-start)
+has setup and local WorkerManager deployment commands for each topic family.
+See the [target implementation](https://github.com/allora-network/allora-forge-builder-kit/blob/cb63774/allora_forge_builder_kit/workflow.py#L543)
+and [classification evaluator](https://github.com/allora-network/allora-forge-builder-kit/blob/cb63774/allora_forge_builder_kit/evaluation.py#L603)
+for a reproducible implementation. These links pin the reviewed implementation
+introduced in [Builder Kit PR #43](https://github.com/allora-network/allora-forge-builder-kit/pull/43).
+
 ## From testnet to mainnet
 
 Workers start on **testnet** to establish a track record, then graduate to **mainnet**, where top performers earn ALLO token rewards.
 
-Your Forge dashboard tracks this progression as **Mainnet Readiness**: a set of per-worker criteria with an eligibility threshold. Meet enough criteria and the worker becomes eligible for mainnet promotion; until then the dashboard shows which criteria are still in progress.
+Your Forge dashboard tracks this progression as **Mainnet Readiness**: a set of per-worker criteria with an eligibility threshold. Meet all required criteria for the topic and the worker becomes eligible for mainnet promotion; until then the dashboard shows which criteria are still in progress.
 
 ## Compete
 
@@ -95,7 +266,7 @@ No whitelist yet? The testnet **playground topics** — the [sandbox topics <San
 The [Allora Forge Builder Kit](https://github.com/allora-network/allora-forge-builder-kit) handles everything between your model and the network:
 
 - **Workflow API** — backfill historical data, engineer features, and build training datasets
-- **Evaluation** — grade your model against Allora's scoring methodology before deploying
+- **Evaluation** — evaluate held-out predictions with metrics appropriate to the topic type
 - **Deployment tooling** — wallet creation, faucet funding, and worker lifecycle management
 - **Monitoring dashboard** — web UI with submission history, on-chain scores, and live logs
 - **Topic discovery** — query all live topics on testnet and mainnet
