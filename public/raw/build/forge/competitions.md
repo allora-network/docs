@@ -2,7 +2,7 @@
 title: Allora Forge Competitions
 description: How Allora Forge competitions work — compete on live topics, build a testnet track record, and graduate to mainnet where top performers earn ALLO rewards.
 persona: ML builder
-verified_against: forge.allora.network (live site + public API, 2026-07-30), allora-forge-builder-kit README (main @ 8ef3200), Allora Research promotion/relegation post (2026-08-06); triple-barrier reputer SQL and six-criterion contract supplied for ENGN-9552, builder kit cb63774 (SDK 1.4.0rc4)
+verified_against: forge.allora.network (live site + public API, 2026-07-30), allora-forge-builder-kit README (main @ 8ef3200), Allora Research promotion/relegation post (2026-08-06); triple-barrier reputer SQL and six-criterion contract supplied for ENGN-9552, builder kit main after PR #43 merge (6ef1b1, SDK 1.4.0rc4)
 last_reviewed: 2026-10-01
 ---
 
@@ -230,15 +230,15 @@ exit price, position sizing, and trading costs.
 
 #### Build and submit a model
 
-The [Builder Kit walkthrough](https://github.com/allora-network/allora-forge-builder-kit/blob/cb63774/notebooks/example_triple_barrier_walkthrough.py)
+The [Builder Kit walkthrough](https://github.com/allora-network/allora-forge-builder-kit/blob/main/notebooks/example_triple_barrier_walkthrough.py)
 loads Atlas data, constructs targets, selects a classifier on earlier walk-forward
-folds, evaluates it on the final held-out fold, and saves a deployable probability
-artifact plus charts. The [README](https://github.com/allora-network/allora-forge-builder-kit/blob/cb63774/README.md#quick-start)
+folds, evaluates it on the final two held-out folds, and saves a deployable probability
+artifact plus charts. The [README](https://github.com/allora-network/allora-forge-builder-kit/blob/main/README.md#quick-start)
 has setup and local WorkerManager deployment commands for each topic family.
-See the [target implementation](https://github.com/allora-network/allora-forge-builder-kit/blob/cb63774/allora_forge_builder_kit/workflow.py#L543)
-and [classification evaluator](https://github.com/allora-network/allora-forge-builder-kit/blob/cb63774/allora_forge_builder_kit/evaluation.py#L603)
-for a reproducible implementation. These links pin the reviewed implementation
-introduced in [Builder Kit PR #43](https://github.com/allora-network/allora-forge-builder-kit/pull/43).
+See the [target implementation](https://github.com/allora-network/allora-forge-builder-kit/blob/main/allora_forge_builder_kit/workflow.py#L554)
+and [classification evaluator](https://github.com/allora-network/allora-forge-builder-kit/blob/main/allora_forge_builder_kit/evaluation.py#L611)
+for the implementation. The walkthrough is available on the Builder Kit’s `main`
+branch, so the quick-start clone command includes it without an additional checkout step.
 
 ## From testnet to mainnet
 
